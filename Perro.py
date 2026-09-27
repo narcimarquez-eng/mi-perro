@@ -79,6 +79,7 @@ sol.data.energy = 5.0
 # ---------- RENDER ----------
 scene = bpy.context.scene
 scene.render.engine = 'CYCLES'
+scene.cycles.use_denoising = False
 scene.cycles.samples = 64
 scene.render.resolution_x = 800
 scene.render.resolution_y = 600
