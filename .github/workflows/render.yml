@@ -8,10 +8,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Instalar Blender
-        run: sudo apt-get update && sudo apt-get install -y blender
-
+      - name: Instalar Blender y dependencias
+        run: sudo apt-get update && sudo apt-get install -y blender python3-numpy
       - name: Renderizar el perro
         run: blender -b --factory-startup --python-exit-code 1 --python Perro.py
 
