@@ -5,6 +5,9 @@ import os
 # ---------- LIMPIAR ESCENA ----------
 bpy.ops.wm.read_factory_settings(use_empty=True)
 
+# Activar el exportador de glTF (necesario para .glb)
+bpy.ops.preferences.addon_enable(module="io_scene_gltf2")
+
 # ---------- MATERIALES ----------
 def crear_material(nombre, color):
     mat = bpy.data.materials.new(nombre)
@@ -18,27 +21,28 @@ oscuro = crear_material("Oscuro", (0.08, 0.04, 0.02))
 
 # ---------- HELPERS ----------
 def esfera(loc, escala, material, nombre):
-    bpy.ops.mesh.primitive_uv_sphere_add(
-        segments=32, ring_count=16, radius=1.0, location=loc
-    )
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=32, ring_count=16, radius=1.0, location=loc)
     obj = bpy.context.object
     obj.name = nombre
     obj.scale = escala
     obj.data.materials.append(material)
-    # CORREGIDO: suavizado seguro para headless
+    # Añadir suavizado de subdivisión para que se vea mejor en 3D
+    mod = obj.modifiers.new(name="Subsurf", type='SUBSURF')
+    mod.levels = 2
+    mod.render_levels = 2
     for poly in obj.data.polygons:
         poly.use_smooth = True
     return obj
 
 def cilindro(loc, rot, escala, material, nombre):
-    bpy.ops.mesh.primitive_cylinder_add(
-        vertices=32, radius=1.0, depth=2.0,
-        location=loc, rotation=rot
-    )
+    bpy.ops.mesh.primitive_cylinder_add(vertices=32, radius=1.0, depth=2.0, location=loc, rotation=rot)
     obj = bpy.context.object
     obj.name = nombre
     obj.scale = escala
     obj.data.materials.append(material)
+    mod = obj.modifiers.new(name="Subsurf", type='SUBSURF')
+    mod.levels = 2
+    mod.render_levels = 2
     for poly in obj.data.polygons:
         poly.use_smooth = True
     return obj
@@ -59,27 +63,23 @@ for x in (-0.35, 0.35):
 
 cilindro((0, 1.20, 1.00), (math.radians(45), 0, 0), (0.08, 0.08, 0.50), marron, "Cola")
 
-# Suelo
 bpy.ops.mesh.primitive_plane_add(size=10, location=(0, 0, 0))
 suelo = bpy.context.object
 suelo.name = "Suelo"
 suelo.data.materials.append(crear_material("Suelo", (0.2, 0.2, 0.2)))
 
 # ---------- CÁMARA Y LUZ ----------
-bpy.ops.object.camera_add(
-    location=(4, -4, 3),
-    rotation=(math.radians(60), 0, math.radians(45))
-)
+bpy.ops.object.camera_add(location=(4, -4, 3), rotation=(math.radians(60), 0, math.radians(45)))
 bpy.context.scene.camera = bpy.context.object
 
 bpy.ops.object.light_add(type='SUN', location=(3, -3, 6))
 sol = bpy.context.object
 sol.data.energy = 5.0
 
-# ---------- RENDER ----------
+# ---------- RENDER (PNG) ----------
 scene = bpy.context.scene
 scene.render.engine = 'CYCLES'
-scene.cycles.use_denoising = False
+scene.cycles.use_denoising = False  # Evita el error de OpenImageDenoiser
 scene.cycles.samples = 64
 scene.render.resolution_x = 800
 scene.render.resolution_y = 600
@@ -87,3 +87,12 @@ scene.render.image_settings.file_format = 'PNG'
 scene.render.filepath = os.path.abspath("perro.png")
 
 bpy.ops.render.render(write_still=True)
+
+# ---------- EXPORTAR A GLB ----------
+bpy.ops.object.select_all(action='SELECT')
+bpy.ops.export_scene.gltf(
+    filepath=os.path.abspath("perro.glb"),
+    export_format='GLB',
+    use_selection=False
+)
+print("¡Perro exportado a GLB correctamente!")
