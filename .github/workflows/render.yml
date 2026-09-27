@@ -1,0 +1,22 @@
+name: Render Perro
+
+on:
+  workflow_dispatch:
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar Blender
+        run: sudo apt-get update && sudo apt-get install -y blender
+
+      - name: Renderizar el perro
+        run: blender -b --python perro.py
+
+      - name: Subir la imagen
+        uses: actions/upload-artifact@v4
+        with:
+          name: perro-render
+          path: perro.png
