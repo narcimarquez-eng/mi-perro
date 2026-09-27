@@ -15,8 +15,10 @@ jobs:
       - name: Renderizar el perro
         run: blender -b --factory-startup --python-exit-code 1 --python Perro.py
 
-      - name: Subir la imagen
+      - name: Subir la imagen y el modelo 3D
         uses: actions/upload-artifact@v4
         with:
-          name: perro-render
-          path: perro.png
+          name: perro-3d
+          path: |
+            perro.png
+            perro.glb
