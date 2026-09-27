@@ -13,7 +13,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y blender
 
       - name: Renderizar el perro
-        run: blender -b --python perro.py
+        run: blender -b --factory-startup --python-exit-code 1 --python perro.py
 
       - name: Subir la imagen
         uses: actions/upload-artifact@v4
