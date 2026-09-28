@@ -131,7 +131,7 @@ def objeto_malla(nombre, verts, caras, material):
     return obj
 
 # ---------- TERRENO ----------
-bpy.ops.mesh.primitive_grid_add(x_subdivisions=160, y_subdivisions=160, size=160)
+bpy.ops.mesh.primitive_grid_add(x_subdivisions=200, y_subdivisions=200, size=240)
 terreno = bpy.context.object
 terreno.name = "Arena"
 for v in terreno.data.vertices:
@@ -215,6 +215,11 @@ palmeras = [
     (24, 12, 6.8, 2.2, 3.0),
     (-28, 14, 7.2, 1.6, -0.2),
     (3, 22, 7.8, 1.9, 1.9),
+    # más palmeras a lo largo de la playa ampliada
+    (-45, 13, 7.6, 2.1, 0.9), (-52, 18, 6.9, 1.4, -1.5), (-66, 12, 8.2, 2.3, 2.2),
+    (-80, 16, 7.0, 1.7, 0.1), (-95, 13, 7.9, 2.0, -2.4),
+    (38, 16, 7.3, 1.8, 1.2), (58, 13, 8.0, 2.2, -0.6), (64, 19, 6.6, 1.3, 2.8),
+    (78, 14, 7.7, 2.0, 0.5), (95, 17, 7.1, 1.6, -1.8),
 ]
 for i, (x, y, alto, incl, giro) in enumerate(palmeras):
     palmera(i, x, y, alto, incl, giro)
@@ -237,9 +242,35 @@ rocas = [
     (-23, -8, 1.3), (-17, -12, 0.9),                                # rocas dentro del agua
     (20, -6, 1.2), (22, -9, 1.8), (31, 3, 1.4),
     (-5, 26, 1.0), (28, 24, 1.3),
+    (-60, -2, 1.7), (-63, 0, 1.0), (-58, -7, 1.2), (-85, -3, 2.2), (-88, 1, 1.3),
+    (70, -4, 1.5), (73, -1, 0.9), (88, -8, 2.0), (-40, 30, 1.2), (60, 30, 1.4),
 ]
 for i, (x, y, tam) in enumerate(rocas):
     piedra(i, x, y, tam)
+
+# ---------- MUELLE ----------
+# Tablones de madera que entran en el mar. La web usa este mismo rectángulo para que se pueda andar por encima.
+madera = crear_material("Madera", (0.26, 0.15, 0.07), 0.8)
+MUELLE_X, MUELLE_ANCHO, MUELLE_Y0, MUELLE_Y1, MUELLE_Z = 45.0, 3.0, -32.0, 8.0, 1.1
+n_tablones = int((MUELLE_Y1 - MUELLE_Y0) / 0.8)
+for t in range(n_tablones):
+    y = MUELLE_Y0 + 0.4 + t * 0.8
+    bpy.ops.mesh.primitive_cube_add(location=(MUELLE_X, y, MUELLE_Z - 0.06))
+    tablon = bpy.context.object
+    tablon.name = f"Tablon_{t}"
+    tablon.scale = (MUELLE_ANCHO / 2, 0.37, 0.06)
+    tablon.rotation_euler = (0, 0, math.radians((t * 37 % 5 - 2) * 0.4))  # un poco desiguales
+    tablon.data.materials.append(madera)
+for y in range(int(MUELLE_Y0), int(MUELLE_Y1) + 1, 4):
+    for lado in (-1, 1):
+        x = MUELLE_X + lado * (MUELLE_ANCHO / 2 - 0.15)
+        fondo_z = altura(x, y) - 0.5
+        alto_poste = MUELLE_Z - fondo_z
+        bpy.ops.mesh.primitive_cylinder_add(vertices=10, radius=0.14, depth=alto_poste,
+                                            location=(x, y, fondo_z + alto_poste / 2 - 0.1))
+        poste = bpy.context.object
+        poste.name = f"Poste_{y}_{lado}"
+        poste.data.materials.append(madera)
 
 # ---------- SOMBRILLA Y TOALLA ----------
 SX, SY = 5.0, 5.5
