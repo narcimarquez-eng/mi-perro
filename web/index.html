@@ -613,6 +613,12 @@
   let listo = false;
 
   const loader = new THREE.GLTFLoader();
+  // Las texturas se cargan como imágenes (<img>) y no con fetch(): en páginas con una política
+  // de seguridad estricta fetch() no puede leer las direcciones blob: y el modelo salía gris
+  loader.register((parser) => {
+    parser.textureLoader = new THREE.TextureLoader(parser.options.manager);
+    return { name: 'texturas_como_imagenes' };
+  });
   // Carga el .glb; si no está (o el servidor no lo sirve), prueba con una copia en base64 (.glb.txt)
   async function cargar(nombre) {
     let datos = null;
@@ -707,7 +713,14 @@
   function prepararNino(gltf) {
     const modelo = gltf.scene;
     modelo.traverse((o) => {
-      if (o.isMesh) { o.castShadow = true; o.frustumCulled = false; }
+      if (o.isMesh) {
+        o.castShadow = true;
+        o.frustumCulled = false;
+        // Piel y ropa no son metal (el modelo original decía metallic = 1)
+        o.material.metalness = 0;
+        o.material.metalnessMap = null;
+        o.material.needsUpdate = true;
+      }
       if (o.isBone) nino.huesos[o.name] = o;
     });
     // Tamaño de un niño de unos 6 años (1,20 m) con los pies en el suelo
