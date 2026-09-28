@@ -1,0 +1,836 @@
+<!doctype html>
+<html lang="es">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Playa del Perro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: light;
+    --tinta: #123b4a;
+    --tinta-suave: #3d6472;
+    --arena: #f6e6c4;
+    --espuma: #fffdf7;
+    --coral: #ff6f59;
+    --coral-osc: #d9503c;
+    --mar: #14a9bb;
+    --mar-osc: #0d7f8f;
+    --cristal: rgba(255, 253, 247, 0.86);
+  }
+  html, body { height: 100%; }
+  [hidden] { display: none !important; }
+  body {
+    margin: 0;
+    overflow: hidden;
+    background: #9fd6ef;
+    color: var(--tinta);
+    font-family: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #escena { position: fixed; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; }
+  #escena:active { cursor: grabbing; }
+
+  .panel {
+    position: fixed;
+    top: calc(12px + env(safe-area-inset-top, 0px));
+    left: 16px;
+    right: 16px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 8px;
+    pointer-events: none;
+  }
+  .ficha {
+    background: var(--cristal);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    border-radius: 14px;
+    padding: 8px 14px;
+    box-shadow: 0 2px 10px rgba(18, 59, 74, 0.12);
+  }
+  h1 {
+    margin: 0;
+    font-family: "Baloo 2", "Nunito", system-ui, sans-serif;
+    font-weight: 800;
+    font-size: 22px;
+    line-height: 1.1;
+    letter-spacing: 0.01em;
+  }
+  .ayuda { margin: 2px 0 0; font-size: 13px; color: var(--tinta-suave); max-width: 46ch; }
+  .ayuda kbd {
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 12px;
+    background: var(--arena);
+    border-radius: 5px;
+    padding: 0 5px;
+  }
+  .solo-tactil { display: none; }
+  @media (pointer: coarse) {
+    .solo-tactil { display: inline; }
+    .solo-teclado { display: none; }
+  }
+  .estado {
+    font-weight: 700;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-variant-numeric: tabular-nums;
+  }
+  .estado i {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--arena); box-shadow: inset 0 0 0 2px #c9a86a;
+  }
+  .estado[data-zona="orilla"] i { background: #b89466; box-shadow: none; }
+  .estado[data-zona="agua"] i { background: var(--mar); box-shadow: none; }
+
+  /* Joystick */
+  .joystick {
+    position: fixed;
+    left: 24px;
+    bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    width: 132px; height: 132px;
+    border-radius: 50%;
+    background: rgba(255, 253, 247, 0.35);
+    box-shadow: inset 0 0 0 3px rgba(255, 253, 247, 0.8);
+    touch-action: none;
+  }
+  .joystick .bola {
+    position: absolute;
+    left: 50%; top: 50%;
+    width: 58px; height: 58px;
+    margin: -29px 0 0 -29px;
+    border-radius: 50%;
+    background: var(--espuma);
+    box-shadow: 0 3px 8px rgba(18, 59, 74, 0.3);
+  }
+  @media (hover: hover) and (pointer: fine) { .joystick { display: none; } }
+
+  .acciones {
+    position: fixed;
+    right: 20px;
+    bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  .accion {
+    width: 74px; height: 74px;
+    border: 0;
+    border-radius: 50%;
+    font-family: "Baloo 2", "Nunito", system-ui, sans-serif;
+    font-weight: 800;
+    font-size: 17px;
+    color: var(--espuma);
+    background: var(--coral);
+    box-shadow: 0 4px 0 var(--coral-osc), 0 6px 14px rgba(18, 59, 74, 0.25);
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .accion.guau { background: var(--mar); box-shadow: 0 4px 0 var(--mar-osc), 0 6px 14px rgba(18, 59, 74, 0.25); }
+  .accion:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--coral-osc); }
+  .accion.guau:active { box-shadow: 0 1px 0 var(--mar-osc); }
+  .accion:focus-visible { outline: 3px solid var(--tinta); outline-offset: 3px; }
+
+  .bocadillo {
+    position: fixed;
+    left: 0; top: 0;
+    padding: 4px 12px;
+    border-radius: 14px;
+    background: var(--espuma);
+    font-family: "Baloo 2", "Nunito", system-ui, sans-serif;
+    font-weight: 800;
+    font-size: 20px;
+    color: var(--tinta);
+    box-shadow: 0 3px 10px rgba(18, 59, 74, 0.2);
+    pointer-events: none;
+    transform: translate(-50%, -100%);
+    white-space: nowrap;
+  }
+
+  .cargando {
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(#9fd6ef, #f6e6c4);
+    font-family: "Baloo 2", "Nunito", system-ui, sans-serif;
+    font-size: 22px;
+    font-weight: 600;
+    text-align: center;
+    padding-inline: 16px;
+  }
+  .cargando small { display: block; font-family: "Nunito", system-ui, sans-serif; font-size: 14px; color: var(--tinta-suave); }
+</style>
+
+<canvas id="escena" aria-label="Playa en 3D con un perro que puedes mover"></canvas>
+
+<div class="panel">
+  <div class="ficha">
+    <h1>Playa del Perro</h1>
+    <p class="ayuda">
+      <span class="solo-teclado"><kbd>WASD</kbd> o flechas para andar, <kbd>Shift</kbd> corre, <kbd>Espacio</kbd> salta, <kbd>B</kbd> ladra. Arrastra para girar la cámara y usa la rueda para acercarte.</span>
+      <span class="solo-tactil">Joystick para andar. Arrastra la pantalla para mirar y pellizca para acercarte.</span>
+    </p>
+  </div>
+  <div class="ficha estado" id="estado" data-zona="arena" aria-live="polite"><i></i><span id="estado-texto">En la arena</span></div>
+</div>
+
+<div class="joystick" id="joystick" aria-hidden="true"><div class="bola" id="bola"></div></div>
+
+<div class="acciones">
+  <button class="accion guau" id="btn-guau" type="button">¡Guau!</button>
+  <button class="accion" id="btn-saltar" type="button">Saltar</button>
+</div>
+
+<div class="bocadillo" id="bocadillo" hidden>¡Guau!</div>
+
+<div class="cargando" id="cargando">
+  <div><span id="cargando-texto">Llevando al perro a la playa…</span><small id="cargando-detalle">Cargando playa.glb y perro.glb</small></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/objects/Sky.js"></script>
+<script>
+(() => {
+  // ---------- Forma del terreno ----------
+  // Copia exacta de altura() en Playa.py. Blender usa Z hacia arriba y three.js Y,
+  // así que un punto (X, Y, Z) de la web es (X, -Z) en el mapa de Blender.
+  function smoothstep(a, b, v) {
+    const t = Math.min(Math.max((v - a) / (b - a), 0), 1);
+    return t * t * (3 - 2 * t);
+  }
+  function altura(x, y) {
+    const costa = y - 3 * Math.sin(0.11 * x) - 1.5 * Math.sin(0.27 * x + 1.0);
+    let h = 0.10 * costa;
+    h += 0.10 * Math.sin(0.55 * x + 0.25 * y) * Math.sin(0.35 * y);
+    const t = smoothstep(12, 28, costa);
+    h += t * (1.4 + 0.9 * Math.sin(0.23 * x) * Math.sin(0.19 * y + 0.5));
+    return Math.max(h, -3);
+  }
+  const suelo = (x, z) => altura(x, -z);
+
+  const GLSL_ALTURA = `
+    float altura(float x, float y) {
+      float costa = y - 3.0 * sin(0.11 * x) - 1.5 * sin(0.27 * x + 1.0);
+      float h = 0.10 * costa;
+      h += 0.10 * sin(0.55 * x + 0.25 * y) * sin(0.35 * y);
+      float t = smoothstep(12.0, 28.0, costa);
+      h += t * (1.4 + 0.9 * sin(0.23 * x) * sin(0.19 * y + 0.5));
+      return max(h, -3.0);
+    }`;
+
+  // ---------- Render básico ----------
+  const canvas = document.getElementById('escena');
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 0.62;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 4000);
+
+  const SOL = new THREE.Vector3().setFromSphericalCoords(1, THREE.MathUtils.degToRad(90 - 42), THREE.MathUtils.degToRad(200));
+
+  const cielo = new THREE.Sky();
+  cielo.scale.setScalar(3000);
+  const u = cielo.material.uniforms;
+  u.turbidity.value = 2.5;
+  u.rayleigh.value = 1.2;
+  u.mieCoefficient.value = 0.004;
+  u.mieDirectionalG.value = 0.85;
+  u.sunPosition.value.copy(SOL);
+  scene.add(cielo);
+
+  scene.add(new THREE.HemisphereLight(0xcdeeff, 0xf3d9a4, 0.6));
+  const sol = new THREE.DirectionalLight(0xfff0d8, 2.4);
+  sol.castShadow = true;
+  sol.shadow.mapSize.set(2048, 2048);
+  Object.assign(sol.shadow.camera, { left: -22, right: 22, top: 22, bottom: -22, near: 1, far: 120 });
+  sol.shadow.bias = -0.0005;
+  sol.shadow.normalBias = 0.03;
+  scene.add(sol, sol.target);
+
+  const uTiempo = { value: 0 };
+
+  // ---------- Arena: colores según la altura y cáusticas bajo el agua ----------
+  const materialArena = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 });
+  materialArena.onBeforeCompile = (sh) => {
+    sh.uniforms.uTiempo = uTiempo;
+    sh.vertexShader = 'varying vec3 vPosMundo;\n' + sh.vertexShader.replace(
+      '#include <worldpos_vertex>',
+      '#include <worldpos_vertex>\n  vPosMundo = (modelMatrix * vec4(transformed, 1.0)).xyz;'
+    );
+    sh.fragmentShader = `
+      uniform float uTiempo;
+      varying vec3 vPosMundo;
+      float causticas(vec2 p, float t) {
+        vec2 q = p;
+        float c = 0.0;
+        for (int i = 0; i < 3; i++) {
+          q += vec2(sin(q.y * 1.3 + t * 0.9), cos(q.x * 1.1 - t * 0.7)) * 0.45;
+          c += abs(sin(q.x) * sin(q.y));
+        }
+        return pow(1.0 - c / 3.0, 6.0);
+      }
+    ` + sh.fragmentShader.replace(
+      '#include <color_fragment>',
+      `#include <color_fragment>
+      if (vPosMundo.y < 0.05) {
+        float prof = clamp(-vPosMundo.y, 0.0, 3.0);
+        float c = causticas(vPosMundo.xz * 0.9, uTiempo);
+        diffuseColor.rgb += c * 1.6 * smoothstep(0.0, 0.35, prof) * (1.0 - prof / 4.0);
+      }`
+    );
+  };
+  const colSeco = new THREE.Color('#e9c98c').convertSRGBToLinear();
+  const colMojado = new THREE.Color('#a9824f').convertSRGBToLinear();
+  const colFondo = new THREE.Color('#f3e2bb').convertSRGBToLinear();
+  const colDuna = new THREE.Color('#d6b475').convertSRGBToLinear();
+  const colHierba = new THREE.Color('#9aa65a').convertSRGBToLinear();
+  function pintarArena(geo) {
+    const pos = geo.attributes.position;
+    const colores = new Float32Array(pos.count * 3);
+    const c = new THREE.Color();
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+      if (y < -0.25) c.copy(colFondo);
+      else if (y < 0.45) c.copy(colMojado).lerp(colSeco, smoothstep(-0.25, 0.45, y));
+      else c.copy(colSeco).lerp(colDuna, smoothstep(1.5, 4.0, y));
+      // matas de hierba en lo alto de las dunas
+      const mata = smoothstep(3.6, 4.6, y) * (0.5 + 0.5 * Math.sin(x * 0.9) * Math.cos(z * 0.7));
+      c.lerp(colHierba, Math.min(mata, 1) * 0.8);
+      c.toArray(colores, i * 3);
+    }
+    geo.setAttribute('color', new THREE.BufferAttribute(colores, 3));
+  }
+
+  // ---------- Agua cristalina ----------
+  const materialAgua = new THREE.ShaderMaterial({
+    transparent: true,
+    depthWrite: false,
+    uniforms: { uTiempo, uSol: { value: SOL.clone().normalize() } },
+    vertexShader: `
+      uniform float uTiempo;
+      varying vec3 vW;
+      float ola(vec2 p, float t) {
+        return 0.06 * sin(p.x * 0.35 + t * 1.1) + 0.05 * sin(p.y * 0.42 - t * 0.9 + p.x * 0.2) + 0.03 * sin((p.x + p.y) * 0.9 + t * 1.7);
+      }
+      void main() {
+        vec4 w = modelMatrix * vec4(position, 1.0);
+        w.y += ola(w.xz, uTiempo);
+        vW = w.xyz;
+        gl_Position = projectionMatrix * viewMatrix * w;
+      }`,
+    fragmentShader: `
+      uniform float uTiempo;
+      uniform vec3 uSol;
+      varying vec3 vW;
+      ${GLSL_ALTURA}
+      float rizos(vec2 p, float t) {
+        return 0.035 * sin(p.x * 1.7 + t * 2.1) * sin(p.y * 1.3 - t * 1.6)
+             + 0.02 * sin(p.x * 3.1 - p.y * 2.3 + t * 3.0)
+             + 0.012 * sin(p.x * 5.3 + p.y * 4.7 - t * 3.7);
+      }
+      void main() {
+        vec2 p = vW.xz;
+        float e = 0.04;
+        float h0 = rizos(p, uTiempo);
+        // Los rizos se suavizan a lo lejos para que no hagan "ruido" en el horizonte
+        float lejos = 1.0 / (1.0 + length(cameraPosition - vW) * 0.05);
+        vec2 g = vec2(rizos(p + vec2(e, 0.0), uTiempo) - h0, rizos(p + vec2(0.0, e), uTiempo) - h0) / e * lejos;
+        vec3 N = normalize(vec3(-g.x, 1.0, -g.y));
+        vec3 V = normalize(cameraPosition - vW);
+        float prof = max(vW.y - altura(vW.x, -vW.z), 0.0);
+
+        vec3 col = mix(vec3(0.10, 0.80, 0.72), vec3(0.0, 0.22, 0.45), smoothstep(0.0, 3.0, prof));
+        float alpha = mix(0.10, 0.9, smoothstep(0.0, 2.8, prof));
+
+        float fres = 0.02 + 0.98 * pow(1.0 - max(dot(N, V), 0.0), 5.0);
+        vec3 R = reflect(-V, N);
+        vec3 reflejo = mix(vec3(0.50, 0.72, 0.92), vec3(0.08, 0.28, 0.72), clamp(R.y * 1.5, 0.0, 1.0));
+        col = mix(col, reflejo, fres * 0.55);
+        alpha = mix(alpha, 1.0, fres * 0.6);
+
+        float brillo = pow(max(dot(R, uSol), 0.0), 350.0) * 5.0;
+        col += brillo;
+        alpha = min(1.0, alpha + brillo);
+
+        // Espuma en la orilla que va y viene
+        float borde = prof + 0.08 * sin(uTiempo * 1.5 + vW.x * 0.35);
+        float espuma = smoothstep(0.16, 0.0, borde);
+        float linea = smoothstep(0.05, 0.0, abs(borde - 0.4 - 0.12 * sin(uTiempo * 0.8 + vW.x * 0.1))) * 0.45;
+        espuma = max(espuma, linea * smoothstep(0.8, 0.3, prof));
+        col = mix(col, vec3(1.0), espuma * 0.85);
+        alpha = max(alpha, espuma * 0.85);
+
+        gl_FragColor = vec4(col, alpha);
+        #include <tonemapping_fragment>
+        #include <encodings_fragment>
+      }`,
+  });
+  const geoAgua = new THREE.PlaneGeometry(900, 900, 300, 300);
+  geoAgua.rotateX(-Math.PI / 2);
+  const agua = new THREE.Mesh(geoAgua, materialAgua);
+  agua.renderOrder = 2;
+  scene.add(agua);
+
+  // ---------- Huellas en la arena ----------
+  const MAX_HUELLAS = 160;
+  const geoHuella = new THREE.CircleGeometry(0.075, 10);
+  geoHuella.rotateX(-Math.PI / 2);
+  const huellasMesh = new THREE.InstancedMesh(
+    geoHuella,
+    new THREE.MeshBasicMaterial({ color: 0x8d6b44, transparent: true, opacity: 0.45, depthWrite: false }),
+    MAX_HUELLAS
+  );
+  huellasMesh.frustumCulled = false;
+  huellasMesh.renderOrder = 1;
+  scene.add(huellasMesh);
+  const huellas = [];
+  let siguienteHuella = 0;
+  const tmpM = new THREE.Matrix4(), tmpQ = new THREE.Quaternion(), tmpS = new THREE.Vector3(), tmpP = new THREE.Vector3();
+  const EJE_Y = new THREE.Vector3(0, 1, 0);
+  function ponerHuella(x, z, rot) {
+    huellas[siguienteHuella] = { x, z, y: suelo(x, z) + 0.03, rot, edad: 0 };
+    siguienteHuella = (siguienteHuella + 1) % MAX_HUELLAS;
+  }
+  function actualizarHuellas(dt) {
+    for (let i = 0; i < MAX_HUELLAS; i++) {
+      const h = huellas[i];
+      let s = 0;
+      if (h) {
+        h.edad += dt;
+        s = Math.max(0, 1 - h.edad / 10);
+      }
+      tmpP.set(h ? h.x : 0, h ? h.y : -99, h ? h.z : 0);
+      tmpQ.setFromAxisAngle(EJE_Y, h ? h.rot : 0);
+      tmpS.set(s, s, s * 1.3);
+      tmpM.compose(tmpP, tmpQ, tmpS);
+      huellasMesh.setMatrixAt(i, tmpM);
+    }
+    huellasMesh.instanceMatrix.needsUpdate = true;
+  }
+
+  // ---------- Carga de modelos ----------
+  const colisiones = [];
+  const perro = new THREE.Group();
+  const partes = {};
+  let listo = false;
+
+  const loader = new THREE.GLTFLoader();
+  // Carga el .glb; si no está (o el servidor no lo sirve), prueba con una copia en base64 (.glb.txt)
+  async function cargar(nombre) {
+    let datos = null;
+    try {
+      const r = await fetch(nombre);
+      if (r.ok) {
+        const b = await r.arrayBuffer();
+        if (new TextDecoder().decode(new Uint8Array(b, 0, 4)) === 'glTF') datos = b;
+      }
+    } catch (e) { /* probamos con la copia en texto */ }
+    if (!datos) {
+      const r = await fetch(nombre + '.txt');
+      if (!r.ok) throw new Error(`No se encuentra ${nombre}`);
+      const bin = atob((await r.text()).trim());
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      datos = bytes.buffer;
+    }
+    return new Promise((ok, mal) => loader.parse(datos, '', ok, mal));
+  }
+
+  Promise.all([cargar('playa.glb'), cargar('perro.glb')]).then(([playa, modeloPerro]) => {
+    // Playa
+    playa.scene.traverse((o) => {
+      if (!o.isMesh) return;
+      o.receiveShadow = true;
+      if (o.name === 'Arena' || o.name === 'FondoMar') {
+        pintarArena(o.geometry);
+        o.material = materialArena;
+        return;
+      }
+      o.castShadow = true;
+      const nombre = o.name;
+      if (nombre.startsWith('Tronco_') || nombre.startsWith('Roca_') || nombre === 'PaloSombrilla') {
+        o.updateMatrixWorld(true);
+        const caja = new THREE.Box3().setFromObject(o);
+        const centro = caja.getCenter(new THREE.Vector3());
+        let radio;
+        if (nombre.startsWith('Tronco_')) {
+          // El tronco está inclinado: el choque va en la base
+          const pos = o.geometry.attributes.position;
+          let sx = 0, sz = 0, n = 0;
+          for (let i = 0; i < pos.count; i++) {
+            if (pos.getY(i) < caja.min.y + 0.6) { sx += pos.getX(i); sz += pos.getZ(i); n++; }
+          }
+          if (n) { centro.x = sx / n; centro.z = sz / n; }
+          radio = 0.4;
+        } else if (nombre === 'PaloSombrilla') {
+          radio = 0.15;
+        } else {
+          radio = Math.max(caja.max.x - caja.min.x, caja.max.z - caja.min.z) * 0.42;
+        }
+        colisiones.push({ x: centro.x, z: centro.z, r: radio });
+      }
+    });
+    scene.add(playa.scene);
+
+    // Perro: agrupamos patas, cola y cabeza en "bisagras" para poder animarlas
+    const modelo = modeloPerro.scene;
+    modelo.updateMatrixWorld(true);
+    function bisagra(nombres, x, y, z) {
+      const g = new THREE.Group();
+      g.position.set(x, y, z);
+      modelo.add(g);
+      g.updateMatrixWorld(true);
+      nombres.forEach((n) => {
+        const o = modelo.getObjectByName(n);
+        if (o) g.attach(o);
+      });
+      return g;
+    }
+    const pata = (n) => [`Pata${n}`, `Pata${n}_A`, `Pata${n}_B`, `Pie${n}`];
+    // Coordenadas de Perro.py pasadas a three.js: (x, y, z) de Blender = (x, z, -y) aquí
+    partes.delIzq = bisagra(pata('DelIzq'), -0.24, 0.80, 0.55);
+    partes.delDer = bisagra(pata('DelDer'), 0.24, 0.80, 0.55);
+    partes.traIzq = bisagra(pata('TraIzq'), -0.26, 0.70, -0.67);
+    partes.traDer = bisagra(pata('TraDer'), 0.26, 0.70, -0.67);
+    partes.cola = bisagra(['Cola', 'PuntaCola'], 0, 1.05, -0.90);
+    partes.cabeza = bisagra(['Cabeza', 'Frente', 'Hocico', 'MofleteIzq', 'MofleteDer', 'Mandibula', 'Nariz', 'Lengua',
+      'OjoIzq', 'OjoDer', 'PupilaIzq', 'PupilaDer', 'ReflejoIzq', 'ReflejoDer', 'CejaIzq', 'CejaDer',
+      'OrejaIzq', 'OrejaDer'], 0, 1.40, 0.95);
+    modelo.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+    const cuerpo = new THREE.Group();
+    cuerpo.add(modelo);
+    cuerpo.scale.setScalar(0.55);
+    partes.cuerpo = cuerpo;
+    perro.add(cuerpo);
+    scene.add(perro);
+
+    estado.pos.set(0, suelo(0, -4), -4);
+    listo = true;
+    document.getElementById('cargando').hidden = true;
+  }).catch((err) => {
+    console.error(err);
+    document.getElementById('cargando-texto').textContent = 'No se han podido cargar los modelos 3D';
+    document.getElementById('cargando-detalle').textContent = 'Comprueba que playa.glb y perro.glb están en la misma carpeta que esta página.';
+  });
+
+  // ---------- Controles ----------
+  const teclas = new Set();
+  const TECLAS_JUEGO = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'ShiftLeft', 'ShiftRight', 'KeyB'];
+  window.addEventListener('keydown', (e) => {
+    if (TECLAS_JUEGO.includes(e.code)) e.preventDefault();
+    if (e.repeat) return;
+    teclas.add(e.code);
+    if (e.code === 'Space') saltar();
+    if (e.code === 'KeyB') ladrar();
+  });
+  window.addEventListener('keyup', (e) => teclas.delete(e.code));
+  window.addEventListener('blur', () => teclas.clear());
+
+  // Joystick táctil
+  const joy = { x: 0, y: 0, id: null };
+  const joyEl = document.getElementById('joystick');
+  const bolaEl = document.getElementById('bola');
+  function moverJoy(e) {
+    const r = joyEl.getBoundingClientRect();
+    const radio = r.width / 2;
+    let dx = e.clientX - (r.left + radio);
+    let dy = e.clientY - (r.top + radio);
+    const d = Math.hypot(dx, dy);
+    const max = radio - 20;
+    if (d > max) { dx *= max / d; dy *= max / d; }
+    bolaEl.style.transform = `translate(${dx}px, ${dy}px)`;
+    joy.x = dx / max;
+    joy.y = -dy / max;
+  }
+  joyEl.addEventListener('pointerdown', (e) => {
+    joy.id = e.pointerId;
+    joyEl.setPointerCapture(e.pointerId);
+    moverJoy(e);
+  });
+  joyEl.addEventListener('pointermove', (e) => { if (e.pointerId === joy.id) moverJoy(e); });
+  const soltarJoy = (e) => {
+    if (e.pointerId !== joy.id) return;
+    joy.id = null; joy.x = 0; joy.y = 0;
+    bolaEl.style.transform = '';
+  };
+  joyEl.addEventListener('pointerup', soltarJoy);
+  joyEl.addEventListener('pointercancel', soltarJoy);
+
+  // Cámara: arrastrar para girar, rueda o pellizco para acercar
+  const cam = { yaw: Math.PI, pitch: 0.38, dist: 7, objetivo: new THREE.Vector3() };
+  const punteros = new Map();
+  let distPellizco = 0;
+  canvas.addEventListener('pointerdown', (e) => {
+    canvas.setPointerCapture(e.pointerId);
+    punteros.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (punteros.size === 2) {
+      const [a, b] = [...punteros.values()];
+      distPellizco = Math.hypot(a.x - b.x, a.y - b.y);
+    }
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    const p = punteros.get(e.pointerId);
+    if (!p) return;
+    if (punteros.size === 1) {
+      cam.yaw -= (e.clientX - p.x) * 0.006;
+      cam.pitch = THREE.MathUtils.clamp(cam.pitch + (e.clientY - p.y) * 0.004, 0.05, 1.3);
+    }
+    p.x = e.clientX; p.y = e.clientY;
+    if (punteros.size === 2) {
+      const [a, b] = [...punteros.values()];
+      const d = Math.hypot(a.x - b.x, a.y - b.y);
+      if (distPellizco) cam.dist = THREE.MathUtils.clamp(cam.dist * distPellizco / d, 3, 22);
+      distPellizco = d;
+    }
+  });
+  const soltarPuntero = (e) => { punteros.delete(e.pointerId); distPellizco = 0; };
+  canvas.addEventListener('pointerup', soltarPuntero);
+  canvas.addEventListener('pointercancel', soltarPuntero);
+  canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    cam.dist = THREE.MathUtils.clamp(cam.dist * Math.exp(e.deltaY * 0.001), 3, 22);
+  }, { passive: false });
+
+  document.getElementById('btn-saltar').addEventListener('click', () => saltar());
+  document.getElementById('btn-guau').addEventListener('click', () => ladrar());
+
+  // ---------- Estado del perro ----------
+  const estado = {
+    pos: new THREE.Vector3(0, 0, -4),
+    vy: 0,
+    rumbo: 0,
+    velocidad: 0,
+    fase: 0,
+    enSuelo: true,
+    nadando: false,
+    guau: 0,
+    ladoHuella: 1,
+  };
+  const NIVEL_NADO = -0.38;
+
+  function saltar() {
+    if (!listo || !estado.enSuelo || estado.nadando) return;
+    estado.vy = 6.5;
+    estado.enSuelo = false;
+  }
+
+  // Ladrido sintetizado (no hace falta ningún archivo de sonido)
+  let audio = null;
+  const bocadillo = document.getElementById('bocadillo');
+  function ladrar() {
+    if (!listo) return;
+    estado.guau = 1;
+    bocadillo.hidden = false;
+    try {
+      audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+      const t0 = audio.currentTime;
+      [0, 0.2].forEach((retraso) => {
+        const t = t0 + retraso;
+        const osc = audio.createOscillator();
+        const filtro = audio.createBiquadFilter();
+        const vol = audio.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(560, t);
+        osc.frequency.exponentialRampToValueAtTime(240, t + 0.13);
+        filtro.type = 'lowpass';
+        filtro.frequency.value = 1600;
+        vol.gain.setValueAtTime(0.0001, t);
+        vol.gain.exponentialRampToValueAtTime(0.35, t + 0.015);
+        vol.gain.exponentialRampToValueAtTime(0.0001, t + 0.15);
+        osc.connect(filtro).connect(vol).connect(audio.destination);
+        osc.start(t);
+        osc.stop(t + 0.17);
+      });
+    } catch (e) { /* sin sonido: el bocadillo basta */ }
+  }
+
+  const estadoEl = document.getElementById('estado');
+  const estadoTexto = document.getElementById('estado-texto');
+  let ultimoTexto = '';
+  const formato = new Intl.NumberFormat('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  function actualizarEstado(h) {
+    let zona, texto;
+    if (estado.nadando) { zona = 'agua'; texto = `Nadando · ${formato.format(-h)} m de profundidad`; }
+    else if (h < 0.35) { zona = 'orilla'; texto = h < 0 ? 'Chapoteando en la orilla' : 'En la orilla'; }
+    else { zona = 'arena'; texto = `En la arena · ${formato.format(h)} m sobre el mar`; }
+    if (texto !== ultimoTexto) {
+      ultimoTexto = texto;
+      estadoTexto.textContent = texto;
+      estadoEl.dataset.zona = zona;
+    }
+  }
+
+  function angulo(a, b, t) {
+    let d = ((b - a + Math.PI) % (Math.PI * 2)) - Math.PI;
+    if (d < -Math.PI) d += Math.PI * 2;
+    return a + d * t;
+  }
+
+  // ---------- Bucle principal ----------
+  const reloj = new THREE.Clock();
+  const adelante = new THREE.Vector3(), derecha = new THREE.Vector3(), mov = new THREE.Vector3();
+  const tmpCab = new THREE.Vector3();
+
+  function actualizarPerro(dt) {
+    // Entrada
+    let ix = joy.x, iy = joy.y;
+    if (teclas.has('KeyW') || teclas.has('ArrowUp')) iy += 1;
+    if (teclas.has('KeyS') || teclas.has('ArrowDown')) iy -= 1;
+    if (teclas.has('KeyD') || teclas.has('ArrowRight')) ix += 1;
+    if (teclas.has('KeyA') || teclas.has('ArrowLeft')) ix -= 1;
+    let fuerza = Math.min(Math.hypot(ix, iy), 1);
+    adelante.set(-Math.sin(cam.yaw), 0, -Math.cos(cam.yaw));
+    derecha.set(Math.cos(cam.yaw), 0, -Math.sin(cam.yaw));
+    mov.set(0, 0, 0).addScaledVector(derecha, ix).addScaledVector(adelante, iy);
+    if (mov.lengthSq() > 0) mov.normalize();
+
+    const corre = teclas.has('ShiftLeft') || teclas.has('ShiftRight') || fuerza > 0.95;
+    let vmax = corre ? 7.5 : 4;
+    if (estado.nadando) vmax = 2.4;
+    estado.velocidad = THREE.MathUtils.damp(estado.velocidad, fuerza * vmax, 8, dt);
+
+    if (fuerza > 0.05) estado.rumbo = angulo(estado.rumbo, Math.atan2(mov.x, mov.z), 1 - Math.exp(-10 * dt));
+    const dirX = Math.sin(estado.rumbo), dirZ = Math.cos(estado.rumbo);
+    estado.pos.x += dirX * estado.velocidad * dt;
+    estado.pos.z += dirZ * estado.velocidad * dt;
+
+    // Límites y choques con palmeras, rocas y la sombrilla
+    estado.pos.x = THREE.MathUtils.clamp(estado.pos.x, -68, 68);
+    estado.pos.z = THREE.MathUtils.clamp(estado.pos.z, -66, 70);
+    for (const c of colisiones) {
+      const dx = estado.pos.x - c.x, dz = estado.pos.z - c.z;
+      const d = Math.hypot(dx, dz), min = c.r + 0.35;
+      if (d < min && d > 0.0001) {
+        estado.pos.x = c.x + dx / d * min;
+        estado.pos.z = c.z + dz / d * min;
+      }
+    }
+
+    // Altura: suelo, salto y nado
+    const h = suelo(estado.pos.x, estado.pos.z);
+    estado.nadando = h < NIVEL_NADO;
+    const base = estado.nadando ? NIVEL_NADO + Math.sin(reloj.elapsedTime * 2.5) * 0.04 : h;
+    if (estado.nadando) {
+      // Flotando: sube o baja suavemente hasta la superficie
+      estado.pos.y = THREE.MathUtils.damp(estado.pos.y, base, 5, dt);
+      estado.vy = 0;
+      estado.enSuelo = true;
+    } else {
+      estado.vy -= 20 * dt;
+      estado.pos.y += estado.vy * dt;
+      // Pegado al suelo al bajar una cuesta; si no, está en el aire
+      if (estado.pos.y <= base || (estado.enSuelo && estado.vy <= 0 && estado.pos.y - base < 0.3)) {
+        estado.pos.y = base;
+        estado.vy = 0;
+        estado.enSuelo = true;
+      } else {
+        estado.enSuelo = false;
+      }
+    }
+
+    perro.position.copy(estado.pos);
+    perro.rotation.y = estado.rumbo;
+
+    // Animación
+    const ritmo = estado.velocidad / 4;
+    const faseAntes = estado.fase;
+    estado.fase += dt * (estado.nadando ? 9 : 6 + 5 * ritmo) * Math.max(ritmo, estado.nadando ? 0.6 : 0);
+    const amp = estado.nadando ? 0.9 : Math.min(ritmo, 1.3) * 0.6;
+    const s = Math.sin(estado.fase);
+    const enAire = !estado.enSuelo && !estado.nadando;
+    partes.delIzq.rotation.x = enAire ? -0.6 : s * amp;
+    partes.traDer.rotation.x = enAire ? 0.6 : s * amp;
+    partes.delDer.rotation.x = enAire ? -0.6 : -s * amp;
+    partes.traIzq.rotation.x = enAire ? 0.6 : -s * amp;
+    partes.cuerpo.position.y = estado.enSuelo && !estado.nadando ? Math.abs(s) * 0.05 * Math.min(ritmo, 1) : 0;
+    partes.cuerpo.rotation.z = Math.sin(estado.fase * 0.5) * 0.03 * Math.min(ritmo, 1);
+    const alegria = estado.guau > 0 || estado.velocidad > 0.5 ? 16 : 7;
+    partes.cola.rotation.y = Math.sin(reloj.elapsedTime * alegria) * 0.45;
+
+    estado.guau = Math.max(0, estado.guau - dt * 1.4);
+    partes.cabeza.rotation.x = -Math.sin(Math.min(estado.guau * 2, 1) * Math.PI) * 0.25;
+
+    // Huellas: una en cada paso, alternando patas
+    if (!estado.nadando && estado.enSuelo && h > -0.05 && estado.velocidad > 0.4 &&
+        Math.floor(faseAntes / Math.PI) !== Math.floor(estado.fase / Math.PI)) {
+      estado.ladoHuella *= -1;
+      const lado = 0.14 * estado.ladoHuella;
+      ponerHuella(estado.pos.x + dirZ * lado, estado.pos.z - dirX * lado, estado.rumbo);
+    }
+
+    actualizarEstado(h);
+    return h;
+  }
+
+  function actualizarCamara(dt) {
+    const alturaVista = 0.8;
+    cam.objetivo.x = THREE.MathUtils.damp(cam.objetivo.x, estado.pos.x, 6, dt);
+    cam.objetivo.z = THREE.MathUtils.damp(cam.objetivo.z, estado.pos.z, 6, dt);
+    cam.objetivo.y = THREE.MathUtils.damp(cam.objetivo.y, estado.pos.y + alturaVista, 4, dt);
+    const cp = Math.cos(cam.pitch);
+    camera.position.set(
+      cam.objetivo.x + Math.sin(cam.yaw) * cp * cam.dist,
+      cam.objetivo.y + Math.sin(cam.pitch) * cam.dist,
+      cam.objetivo.z + Math.cos(cam.yaw) * cp * cam.dist
+    );
+    const minY = Math.max(suelo(camera.position.x, camera.position.z) + 0.6, 0.5);
+    if (camera.position.y < minY) camera.position.y = minY;
+    camera.lookAt(cam.objetivo);
+
+    // La sombra sigue al perro
+    sol.target.position.copy(cam.objetivo);
+    sol.position.copy(cam.objetivo).addScaledVector(SOL, 60);
+  }
+
+  function ajustarTamano() {
+    const w = window.innerWidth, h = window.innerHeight;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.fov = w < h ? 68 : 55;
+    camera.updateProjectionMatrix();
+  }
+  window.addEventListener('resize', ajustarTamano);
+  ajustarTamano();
+
+  function bucle() {
+    requestAnimationFrame(bucle);
+    const dt = Math.min(reloj.getDelta(), 0.05);
+    uTiempo.value = reloj.elapsedTime;
+    if (listo) {
+      actualizarPerro(dt);
+      actualizarHuellas(dt);
+      actualizarCamara(dt);
+      if (estado.guau > 0) {
+        partes.cabeza.getWorldPosition(tmpCab);
+        tmpCab.y += 0.9;
+        tmpCab.project(camera);
+        bocadillo.style.left = `${(tmpCab.x * 0.5 + 0.5) * window.innerWidth}px`;
+        bocadillo.style.top = `${(-tmpCab.y * 0.5 + 0.5) * window.innerHeight}px`;
+      } else if (!bocadillo.hidden) {
+        bocadillo.hidden = true;
+      }
+    } else {
+      camera.position.set(-20, 6, -18);
+      camera.lookAt(0, 0, 4);
+    }
+    renderer.render(scene, camera);
+  }
+  bucle();
+})();
+</script>

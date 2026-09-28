@@ -38,8 +38,8 @@ cesped = crear_material("Suelo",  (0.28, 0.45, 0.20), 0.9)
 # ---------- HELPERS ----------
 def suavizar(obj, niveles=2):
     mod = obj.modifiers.new(name="Subsurf", type='SUBSURF')
-    mod.levels = niveles
-    mod.render_levels = niveles
+    mod.levels = 0               # lo que se exporta al GLB: ligero para que cargue rápido en la web
+    mod.render_levels = niveles  # lo que sale en el render: bien suave
     for poly in obj.data.polygons:
         poly.use_smooth = True
 

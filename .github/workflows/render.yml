@@ -12,11 +12,23 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y blender python3-numpy
       - name: Renderizar el perro
         run: blender -b --factory-startup --python-exit-code 1 --python Perro.py
+      - name: Renderizar la playa
+        run: blender -b --factory-startup --python-exit-code 1 --python Playa.py
+      - name: Preparar la web con los modelos nuevos
+        run: cp perro.glb playa.glb web/
 
-      - name: Subir la imagen y el modelo 3D
+      - name: Subir las imágenes y los modelos 3D
         uses: actions/upload-artifact@v4
         with:
           name: perro-3d
           path: |
             perro.png
             perro.glb
+            playa.png
+            playa.glb
+
+      - name: Subir la web de la playa
+        uses: actions/upload-artifact@v4
+        with:
+          name: playa-web
+          path: web/
