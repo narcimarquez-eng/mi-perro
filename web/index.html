@@ -217,7 +217,7 @@
   }
 </style>
 
-<canvas id="escena" aria-label="Playa en 3D con un perro y un niño que juegan con un balón"></canvas>
+<canvas id="escena" aria-label="Playa en 3D con un perro bretón y un niño que juegan con un balón"></canvas>
 
 <div class="panel">
   <div class="ficha tarea" aria-live="polite">
@@ -680,18 +680,19 @@
     // Agrupamos patas, cola y cabeza en "bisagras" para poder animarlas
     const modelo = gltf.scene;
     modelo.updateMatrixWorld(true);
-    function bisagra(nombres, x, y, z) {
+    // Agrupa en una bisagra todas las piezas cuyo nombre empieza por alguno de los prefijos
+    const piezas = [...modelo.children];
+    function bisagra(prefijos, x, y, z) {
       const g = new THREE.Group();
       g.position.set(x, y, z);
       modelo.add(g);
       g.updateMatrixWorld(true);
-      nombres.forEach((n) => {
-        const o = modelo.getObjectByName(n);
-        if (o) g.attach(o);
+      piezas.forEach((o) => {
+        if (prefijos.some((p) => o.name.startsWith(p))) g.attach(o);
       });
       return g;
     }
-    const pata = (n) => [`Pata${n}`, `Pata${n}_A`, `Pata${n}_B`, `Pie${n}`];
+    const pata = (n) => [`Pata${n}`, `Pie${n}`];
     // Coordenadas de Perro.py pasadas a three.js: (x, y, z) de Blender = (x, z, -y) aquí
     partes.delIzq = bisagra(pata('DelIzq'), -0.24, 0.80, 0.55);
     partes.delDer = bisagra(pata('DelDer'), 0.24, 0.80, 0.55);
@@ -700,7 +701,7 @@
     partes.cola = bisagra(['Cola', 'PuntaCola'], 0, 1.05, -0.90);
     partes.cabeza = bisagra(['Cabeza', 'Frente', 'Hocico', 'MofleteIzq', 'MofleteDer', 'Mandibula', 'Nariz', 'Lengua',
       'OjoIzq', 'OjoDer', 'PupilaIzq', 'PupilaDer', 'ReflejoIzq', 'ReflejoDer', 'CejaIzq', 'CejaDer',
-      'OrejaIzq', 'OrejaDer'], 0, 1.40, 0.95);
+      'OrejaIzq', 'OrejaDer', 'Cab'], 0, 1.40, 0.95);
     modelo.traverse((o) => { if (o.isMesh) o.castShadow = true; });
     const cuerpo = new THREE.Group();
     cuerpo.add(modelo);
