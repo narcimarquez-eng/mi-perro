@@ -464,9 +464,16 @@
   const sobreMuelle = (x, z) => x > MUELLE.x0 && x < MUELLE.x1 && z > MUELLE.z0 && z < MUELLE.z1;
   // Altura del suelo. Si se pasa la altura actual y está por debajo del muelle, el muelle no cuenta (se nada por debajo).
   const flotadores = [];  // plataformas flotantes de la prueba del parque (se rellena al construirlo)
+  const plataformas = [];  // superficies elevadas: cubierta y pasarela del barco pirata
   function suelo(x, z, yActual) {
     let h = altura(x, -z);
     if (sobreMuelle(x, z) && (yActual === undefined || yActual > MUELLE.y - 0.45)) h = Math.max(h, MUELLE.y);
+    for (const pl of plataformas) {
+      if (x > pl.x0 && x < pl.x1 && z > pl.z0 && z < pl.z1) {
+        const y = pl.y(x, z);
+        if (yActual === undefined || yActual > y - 0.6) h = Math.max(h, y);
+      }
+    }
     for (const f of flotadores) {
       if (Math.hypot(x - f.x, z - f.z) < f.r + 0.25 && (yActual === undefined || yActual > f.y - 0.5)) h = Math.max(h, f.y);
     }
@@ -1161,6 +1168,7 @@
       if (!c.activa) continue;
       if (c.soloNino && !esNino) continue;
       if (c.alto && alturaPies > c.alto) continue;  // saltando por encima
+      if (c.techo !== undefined && pos.y > c.techo) continue;  // por encima (por ejemplo, en la cubierta)
       const cx = clamp(pos.x, c.x0, c.x1), cz = clamp(pos.z, c.z0, c.z1);
       const dx = pos.x - cx, dz = pos.z - cz;
       const d = Math.hypot(dx, dz);
@@ -1403,7 +1411,7 @@
       }
       animarNino(vel === 0 ? 'idle' : correr ? 'run' : 'walk');
     }
-    if (E.modo !== 'tobogan' && E.modo !== 'descansar') {
+    if (E.modo !== 'tobogan' && E.modo !== 'descansar' && E.modo !== 'volando') {
       chocar(E.pos, 0.3, E.pos.y - suelo(E.pos.x, E.pos.z, E.pos.y), true);
       // No pisar al perro
       const dp = distXZ(E.pos, estado.pos);
@@ -1412,12 +1420,12 @@
         E.pos.z = estado.pos.z + (E.pos.z - estado.pos.z) / dp * 0.75;
       }
     }
-    if (!(controlado && E.modo === 'libre') && E.modo !== 'tobogan' && E.modo !== 'descansar') {
+    if (!(controlado && E.modo === 'libre') && E.modo !== 'tobogan' && E.modo !== 'descansar' && E.modo !== 'volando') {
       // Pegado al suelo, o flotando si está donde cubre
       const hS = suelo(E.pos.x, E.pos.z, E.pos.y), aguaS = aguaEn(E.pos.x, E.pos.z);
       E.nadando = aguaS - hS > 0.95;
       E.pos.y = damp(E.pos.y, E.nadando ? aguaS - NADO_NINO : hS, 12, dt);
-      if (E.nadando && E.modo === 'libre') animarNino('swim');
+      if (E.nadando && E.modo === 'libre') animarNino('idle');
     }
 
     // Tiros
@@ -1427,11 +1435,11 @@
     if (E.modo === 'celebrar' && nino.actual && !nino.actual.isRunning()) E.modo = 'libre';
     if (E.modo === 'celebrar' && E.t > 2) E.modo = 'libre';
 
-    nino.grupo.position.copy(E.pos);
-    nino.grupo.rotation.y = E.rumbo;
+    colocarGrupoNino();
     for (const [h, q] of nino.reposo) h.quaternion.copy(q);
     nino.mixer.update(dt);
     nino.grupo.updateMatrixWorld(true);
+    posturaNino(dt);
 
     const H = nino.huesos;
     if (balon.estado === 'mano' && E.modo !== 'lanzar') balonEnLaMano();
@@ -1712,7 +1720,7 @@
   const btnAccion = document.getElementById('btn-guau');
 
   function cambiarJugador() {
-    if (!listo || ninoE.modo === 'pescar' || ninoE.modo === 'tobogan') return;
+    if (!listo || ninoE.modo === 'pescar' || ninoE.modo === 'tobogan' || ninoE.modo === 'volando') return;
     if (ninoE.modo === 'descansar' || estado.descansando) levantarse();
     jugador = jugador === 'perro' ? 'nino' : 'perro';
     btnCambiar.textContent = jugador === 'perro' ? 'Manuel' : 'Drako';
@@ -1822,9 +1830,11 @@
         E.enSuelo = false;
       }
     }
+    // Donde cubre, suelta el balón (flota) para poder nadar con los dos brazos
+    if (E.nadando && balon.estado === 'mano') soltarBalon(new V3(Math.sin(E.rumbo) * 0.5, 0.5, Math.cos(E.rumbo) * 0.5));
     if (!E.nadando) animarNino(!E.enSuelo ? (nino.actual === nino.acciones.run ? 'run' : 'idle') :
       E.vel > 2.6 ? 'run' : E.vel > 0.3 ? 'walk' : 'idle');
-    else animarNino('swim');
+    else animarNino('idle');  // tumbado y con brazadas: lo hace posturaNino
 
     // Coger el balón al pasar por encima
     if (balon.estado === 'libre' && !balon.reservado && !E.nadando && distXZ(E.pos, balon.pos) < 0.6 &&
@@ -1838,6 +1848,7 @@
     const E = ninoE;
     let zona = 'arena', texto;
     if (E.modo === 'tobogan') { zona = 'agua'; texto = '¡Bajando por el tobogán!'; }
+    else if (E.modo === 'volando') { zona = 'agua'; texto = '¡Volando!'; }
     else if (E.modo === 'pescar') { zona = 'muelle'; texto = 'Pescando en el muelle'; }
     else if (fueraDe(E.pos.x, -E.pos.z, PARQUE) === 0) {
       const p = piscinaEn(E.pos.x, E.pos.z);
@@ -2088,34 +2099,7 @@
     return g;
   }
 
-  function crearBarcoPirata() {
-    const g = new THREE.Group();
-    const casco = new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.6, 7), matMadera);
-    casco.position.y = 0.8;
-    const proa = new THREE.Mesh(new THREE.ConeGeometry(1.35, 2.4, 4), matMadera);
-    proa.rotation.x = Math.PI / 2;
-    proa.rotation.y = Math.PI / 4;
-    proa.scale.set(1, 1, 0.85);
-    proa.position.set(0, 0.8, 4.6);
-    const popa = new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.2, 2), matMadera);
-    popa.position.set(0, 2.1, -2.4);
-    g.add(casco, proa, popa);
-    const velaMat = new THREE.MeshStandardMaterial({ color: '#f3ead7', side: THREE.DoubleSide, roughness: 0.8 });
-    [[0.8, 5.2, 2.6], [-1.2, 4.2, 2.0]].forEach(([z, alto, ancho]) => {
-      const mastil = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, alto, 8), matMadera);
-      mastil.position.set(0, 1.6 + alto / 2, z);
-      const vela = new THREE.Mesh(new THREE.PlaneGeometry(ancho, alto * 0.45, 4, 2), velaMat);
-      vela.position.set(0, 1.6 + alto * 0.62, z + 0.12);
-      vela.rotation.y = Math.PI / 2;
-      g.add(mastil, vela);
-    });
-    const bandera = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.5), new THREE.MeshStandardMaterial({ color: '#141414', side: THREE.DoubleSide }));
-    bandera.position.set(0, 7.0, 1.2);
-    bandera.rotation.y = Math.PI / 2;
-    g.add(bandera);
-    g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
-    return g;
-  }
+
 
   function cartel(texto, ancho, alto) {
     const lienzo = document.createElement('canvas');
@@ -2222,12 +2206,6 @@
     // Piscinas
     Object.keys(PISCINAS).forEach(construirPiscina);
 
-    // Barco pirata en la piscina de olas
-    const barco = crearBarcoPirata();
-    barco.position.set(-69, Y0 - 1.5, -47.5);
-    barco.rotation.y = 0.5;
-    scene.add(barco);
-    colisiones.push({ x: -69, z: -47.5, r: 2.2 }, { x: -67.6, z: -45, r: 1.6 }, { x: -70.4, z: -50, r: 1.6 });
 
     // Piscina infantil: seta de agua y patitos de goma
     const [ix0, ix1, iz0, iz1] = aWeb(PISCINAS.infantil);
@@ -2285,11 +2263,18 @@
         [x, Y0 + 1.1, -69.2], [x, AGUA_PARQUE + 0.25, -66.4]], 0.7, '#2a7de1', '#f3f8ff');
       if (i === 1) parque.toboganes.push({ id: 'kamikaze', nombre: 'tobogán kamikaze', ...t, entrada: new V3(-44.9, Y0, -80), requiere: 'flotadores' });
     });
+    // Tobogán de salto: rampa ancha y blanca que termina hacia arriba y lanza al aire sobre la piscina de olas
+    torre(-46.5, -58, 3, 7.2);
+    const tSalto = crearTobogan([[-47.6, Y0 + 7.3, -58], [-48.6, Y0 + 7.2, -58], [-50.3, Y0 + 4.9, -58], [-52.0, Y0 + 2.7, -58],
+      [-53.6, Y0 + 1.75, -58], [-55.0, Y0 + 1.95, -58], [-56.2, Y0 + 2.6, -58]], 1.2, '#f7fbff', '#bfe6f5');
+    parque.toboganes.push({ id: 'salto', nombre: 'tobogán de salto', ...tSalto, entrada: new V3(-44.4, Y0, -58), salto: true });
+    construirBarco();
+
     // Aros brillantes donde se sube a cada tobogán
     parque.toboganes.forEach((t) => {
       const aro = new THREE.Mesh(new THREE.RingGeometry(0.55, 0.8, 32), new THREE.MeshBasicMaterial({ color: '#ffd42a', side: THREE.DoubleSide, transparent: true, opacity: 0.85 }));
       aro.rotation.x = -Math.PI / 2;
-      aro.position.set(t.entrada.x, Y0 + 0.03, t.entrada.z);
+      aro.position.set(t.entrada.x, t.entrada.y + 0.03, t.entrada.z);
       scene.add(aro);
       t.aro = aro;
     });
@@ -2365,24 +2350,25 @@
 
   function toboganCerca() {
     if (jugador !== 'nino') return null;
-    return parque.toboganes.find((t) => distXZ(ninoE.pos, t.entrada) < 1.6 && Math.abs(ninoE.pos.y - Y0) < 0.6) || null;
+    return parque.toboganes.find((t) => distXZ(ninoE.pos, t.entrada) < (t.sinFundido ? 0.9 : 1.6) && Math.abs(ninoE.pos.y - t.entrada.y) < 0.6) || null;
   }
 
   function subirTobogan(t) {
     const E = ninoE;
-    if (!hechaNino(t.requiere)) {
+    if (t.requiere && !hechaNino(t.requiere)) {
       const m = MISIONES_NINO.find((k) => k.id === t.requiere);
       avisar(`Para subir, primero: ${m.titulo.toLowerCase()}`, 2600);
       return;
     }
     if (balon.estado === 'mano') soltarBalon(new V3(0, 0, 0));
-    fundido(() => {
+    const empezar = () => {
       E.modo = 'tobogan';
       E.tob = { t, s: 0, v: 1.5, vmax: 0 };
       animarNino('skill');
       nino.acciones.skill.setLoop(THREE.LoopRepeat, Infinity);
       ninoDice('¡Wiii!', 2);
-    });
+    };
+    if (t.sinFundido) empezar(); else fundido(empezar);
   }
 
   const tP = new V3(), tT = new V3(), tS = new V3(), tU = new V3();
@@ -2400,6 +2386,11 @@
     tU.crossVectors(tS, tT).normalize();
     E.pos.copy(tP).addScaledVector(tU, -t.radio * 0.92);
     E.rumbo = Math.atan2(tT.x, tT.z);
+    if (tb.s >= 1 && t.salto) {
+      // El tobogán de salto termina hacia arriba: ¡a volar!
+      lanzarAlAire(tT, tb.v);
+      return;
+    }
     if (tb.s >= 1) {
       // Sale disparado a la piscina
       E.modo = 'libre';
@@ -2440,10 +2431,12 @@
       p.mesh.position.set(p.x + Math.sin(tiempo * 0.5 + p.fase) * 0.4, AGUA_PARQUE + Math.sin(tiempo * 2 + p.fase) * 0.03, p.z + Math.cos(tiempo * 0.4 + p.fase) * 0.4);
       p.mesh.rotation.y = tiempo * 0.3 + p.fase;
     });
-    if (parque.seta) parque.toboganes.forEach((t) => { t.aro.material.opacity = hechaNino(t.requiere) ? 0.55 + 0.35 * Math.sin(tiempo * 4) : 0.25; });
+    if (parque.seta) parque.toboganes.forEach((t) => { t.aro.material.opacity = !t.requiere || hechaNino(t.requiere) ? 0.55 + 0.35 * Math.sin(tiempo * 4) : 0.25; });
 
     const E = ninoE;
+    actualizarBarco(dt);
     if (E.modo === 'tobogan') { bajarTobogan(dt); return; }
+    if (E.modo === 'volando') { vuelo(dt); return; }
     if (E.modo === 'descansar') return;
     if (jugador !== 'nino') return;
     const piscina = piscinaEn(E.pos.x, E.pos.z);
@@ -2537,6 +2530,10 @@
       objetivo: () => parque.toboganes[0] && parque.toboganes[0].entrada },
     { id: 'kamikaze', titulo: 'Tírate por el tobogán kamikaze', total: 1, cuenta: 0,
       objetivo: () => parque.toboganes[1] && parque.toboganes[1].entrada },
+    { id: 'salto', titulo: 'Lánzate por el tobogán de salto', total: 1, cuenta: 0,
+      objetivo: () => parque.toboganes.find((t) => t.id === 'salto').entrada },
+    { id: 'barco', titulo: 'Sube al barco pirata y tírate por su tobogán', total: 1, cuenta: 0,
+      objetivo: () => (ninoE.pos.y > barco.cubierta - 0.3 ? parque.toboganes.find((t) => t.id === 'barco').entrada : new V3(-74.6, Y0, -50)) },
     { id: 'descanso', titulo: 'Vuelve a casa y descansa con Drako', total: 1, cuenta: 0,
       objetivo: () => casa.mesa },
   ];
@@ -3443,7 +3440,7 @@
       scene.add(banco);
     });
     casa.mesa = new V3(43.3, Y1, -60.4);
-    casa.banco = new V3(43.3, Y1, -59.25);
+    casa.banco = new V3(43.3, Y1, -59.4);
     casa.sitioDrako = new V3(44.9, Y1, -59.0);
 
     // Piscina de arena con jacuzzi redondo
@@ -3504,9 +3501,12 @@
       E.modo = 'descansar';
       E.t = 0;
       E.vel = 0;
-      E.pos.set(casa.banco.x, Y1 - 0.12, casa.banco.z);
+      // Altura de la cadera de pie, para sentarla justo encima del banco
+      nino.huesos.Hips.getWorldPosition(vCad);
+      nino.alturaCadera = vCad.y - nino.grupo.position.y;
+      E.pos.set(casa.banco.x, Y1, casa.banco.z);
       E.rumbo = Math.PI;  // mirando a la mesa
-      animarNino('pickup', true, 0.2);
+      animarNino('idle', false, 0.2);
       estado.descansando = true;
       estado.pos.copy(casa.sitioDrako);
       estado.rumbo = -Math.PI / 2;
@@ -3520,7 +3520,6 @@
     const E = ninoE;
     if (E.modo === 'descansar') {
       E.modo = 'libre';
-      if (nino.actual) nino.actual.paused = false;
       E.pos.set(casa.banco.x, Y1, casa.banco.z + 0.6);
       animarNino('idle');
     }
@@ -3534,8 +3533,6 @@
     if (!estado.descansando && E.modo !== 'descansar') musica.proximo = enCasa ? 'casa' : 'playa';
     drakoIA.llamado = Math.max(0, drakoIA.llamado - dt);
     if (E.modo === 'descansar') {
-      // Se queda sentado (la animación de agacharse, parada a mitad)
-      if (E.t > 0.42 && nino.actual && !nino.actual.paused) nino.actual.paused = true;
       if (reloj.elapsedTime > casa.bocadillo) {
         casa.bocadillo = reloj.elapsedTime + 4;
         ninoDice('Zzz…', 2.2);
@@ -3547,6 +3544,286 @@
     if (!bocadilloDrako.hidden) {
       if (reloj.elapsedTime > bocadilloDrakoHasta) bocadilloDrako.hidden = true;
       else ponerEnPantalla(bocadilloDrako, partes.cabeza, 0.75);
+    }
+  }
+
+  // =====================================================================
+  // ---------- Posturas de Manuel: nadar, sentarse y dar volteretas ----------
+  // =====================================================================
+  const qR1 = new THREE.Quaternion(), qR2 = new THREE.Quaternion(), qR3 = new THREE.Quaternion();
+  // Gira un hueso alrededor de un eje del mundo (no sabemos cómo están orientados sus ejes propios)
+  function rotarMundo(hueso, eje, ang) {
+    qR1.setFromAxisAngle(eje, ang);
+    hueso.getWorldQuaternion(qR2);
+    hueso.parent.getWorldQuaternion(qR3).invert();
+    hueso.quaternion.copy(qR3.multiply(qR1.multiply(qR2)));
+    hueso.updateMatrixWorld(true);
+  }
+  const ejeLateral = new V3(), vCad = new V3();
+  // Coloca el grupo de Manuel según lo que esté haciendo (antes de animar los huesos)
+  function colocarGrupoNino() {
+    const E = ninoE, g = nino.grupo;
+    const fx = Math.sin(E.rumbo), fz = Math.cos(E.rumbo);
+    if (E.modo === 'volando') {
+      // Voltereta alrededor de la cadera (a unos 0,6 m de los pies)
+      const c = Math.cos(E.giro), s = Math.sin(E.giro);
+      g.position.set(E.pos.x - fx * 0.6 * s, E.pos.y + 0.6 - 0.6 * c, E.pos.z - fz * 0.6 * s);
+      g.rotation.set(E.giro, E.rumbo, 0, 'YXZ');
+      return;
+    }
+    if (E.nadando && E.modo === 'libre') {
+      // Nadando: tumbado boca abajo en la superficie, con la cabeza hacia delante
+      const agua = aguaEn(E.pos.x, E.pos.z);
+      g.position.set(E.pos.x - fx * 0.55, agua - 0.02, E.pos.z - fz * 0.55);
+      g.rotation.set(1.45, E.rumbo, 0, 'YXZ');
+      return;
+    }
+    if (E.modo === 'descansar') {
+      g.position.set(casa.banco.x, Y1 + 0.53 - (nino.alturaCadera || 0.62), casa.banco.z);
+      g.rotation.set(0, E.rumbo, 0, 'YXZ');
+      return;
+    }
+    g.position.copy(E.pos);
+    g.rotation.set(0, E.rumbo, 0, 'YXZ');
+  }
+  // Mueve brazos y piernas encima de la animación (después del mixer)
+  function posturaNino(dt) {
+    const E = ninoE, H = nino.huesos;
+    ejeLateral.set(Math.cos(E.rumbo), 0, -Math.sin(E.rumbo));  // eje izquierda-derecha de Manuel
+    if (E.nadando && E.modo === 'libre') {
+      // Crol: los brazos dan la vuelta completa, alternados; las piernas patalean
+      E.faseNado = (E.faseNado || 0) + dt * (2.2 + E.vel * 1.6);
+      const a = E.faseNado;
+      rotarMundo(H.RightArm, ejeLateral, a % (Math.PI * 2));
+      rotarMundo(H.LeftArm, ejeLateral, (a + Math.PI) % (Math.PI * 2));
+      rotarMundo(H.RightUpLeg, ejeLateral, 0.3 * Math.sin(a * 2.5));
+      rotarMundo(H.LeftUpLeg, ejeLateral, -0.3 * Math.sin(a * 2.5));
+      rotarMundo(H.Head, ejeLateral, -0.55);  // la cabeza mira hacia delante
+    } else if (E.modo === 'descansar') {
+      // Sentado: muslos hacia delante sobre el banco y las piernas colgando
+      rotarMundo(H.RightUpLeg, ejeLateral, -1.45);
+      rotarMundo(H.LeftUpLeg, ejeLateral, -1.45);
+      rotarMundo(H.RightLeg, ejeLateral, 1.35);
+      rotarMundo(H.LeftLeg, ejeLateral, 1.35);
+      rotarMundo(H.Spine, ejeLateral, 0.12 + Math.sin(reloj.elapsedTime * 1.3) * 0.02);  // respira despacito
+    } else if (E.modo === 'volando') {
+      // En el aire: piernas recogidas
+      rotarMundo(H.RightUpLeg, ejeLateral, -1.0);
+      rotarMundo(H.LeftUpLeg, ejeLateral, -1.0);
+      rotarMundo(H.RightLeg, ejeLateral, 1.4);
+      rotarMundo(H.LeftLeg, ejeLateral, 1.4);
+    }
+  }
+
+  // ---------- Vuelo al salir del tobogán de salto ----------
+  function lanzarAlAire(tangente, v) {
+    const E = ninoE;
+    E.modo = 'volando';
+    E.vAire = tangente.clone().multiplyScalar(Math.max(v, 7));
+    E.inicioVuelo = E.pos.clone();
+    E.giro = 0;
+    const vy = E.vAire.y, caida = E.pos.y - AGUA_PARQUE;
+    const tiempo = (vy + Math.sqrt(vy * vy + 2 * 9.8 * Math.max(caida, 0.1))) / 9.8;
+    E.giroVel = Math.PI * 2 / tiempo;  // una voltereta completa justo al caer
+    animarNino('skill');
+    ninoDice('¡Allá voooy!', 1.5);
+  }
+  function vuelo(dt) {
+    const E = ninoE;
+    E.vAire.y -= 9.8 * dt;
+    E.pos.addScaledVector(E.vAire, dt);
+    E.giro = Math.min(E.giro + E.giroVel * dt, Math.PI * 2);
+    const agua = aguaEn(E.pos.x, E.pos.z), h = suelo(E.pos.x, E.pos.z);
+    if (E.vAire.y < 0 && (E.pos.y <= agua - 0.3 || E.pos.y <= h)) {
+      const distancia = Math.hypot(E.pos.x - E.inicioVuelo.x, E.pos.z - E.inicioVuelo.z);
+      salpicar(new V3(E.pos.x, agua, E.pos.z), 50);
+      E.modo = 'libre';
+      E.giro = 0;
+      E.vy = 0;
+      E.vel = 0;
+      E.impulso.set(E.vAire.x, 0, E.vAire.z).multiplyScalar(0.3);
+      E.pos.y = Math.max(h, agua - NADO_NINO);
+      nino.acciones.skill.setLoop(THREE.LoopOnce, 1);
+      avisar(`¡Splash! Has volado ${formato.format(distancia)} m`, 2400);
+      sumarNino('salto');
+    }
+  }
+
+  // =====================================================================
+  // ---------- Barco pirata con cubierta, chorros, cubo y toboganes ----------
+  // =====================================================================
+  const barco = { centro: new V3(-68, 0, -50), cubierta: 0, cubo: null, tCubo: 0, chorros: [], ultimoMojado: 0 };
+  const MAX_CHORRO = 420;
+  const chorroMesh = new THREE.InstancedMesh(new THREE.SphereGeometry(0.07, 6, 4),
+    new THREE.MeshBasicMaterial({ color: 0xdff8ff, transparent: true, opacity: 0.8 }), MAX_CHORRO);
+  chorroMesh.frustumCulled = false;
+  scene.add(chorroMesh);
+  const gotasChorro = [];
+  let sigChorro = 0;
+  function soltarGota(p, v, vida = 1.2) {
+    gotasChorro[sigChorro] = { p: p.clone(), v: v.clone(), t: 0, vida };
+    sigChorro = (sigChorro + 1) % MAX_CHORRO;
+  }
+
+  function construirBarco() {
+    const Yf = Y0 - 1.5;               // fondo de la piscina de olas
+    const D = Y0 + 0.7;                // altura de la cubierta
+    barco.cubierta = D;
+    const cx = -68, cz = -50, x0 = -70, x1 = -66, z0 = -55, z1 = -45;
+    const madera = new THREE.MeshStandardMaterial({ color: '#6b4526', roughness: 0.8 });
+    const tablas = new THREE.MeshStandardMaterial({ color: '#b98a5a', roughness: 0.85 });
+    const rojo = new THREE.MeshStandardMaterial({ color: '#c0392b', roughness: 0.6 });
+    // Casco (con choque solo por debajo de la cubierta) y proa
+    caja(4, D - Yf, 10, madera, cx, Yf, cz, false);
+    cajas.push({ x0, x1, z0, z1, activa: true, techo: D - 0.35 });
+    caja(4.1, 0.25, 10.1, rojo, cx, D - 0.9, cz, false);  // franja roja
+    const proa = new THREE.Mesh(new THREE.ConeGeometry(2.05, 2.8, 4), madera);
+    proa.rotation.set(-Math.PI / 2, Math.PI / 4, 0);
+    proa.scale.set(1, 1, (D - Yf) / 2.9);
+    proa.position.set(cx, (D + Yf) / 2, z0 - 1.4);
+    proa.castShadow = true;
+    scene.add(proa);
+    colisiones.push({ x: cx, z: z0 - 1.2, r: 1.2 });
+    // Cubierta
+    const cub = new THREE.Mesh(new THREE.BoxGeometry(4, 0.1, 10), tablas);
+    cub.position.set(cx, D - 0.05, cz);
+    cub.receiveShadow = true;
+    scene.add(cub);
+    plataformas.push({ x0, x1, z0, z1, y: () => D });
+    // Pasarela desde el borde de la piscina (x -74) hasta la cubierta
+    const largo = Math.hypot(4, D - Y0);
+    const pasarela = new THREE.Mesh(new THREE.BoxGeometry(largo, 0.08, 1.2), tablas);
+    pasarela.position.set(-72, (Y0 + D) / 2, cz);
+    pasarela.rotation.z = -Math.atan2(D - Y0, 4);
+    pasarela.castShadow = pasarela.receiveShadow = true;
+    scene.add(pasarela);
+    plataformas.push({ x0: -74.3, x1: x0, z0: cz - 0.6, z1: cz + 0.6, y: (x) => Y0 + (x + 74.3) / (x0 + 74.3) * (D - Y0) });
+    // Barandillas con huecos (pasarela al oeste, dos toboganes al este)
+    const huecos = { oeste: [[cz - 0.65, cz + 0.65]], este: [[-52.5, -51.5], [-48.5, -47.5]] };
+    const postes = [];
+    [['oeste', x0], ['este', x1]].forEach(([lado, x]) => {
+      let desde = z0;
+      const tramos = [];
+      huecos[lado].forEach(([a, b]) => { tramos.push([desde, a]); desde = b; });
+      tramos.push([desde, z1]);
+      tramos.forEach(([a, b]) => {
+        caja(0.1, 0.1, b - a, madera, x, D + 0.8, (a + b) / 2, false);
+        cajas.push({ x0: x - 0.08, x1: x + 0.08, z0: a, z1: b, activa: true, techo: D + 1.2 });
+        for (let z = a; z <= b + 0.01; z += 0.7) postes.push([x, z]);
+      });
+    });
+    [z0, z1].forEach((z) => {
+      caja(4, 0.1, 0.1, madera, cx, D + 0.8, z, false);
+      cajas.push({ x0, x1, z0: z - 0.08, z1: z + 0.08, activa: true, techo: D + 1.2 });
+      for (let x = x0; x <= x1; x += 0.8) postes.push([x, z]);
+    });
+    const instPostes = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.05, 0.05, 0.85, 6), madera, postes.length);
+    postes.forEach(([x, z], i) => { tmpM.makeTranslation(x, D + 0.42, z); instPostes.setMatrixAt(i, tmpM); });
+    scene.add(instPostes);
+    // Camarote en la popa
+    caja(3, 1.6, 2, madera, cx, D, -46.3);
+    const ventana = new THREE.Mesh(new THREE.CircleGeometry(0.25, 16), new THREE.MeshStandardMaterial({ color: '#2b3440' }));
+    ventana.position.set(cx, D + 1, -47.31);
+    ventana.rotation.y = Math.PI;
+    scene.add(ventana);
+    // Mástiles, velas, cofa y bandera pirata
+    const velaMat = new THREE.MeshStandardMaterial({ color: '#f3ead7', side: THREE.DoubleSide, roughness: 0.8 });
+    [[-53, 6.5], [-49.2, 5.2]].forEach(([z, alto]) => {
+      const mastil = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.15, alto, 8), madera);
+      mastil.position.set(cx, D + alto / 2, z);
+      mastil.castShadow = true;
+      const vela = new THREE.Mesh(new THREE.PlaneGeometry(3.2, alto * 0.45, 6, 3), velaMat);
+      vela.position.set(cx, D + alto * 0.62, z + 0.15);
+      vela.castShadow = true;
+      scene.add(mastil, vela);
+      colisiones.push({ x: cx, z, r: 0.2 });
+    });
+    const cofa = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.45, 0.45, 12, 1, true), madera);
+    cofa.position.set(cx, D + 5.6, -53);
+    scene.add(cofa);
+    const bandera = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.7), new THREE.MeshStandardMaterial({ color: '#141414', side: THREE.DoubleSide }));
+    bandera.position.set(cx + 0.6, D + 6.3, -53);
+    scene.add(bandera);
+    // Cubo gigante que se llena y se vuelca sobre la cubierta
+    const brazo = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.15, 2.2), madera);
+    brazo.position.set(cx, D + 4.3, -52);
+    scene.add(brazo);
+    const cubo = new THREE.Group();
+    const cuboMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.45, 0.8, 16, 1, true), new THREE.MeshStandardMaterial({ color: '#ffd42a', side: THREE.DoubleSide }));
+    cuboMesh.position.y = -0.45;
+    cubo.add(cuboMesh);
+    cubo.position.set(cx, D + 4.2, -51.1);
+    scene.add(cubo);
+    barco.cubo = cubo;
+    // Chorros: dos cruzan por encima de la pasarela y dos salen por los cañones de popa
+    barco.chorros = [
+      { p: new V3(x0 - 0.05, D + 0.1, cz - 1.4), v: new V3(-2.2, 3.4, 1.2), pasillo: true },
+      { p: new V3(x0 - 0.05, D + 0.1, cz + 1.4), v: new V3(-2.2, 3.4, -1.2), pasillo: true },
+      { p: new V3(x1 + 0.05, D - 0.2, -45.6), v: new V3(3.6, 2.6, 0.6) },
+      { p: new V3(x0 - 0.05, D - 0.2, -45.6), v: new V3(-3.6, 2.6, 0.6) },
+    ];
+    barco.chorros.forEach((c) => {
+      const boca = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 0.4, 10), new THREE.MeshStandardMaterial({ color: '#2b2b30', metalness: 0.5, roughness: 0.4 }));
+      boca.position.copy(c.p);
+      boca.quaternion.setFromUnitVectors(EJE_Y, c.v.clone().normalize());
+      scene.add(boca);
+    });
+    // Dos toboganes pequeños desde la cubierta a la piscina
+    [-52, -48].forEach((z, i) => {
+      const t = crearTobogan([[x1 - 0.3, D + 0.1, z], [x1 + 1.0, D - 0.3, z - 0.1], [x1 + 2.4, AGUA_PARQUE + 0.25, z - 0.4]],
+        0.55, i ? '#e8412c' : '#ffd42a', '#fff4d6');
+      parque.toboganes.push({ id: 'barco', nombre: 'tobogán del barco', ...t, entrada: new V3(x1 - 0.9, D, z), sinFundido: true });
+    });
+  }
+
+  function actualizarBarco(dt) {
+    if (!barco.cubo) return;
+    const tiempo = reloj.elapsedTime;
+    // Chorros continuos
+    barco.chorros.forEach((c) => {
+      for (let k = 0; k < 2; k++) {
+        vA.copy(c.v).multiplyScalar(0.95 + azar() * 0.1);
+        vA.x += (azar() - 0.5) * 0.3;
+        vA.z += (azar() - 0.5) * 0.3;
+        soltarGota(c.p, vA, 1.3);
+      }
+    });
+    // El cubo se llena 9 s, se vuelca y vuelve a su sitio
+    const ciclo = tiempo % 11;
+    const vuelco = ciclo < 9 ? 0 : ciclo < 9.4 ? smoothstep(9, 9.4, ciclo) : ciclo < 10.4 ? 1 : 1 - smoothstep(10.4, 11, ciclo);
+    barco.cubo.rotation.x = vuelco * 2.2;
+    if (ciclo > 9.3 && ciclo < 10.3) {
+      for (let k = 0; k < 6; k++) {
+        vB.set(barco.cubo.position.x + (azar() - 0.5) * 0.8, barco.cubo.position.y - 0.4, barco.cubo.position.z + 0.3 + azar() * 0.5);
+        soltarGota(vB, vC.set((azar() - 0.5) * 1.2, -1 - azar(), (azar() - 0.5) * 1.2), 1.0);
+      }
+    }
+    // Mover las gotas
+    for (let i = 0; i < MAX_CHORRO; i++) {
+      const g = gotasChorro[i];
+      let s = 0;
+      if (g && g.t < g.vida) {
+        g.t += dt;
+        g.v.y -= 9.8 * dt;
+        g.p.addScaledVector(g.v, dt);
+        if (g.p.y < AGUA_PARQUE || (g.p.y < barco.cubierta && Math.abs(g.p.x + 68) < 2 && Math.abs(g.p.z + 50) < 5)) g.t = g.vida;
+        s = 1 - g.t / g.vida * 0.5;
+      }
+      tmpP.copy(g && g.t < g.vida ? g.p : tmpP.set(0, -99, 0));
+      tmpM.compose(tmpP, tmpQ.identity(), tmpS.set(s, s, s));
+      chorroMesh.setMatrixAt(i, tmpM);
+    }
+    chorroMesh.instanceMatrix.needsUpdate = true;
+    // ¿Manuel se moja?
+    const E = ninoE;
+    if (jugador !== 'nino' || tiempo < barco.ultimoMojado) return;
+    // Los dos chorros de los lados caen sobre la pasarela, hacia x = -72
+    const enPasarela = E.pos.x > -72.9 && E.pos.x < -70.8 && Math.abs(E.pos.z + 50) < 0.7;
+    const bajoCubo = ciclo > 9.3 && ciclo < 10.4 && Math.hypot(E.pos.x + 68, E.pos.z + 50.8) < 1.4 && E.pos.y > barco.cubierta - 0.2;
+    if (enPasarela || bajoCubo) {
+      barco.ultimoMojado = tiempo + 3;
+      ninoDice(bajoCubo ? '¡Chof! ¡Qué chapuzón!' : '¡Qué fresquito!', 1.8);
+      salpicar(new V3(E.pos.x, E.pos.y + 1.2, E.pos.z), 14);
     }
   }
 
