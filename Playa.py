@@ -14,6 +14,23 @@ def smoothstep(a, b, v):
     t = min(max((v - a) / (b - a), 0.0), 1.0)
     return t * t * (3.0 - 2.0 * t)
 
+# Parque acuático en lo alto de las dunas: una explanada plana con piscinas hundidas.
+# (x0, x1, y0, y1) en coordenadas de Blender. web/index.html tiene los mismos números.
+PARQUE = (-78.0, -22.0, 38.0, 82.0)
+PARQUE_ALTO = 6.0
+PISCINAS = {  # x0, x1, y0, y1, profundidad
+    "olas":       (-74.0, -50.0, 43.0, 62.0, 1.5),
+    "infantil":   (-38.0, -26.0, 43.0, 52.0, 0.3),
+    "llegada":    (-46.0, -26.0, 62.0, 75.0, 1.3),
+    "flotadores": (-74.0, -54.0, 67.0, 79.0, 1.4),
+}
+
+def fuera_de(x, y, r):
+    """Distancia desde (x, y) al rectángulo r (0 si está dentro)."""
+    dx = max(r[0] - x, 0.0, x - r[1])
+    dy = max(r[2] - y, 0.0, y - r[3])
+    return math.hypot(dx, dy)
+
 def altura(x, y):
     # La orilla está en y≈0: el mar hacia -Y y las dunas hacia +Y
     costa = y - 3.0 * math.sin(0.11 * x) - 1.5 * math.sin(0.27 * x + 1.0)
@@ -21,6 +38,12 @@ def altura(x, y):
     h += 0.10 * math.sin(0.55 * x + 0.25 * y) * math.sin(0.35 * y)  # ondulaciones y bancos de arena
     t = smoothstep(12.0, 28.0, costa)
     h += t * (1.4 + 0.9 * math.sin(0.23 * x) * math.sin(0.19 * y + 0.5))  # dunas
+    # Explanada del parque (con una rampa suave de 8 m alrededor) y piscinas
+    m = 1.0 - smoothstep(0.0, 8.0, fuera_de(x, y, PARQUE))
+    h += (PARQUE_ALTO - h) * m
+    for p in PISCINAS.values():
+        if fuera_de(x, y, p) == 0.0:
+            h = PARQUE_ALTO - p[4]
     return max(h, -3.0)
 
 # ---------- MATERIALES ----------
@@ -131,7 +154,7 @@ def objeto_malla(nombre, verts, caras, material):
     return obj
 
 # ---------- TERRENO ----------
-bpy.ops.mesh.primitive_grid_add(x_subdivisions=200, y_subdivisions=200, size=240)
+bpy.ops.mesh.primitive_grid_add(x_subdivisions=240, y_subdivisions=240, size=240)
 terreno = bpy.context.object
 terreno.name = "Arena"
 for v in terreno.data.vertices:

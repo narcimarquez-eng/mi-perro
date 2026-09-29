@@ -182,6 +182,120 @@
   .accion.guau:active { box-shadow: 0 1px 0 var(--mar-osc); }
   .accion:focus-visible { outline: 3px solid var(--tinta); outline-offset: 3px; }
 
+  .accion.cambiar {
+    width: 60px; height: 60px;
+    font-size: 14px;
+    color: var(--tinta);
+    background: var(--espuma);
+    box-shadow: 0 4px 0 #c9bfa6, 0 6px 14px rgba(18, 59, 74, 0.2);
+  }
+  .accion.cambiar:active { box-shadow: 0 1px 0 #c9bfa6; }
+  body.pescando .acciones, body.pescando .joystick { display: none; }
+
+  .pesca {
+    position: fixed;
+    left: 50%;
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    transform: translateX(-50%);
+    width: min(440px, calc(100% - 32px));
+    max-height: 62vh;
+    overflow-y: auto;
+    display: grid;
+    gap: 10px;
+    padding: 14px 16px 16px;
+    border-radius: 18px;
+    background: var(--cristal);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 28px rgba(18, 59, 74, 0.25);
+  }
+  .pesca-cab { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .pesca-cab strong {
+    font-family: "Baloo 2", "Nunito", system-ui, sans-serif;
+    font-weight: 800;
+    font-size: 21px;
+    line-height: 1.1;
+  }
+  .pesca-salir {
+    border: 0;
+    border-radius: 999px;
+    padding: 6px 14px;
+    font: 700 14px "Nunito", system-ui, sans-serif;
+    color: var(--tinta);
+    background: var(--arena);
+    cursor: pointer;
+  }
+  .pista { margin: 0; font-size: 14px; color: var(--tinta-suave); }
+  .cebos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .cebo {
+    border: 0;
+    border-radius: 14px;
+    padding: 12px 6px;
+    font: 800 16px "Baloo 2", "Nunito", system-ui, sans-serif;
+    color: var(--espuma);
+    background: var(--mar);
+    box-shadow: 0 3px 0 var(--mar-osc);
+    cursor: pointer;
+  }
+  .cebo:focus-visible, .pesca-boton:focus-visible, .pesca-salir:focus-visible { outline: 3px solid var(--tinta); outline-offset: 2px; }
+  .pesca-boton {
+    border: 0;
+    border-radius: 16px;
+    padding: 14px;
+    font: 800 20px "Baloo 2", "Nunito", system-ui, sans-serif;
+    color: var(--espuma);
+    background: var(--mar);
+    box-shadow: 0 4px 0 var(--mar-osc);
+    cursor: pointer;
+    touch-action: none;
+  }
+  .pesca-boton.peligro { background: var(--coral); box-shadow: 0 4px 0 var(--coral-osc); }
+  .pesca-boton:active { transform: translateY(3px); box-shadow: none; }
+  .barra {
+    position: relative;
+    height: 18px;
+    border-radius: 999px;
+    background: #e3dccb;
+    overflow: hidden;
+  }
+  .barra i { position: absolute; inset: 0 auto 0 0; width: 0; background: var(--mar); border-radius: 999px; }
+  .barra.fuerza i { background: linear-gradient(90deg, #7cd35a, #ffd42a, #ff6f59); }
+  .barra.tension b { position: absolute; inset: 0 15% 0 25%; background: rgba(47, 158, 106, 0.28); }
+  .barra.tension::after { content: ""; position: absolute; inset: 0 0 0 85%; background: rgba(232, 65, 44, 0.3); }
+  .barra.tension i { background: var(--tinta); opacity: 0.85; }
+  .barra.tension.roja i { background: var(--coral); }
+  .cuaderno-tit { margin: 4px 0 0; font-weight: 700; font-size: 13px; }
+  .cuaderno {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px 10px;
+    font-size: 13px;
+    color: var(--tinta-suave);
+  }
+  .cuaderno li { display: flex; align-items: center; gap: 6px; min-width: 0; }
+  .cuaderno li i { flex: none; width: 10px; height: 10px; border-radius: 50%; opacity: 0.35; }
+  .cuaderno li.pescado { color: var(--tinta); font-weight: 700; }
+  .cuaderno li.pescado i { opacity: 1; }
+  .cuaderno li span { font-weight: 400; color: var(--tinta-suave); font-variant-numeric: tabular-nums; }
+  .ficha-pez { display: flex; align-items: center; gap: 12px; }
+  .ficha-pez i { width: 38px; height: 22px; border-radius: 50%; flex: none; }
+  .ficha-pez strong { display: block; font: 800 18px "Baloo 2", "Nunito", system-ui, sans-serif; }
+  .ficha-pez span { font-size: 14px; color: var(--tinta-suave); font-variant-numeric: tabular-nums; }
+
+  .fundido {
+    position: fixed;
+    inset: 0;
+    background: #0b2a35;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.35s;
+  }
+  .fundido.activo { opacity: 1; }
+  @media (prefers-reduced-motion: reduce) { .fundido { transition: none; } }
+
   .bocadillo {
     position: fixed;
     left: 0; top: 0;
@@ -231,8 +345,8 @@
   </div>
   <div class="ficha estado" id="estado" data-zona="arena"><i></i><span id="estado-texto">En la arena</span></div>
   <p class="ficha ayuda" id="ayuda">
-    <span class="solo-teclado"><kbd>WASD</kbd> o flechas para andar, <kbd>Shift</kbd> corre, <kbd>Espacio</kbd> salta, <kbd>B</kbd> ladra. Ladra cerca de Manuel para que te tire el balón; si llevas el balón, ladrar lo suelta.</span>
-    <span class="solo-tactil">Joystick para andar. Arrastra para mirar y pellizca para acercarte. Ladra cerca de Manuel para que te tire el balón.</span>
+    <span class="solo-teclado"><kbd>WASD</kbd> o flechas para andar, <kbd>Shift</kbd> corre, <kbd>Espacio</kbd> salta, <kbd>B</kbd> ladra o hace la acción de Manuel, <kbd>C</kbd> cambia entre el perro y Manuel. Con Manuel puedes pescar en el muelle y entrar en el parque acuático de las dunas.</span>
+    <span class="solo-tactil">Joystick para andar. Arrastra para mirar y pellizca para acercarte. El botón «Manuel» cambia de personaje: con él puedes pescar en el muelle y entrar en el parque acuático.</span>
   </p>
 </div>
 
@@ -241,9 +355,19 @@
 <div class="joystick" id="joystick" aria-hidden="true"><div class="bola" id="bola"></div></div>
 
 <div class="acciones">
+  <button class="accion cambiar" id="btn-cambiar" type="button" aria-label="Jugar con Manuel">Manuel</button>
   <button class="accion guau" id="btn-guau" type="button">¡Guau!</button>
   <button class="accion" id="btn-saltar" type="button">Saltar</button>
 </div>
+
+<div class="pesca" id="pesca" hidden>
+  <div class="pesca-cab"><strong id="pesca-titulo">Elige el cebo</strong><button type="button" class="pesca-salir" id="pesca-salir">Salir</button></div>
+  <div id="pesca-cuerpo"></div>
+  <div class="barra" id="pesca-barra" hidden><b></b><i id="pesca-relleno"></i></div>
+  <button type="button" class="pesca-boton" id="pesca-boton">Fijar dirección</button>
+</div>
+
+<div class="fundido" id="fundido"></div>
 
 <div class="bocadillo" id="bocadillo" hidden>¡Guau!</div>
 <div class="bocadillo" id="bocadillo-nino" hidden></div>
@@ -268,21 +392,57 @@
     const t = Math.min(Math.max((v - a) / (b - a), 0), 1);
     return t * t * (3 - 2 * t);
   }
+  // Parque acuático: los mismos números que en Playa.py (coordenadas de Blender: x0, x1, y0, y1)
+  const PARQUE = [-78, -22, 38, 82];
+  const PARQUE_ALTO = 6.0;
+  const PISCINAS = {  // x0, x1, y0, y1, profundidad
+    olas: [-74, -50, 43, 62, 1.5],
+    infantil: [-38, -26, 43, 52, 0.3],
+    llegada: [-46, -26, 62, 75, 1.3],
+    flotadores: [-74, -54, 67, 79, 1.4],
+  };
+  const AGUA_PARQUE = PARQUE_ALTO - 0.15;
+  function fueraDe(x, y, r) {
+    const dx = Math.max(r[0] - x, 0, x - r[1]);
+    const dy = Math.max(r[2] - y, 0, y - r[3]);
+    return Math.hypot(dx, dy);
+  }
   function altura(x, y) {
     const costa = y - 3 * Math.sin(0.11 * x) - 1.5 * Math.sin(0.27 * x + 1.0);
     let h = 0.10 * costa;
     h += 0.10 * Math.sin(0.55 * x + 0.25 * y) * Math.sin(0.35 * y);
     const t = smoothstep(12, 28, costa);
     h += t * (1.4 + 0.9 * Math.sin(0.23 * x) * Math.sin(0.19 * y + 0.5));
+    const m = 1 - smoothstep(0, 8, fueraDe(x, y, PARQUE));
+    h += (PARQUE_ALTO - h) * m;
+    for (const k in PISCINAS) {
+      if (fueraDe(x, y, PISCINAS[k]) === 0) h = PARQUE_ALTO - PISCINAS[k][4];
+    }
     return Math.max(h, -3);
+  }
+  // Piscina en la que está un punto de la web (o null)
+  function piscinaEn(x, z) {
+    for (const k in PISCINAS) if (fueraDe(x, -z, PISCINAS[k]) === 0) return k;
+    return null;
+  }
+  const olaPiscina = (x, z) => 0.15 * Math.sin(z * 0.6 + uTiempo.value * 2.0);
+  // Nivel del agua: el de la piscina si hay una; si no, el del mar (y = 0)
+  function aguaEn(x, z) {
+    const p = piscinaEn(x, z);
+    if (!p) return 0;
+    return AGUA_PARQUE + (p === 'olas' ? olaPiscina(x, z) : 0);
   }
   // El muelle de Playa.py (x 43.5..46.5, y -32..8, tablones a 1.1 m) en coordenadas de la web
   const MUELLE = { x0: 43.5, x1: 46.5, z0: -8, z1: 32, y: 1.1 };
   const sobreMuelle = (x, z) => x > MUELLE.x0 && x < MUELLE.x1 && z > MUELLE.z0 && z < MUELLE.z1;
   // Altura del suelo. Si se pasa la altura actual y está por debajo del muelle, el muelle no cuenta (se nada por debajo).
+  const flotadores = [];  // plataformas flotantes de la prueba del parque (se rellena al construirlo)
   function suelo(x, z, yActual) {
-    const h = altura(x, -z);
-    if (sobreMuelle(x, z) && (yActual === undefined || yActual > MUELLE.y - 0.45)) return Math.max(h, MUELLE.y);
+    let h = altura(x, -z);
+    if (sobreMuelle(x, z) && (yActual === undefined || yActual > MUELLE.y - 0.45)) h = Math.max(h, MUELLE.y);
+    for (const f of flotadores) {
+      if (Math.hypot(x - f.x, z - f.z) < f.r && (yActual === undefined || yActual > f.y - 0.35)) h = Math.max(h, f.y);
+    }
     return h;
   }
   const LIMITE_X = 108, LIMITE_Z0 = -100, LIMITE_Z1 = 100;
@@ -370,6 +530,8 @@
   const colFondo = new THREE.Color('#f3e2bb').convertSRGBToLinear();
   const colDuna = new THREE.Color('#d6b475').convertSRGBToLinear();
   const colHierba = new THREE.Color('#9aa65a').convertSRGBToLinear();
+  const colPlaza = new THREE.Color('#efe3c9').convertSRGBToLinear();
+  const colAzulejo = new THREE.Color('#8fd8ec').convertSRGBToLinear();
   function pintarArena(geo) {
     const pos = geo.attributes.position;
     const colores = new Float32Array(pos.count * 3);
@@ -381,6 +543,7 @@
       else c.copy(colSeco).lerp(colDuna, smoothstep(1.5, 4.0, y));
       const mata = smoothstep(3.6, 4.6, y) * (0.5 + 0.5 * Math.sin(x * 0.9) * Math.cos(z * 0.7));
       c.lerp(colHierba, Math.min(mata, 1) * 0.8);
+      if (fueraDe(x, -z, PARQUE) < 0.6) c.copy(piscinaEn(x, z) ? colAzulejo : colPlaza);
       c.toArray(colores, i * 3);
     }
     geo.setAttribute('color', new THREE.BufferAttribute(colores, 3));
@@ -750,6 +913,8 @@
     prepararPlaya(playa);
     prepararPerro(gPerro);
     prepararNino(gNino);
+    construirParque(playa.scene);
+    construirPesca();
 
     estado.pos.set(0, suelo(0, -4), -4);
     ninoE.pos.set(-2.5, suelo(-2.5, -6.5), -6.5);
@@ -766,15 +931,20 @@
 
   // ---------- Controles ----------
   const teclas = new Set();
-  const TECLAS_JUEGO = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'ShiftLeft', 'ShiftRight', 'KeyB'];
+  const TECLAS_JUEGO = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'ShiftLeft', 'ShiftRight', 'KeyB', 'KeyE', 'KeyC', 'Tab'];
   window.addEventListener('keydown', (e) => {
     if (TECLAS_JUEGO.includes(e.code)) e.preventDefault();
     if (e.repeat) return;
     teclas.add(e.code);
+    if (pesca.activa) { teclaPesca(e.code, true); return; }
     if (e.code === 'Space') saltar();
-    if (e.code === 'KeyB') ladrar();
+    if (e.code === 'KeyB' || e.code === 'KeyE') accionPrincipal();
+    if (e.code === 'KeyC' || e.code === 'Tab') cambiarJugador();
   });
-  window.addEventListener('keyup', (e) => teclas.delete(e.code));
+  window.addEventListener('keyup', (e) => {
+    teclas.delete(e.code);
+    if (pesca.activa) teclaPesca(e.code, false);
+  });
   window.addEventListener('blur', () => teclas.clear());
 
   const joy = { x: 0, y: 0, id: null };
@@ -841,7 +1011,8 @@
   }, { passive: false });
 
   document.getElementById('btn-saltar').addEventListener('click', () => saltar());
-  document.getElementById('btn-guau').addEventListener('click', () => ladrar());
+  document.getElementById('btn-guau').addEventListener('click', () => accionPrincipal());
+  document.getElementById('btn-cambiar').addEventListener('click', () => cambiarJugador());
 
   // ---------- Estado del perro ----------
   const estado = {
@@ -862,7 +1033,9 @@
   const BOCA_Y = -0.08, BOCA_Z = 1.05;
 
   function saltar() {
-    if (!listo || !estado.enSuelo || estado.nadando) return;
+    if (!listo) return;
+    if (jugador === 'nino') return saltarNino();
+    if (!estado.enSuelo || estado.nadando) return;
     estado.vy = 6;
     estado.enSuelo = false;
   }
@@ -909,7 +1082,7 @@
   const formato = new Intl.NumberFormat('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
   function actualizarEstado(h) {
     let zona, texto;
-    if (estado.nadando) { zona = 'agua'; texto = `Nadando · ${formato.format(-altura(estado.pos.x, -estado.pos.z))} m de profundidad`; }
+    if (estado.nadando) { zona = 'agua'; texto = `Nadando · ${formato.format(aguaEn(estado.pos.x, estado.pos.z) - altura(estado.pos.x, -estado.pos.z))} m de profundidad`; }
     else if (h >= MUELLE.y - 0.01 && sobreMuelle(estado.pos.x, estado.pos.z)) { zona = 'muelle'; texto = 'En el muelle'; }
     else if (estado.excavando > 0) { zona = 'arena'; texto = 'Excavando…'; }
     else if (h < 0.35) { zona = 'orilla'; texto = h < 0 ? 'Chapoteando en la orilla' : 'En la orilla'; }
@@ -928,7 +1101,37 @@
   }
   const distXZ = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
 
-  function chocar(pos, radio) {
+  // Rectángulos que no se pueden atravesar: muros, torres, la puerta del parque y las vallas
+  const cajas = [];
+  function chocarCajas(pos, radio, alturaPies = 0, esNino = false, vel = null) {
+    for (const c of cajas) {
+      if (!c.activa) continue;
+      if (c.soloNino && !esNino) continue;
+      if (c.alto && alturaPies > c.alto) continue;  // saltando por encima
+      const cx = clamp(pos.x, c.x0, c.x1), cz = clamp(pos.z, c.z0, c.z1);
+      const dx = pos.x - cx, dz = pos.z - cz;
+      const d = Math.hypot(dx, dz);
+      if (d >= radio) continue;
+      let nx, nz;
+      if (d > 1e-4) {
+        nx = dx / d; nz = dz / d;
+        pos.x = cx + nx * radio;
+        pos.z = cz + nz * radio;
+      } else {
+        // Dentro: sale por el lado más cercano
+        const lados = [[pos.x - c.x0, -1, 0], [c.x1 - pos.x, 1, 0], [pos.z - c.z0, 0, -1], [c.z1 - pos.z, 0, 1]];
+        lados.sort((a, b) => a[0] - b[0]);
+        [, nx, nz] = lados[0];
+        if (nx) pos.x = (nx < 0 ? c.x0 : c.x1) + nx * radio;
+        else pos.z = (nz < 0 ? c.z0 : c.z1) + nz * radio;
+      }
+      if (vel) {
+        const vn = vel.x * nx + vel.z * nz;
+        if (vn < 0) { vel.x -= 1.6 * vn * nx; vel.z -= 1.6 * vn * nz; }
+      }
+    }
+  }
+  function chocar(pos, radio, alturaPies = 0, esNino = false) {
     pos.x = clamp(pos.x, -LIMITE_X, LIMITE_X);
     pos.z = clamp(pos.z, LIMITE_Z0, LIMITE_Z1);
     for (const c of colisiones) {
@@ -939,6 +1142,7 @@
         pos.z = c.z + dz / d * min;
       }
     }
+    chocarCajas(pos, radio, alturaPies, esNino);
   }
 
   // ---------- Balón ----------
@@ -980,13 +1184,14 @@
     v.y -= 9.8 * dt;
     p.addScaledVector(v, dt);
     const h = suelo(p.x, p.z, p.y);
-    balon.enAgua = h < -0.15;
-    if (balon.enAgua && p.y < r * 0.35) {
-      // Flota: sube a la superficie y las olas lo acercan poco a poco a la orilla
-      p.y = damp(p.y, r * 0.35 + Math.sin(reloj.elapsedTime * 2 + p.x) * 0.04, 6, dt);
+    const agua = aguaEn(p.x, p.z);
+    balon.enAgua = h < agua - 0.15;
+    if (balon.enAgua && p.y < agua + r * 0.35) {
+      // Flota: sube a la superficie y, en el mar, las olas lo acercan poco a poco a la orilla
+      p.y = damp(p.y, agua + r * 0.35 + Math.sin(reloj.elapsedTime * 2 + p.x) * 0.04, 6, dt);
       if (v.y < 0) v.y *= 0.2;
       v.x *= Math.exp(-0.9 * dt);
-      v.z = v.z * Math.exp(-0.9 * dt) - 0.35 * dt;
+      v.z = v.z * Math.exp(-0.9 * dt) - (agua === 0 ? 0.35 * dt : 0);
     }
     if (p.y - r < h) {
       p.y = h + r;
@@ -1007,6 +1212,7 @@
         if (vn < 0) { v.x -= 1.6 * vn * nx; v.z -= 1.6 * vn * nz; }
       }
     }
+    chocarCajas(p, r, p.y - h, false, v);
     p.x = clamp(p.x, -LIMITE_X, LIMITE_X);
     p.z = clamp(p.z, LIMITE_Z0, LIMITE_Z1);
     balon.obj.position.copy(p);
@@ -1024,7 +1230,12 @@
   const ninoE = {
     pos: new V3(),
     rumbo: 0,
-    modo: 'libre',      // libre | patada | lanzar | celebrar | recoger
+    vel: 0,
+    vy: 0,
+    enSuelo: true,
+    nadando: false,
+    impulso: new V3(),
+    modo: 'libre',      // libre | patada | lanzar | celebrar | recoger | pescar | tobogan
     t: 0,
     espera: 0,
     pedido: false,
@@ -1065,10 +1276,10 @@
     return mejor;
   }
 
-  function empezarTiro() {
-    const alMar = misionActual() && misionActual().id === 'rescate' && !misionActual().lanzado;
+  function empezarTiro(anguloFijo) {
+    const alMar = anguloFijo === undefined && misionActual() && misionActual().id === 'rescate' && !misionActual().lanzado;
     ninoE.alMar = alMar;
-    const ang = elegirTiro(alMar);
+    const ang = anguloFijo === undefined ? elegirTiro(alMar) : anguloFijo;
     ninoE.dirTiro.set(Math.sin(ang), 0, Math.cos(ang));
     ninoE.t = 0;
     ninoE.alterna++;
@@ -1092,7 +1303,8 @@
     const mision = misionActual();
     const juegaSolo = !mision || mision.id === 'balon' || (mision.id === 'rescate' && !mision.lanzado);
 
-    if (E.modo === 'libre') {
+    const controlado = jugador === 'nino';
+    if (E.modo === 'libre' && !controlado) {
       if (balon.estado === 'mano') {
         objetivo = estado.pos;
         E.espera += dt;
@@ -1105,7 +1317,7 @@
       } else if (balon.estado === 'libre') {
         // Si el perro no va a por el balón, Manuel lo recoge (pero no se mete donde cubre)
         const lejosPerro = distXZ(estado.pos, balon.pos) > 5;
-        if (balon.quieto > (juegaSolo ? 5 : 2) && lejosPerro && suelo(balon.pos.x, balon.pos.z) > -0.45) {
+        if (balon.quieto > (juegaSolo ? 5 : 2) && lejosPerro && profundidad(balon.pos.x, balon.pos.z) < 0.45) {
           objetivo = balon.pos;
           correr = distXZ(E.pos, balon.pos) > 6;
           if (distXZ(E.pos, balon.pos) < 0.6) empezarRecoger();
@@ -1118,11 +1330,12 @@
 
     // Andar hacia el objetivo, sin meterse en el agua
     let vel = 0;
-    if (E.modo === 'libre' && !objetivo) {
+    if (E.modo === 'libre' && !objetivo && !controlado) {
       E.rumbo = angulo(E.rumbo, Math.atan2(estado.pos.x - E.pos.x, estado.pos.z - E.pos.z), 1 - Math.exp(-4 * dt));
       animarNino('idle');
     }
-    if (objetivo && E.modo === 'libre') {
+    if (controlado && E.modo === 'libre') controlarNino(dt);
+    if (objetivo && E.modo === 'libre' && !controlado) {
       const dx = objetivo.x - E.pos.x, dz = objetivo.z - E.pos.z;
       const d = Math.hypot(dx, dz);
       const parar = objetivo === estado.pos ? 2.4 : 0.4;
@@ -1130,21 +1343,29 @@
         correr = correr || d > 9;
         vel = correr ? 3.4 : 1.4;
         const nx = E.pos.x + dx / d * vel * dt, nz = E.pos.z + dz / d * vel * dt;
-        if (suelo(nx, nz) > -0.45) { E.pos.x = nx; E.pos.z = nz; } else vel = 0;
+        if (profundidad(nx, nz) < 0.45 || profundidad(E.pos.x, E.pos.z) > 0.45) { E.pos.x = nx; E.pos.z = nz; } else vel = 0;
         if (vel > 0) E.rumbo = angulo(E.rumbo, Math.atan2(dx, dz), 1 - Math.exp(-8 * dt));
       } else {
         E.rumbo = angulo(E.rumbo, Math.atan2(estado.pos.x - E.pos.x, estado.pos.z - E.pos.z), 1 - Math.exp(-4 * dt));
       }
       animarNino(vel === 0 ? 'idle' : correr ? 'run' : 'walk');
     }
-    chocar(E.pos, 0.3);
-    // No pisar al perro
-    const dp = distXZ(E.pos, estado.pos);
-    if (dp < 0.75 && dp > 0.001) {
-      E.pos.x = estado.pos.x + (E.pos.x - estado.pos.x) / dp * 0.75;
-      E.pos.z = estado.pos.z + (E.pos.z - estado.pos.z) / dp * 0.75;
+    if (E.modo !== 'tobogan') {
+      chocar(E.pos, 0.3, E.pos.y - suelo(E.pos.x, E.pos.z, E.pos.y), true);
+      // No pisar al perro
+      const dp = distXZ(E.pos, estado.pos);
+      if (dp < 0.75 && dp > 0.001) {
+        E.pos.x = estado.pos.x + (E.pos.x - estado.pos.x) / dp * 0.75;
+        E.pos.z = estado.pos.z + (E.pos.z - estado.pos.z) / dp * 0.75;
+      }
     }
-    E.pos.y = damp(E.pos.y, suelo(E.pos.x, E.pos.z, E.pos.y), 12, dt);
+    if (!(controlado && E.modo === 'libre') && E.modo !== 'tobogan') {
+      // Pegado al suelo, o flotando si está donde cubre
+      const hS = suelo(E.pos.x, E.pos.z, E.pos.y), aguaS = aguaEn(E.pos.x, E.pos.z);
+      E.nadando = aguaS - hS > 0.95;
+      E.pos.y = damp(E.pos.y, E.nadando ? aguaS - NADO_NINO : hS, 12, dt);
+      if (E.nadando && E.modo === 'libre') animarNino('swim');
+    }
 
     // Tiros
     if (E.modo === 'patada' || E.modo === 'lanzar') {
@@ -1281,6 +1502,7 @@
   const distanciaEl = document.getElementById('tarea-distancia');
   const puntosEl = document.getElementById('puntos');
   function pintarTarea() {
+    if (jugador === 'nino') return pintarTareaNino();
     const m = misionActual();
     puntosEl.innerHTML = MISIONES.map((_, i) =>
       `<i class="${i < indiceMision ? 'hecha' : i === indiceMision ? 'actual' : ''}"></i>`).join('');
@@ -1411,18 +1633,1284 @@
     }
     if (m && m.id === 'boya' && distXZ(estado.pos, boya.position) < 1.8) sumar('boya');
 
-    // Marcador y distancia
-    const obj = m && m.objetivo();
-    marcador.visible = !!obj;
+    // Marcador y distancia (de la tarea del personaje con el que juegas)
+    const mj = jugador === 'nino' ? misionNino() : m;
+    const obj = mj && mj.objetivo();
+    const quien = jugador === 'nino' ? ninoE.pos : estado.pos;
+    marcador.visible = !!obj && !pesca.activa;
     if (obj) {
       const baseY = Math.max(obj.y, suelo(obj.x, obj.z, obj.y + 0.1));
       marcador.position.set(obj.x, baseY + 1.6 + Math.sin(reloj.elapsedTime * 3) * 0.15, obj.z);
       marcador.rotation.y += dt * 2;
-      const d = Math.round(distXZ(obj, estado.pos));
+      const d = Math.round(distXZ(obj, quien));
       distanciaEl.textContent = d > 2 ? `a ${d} m` : '';
     } else {
       distanciaEl.textContent = '';
     }
+  }
+
+  // =====================================================================
+  // ---------- Jugar con Manuel ----------
+  // =====================================================================
+  let jugador = 'perro';
+  const NADO_NINO = 0.55;  // cuánto se hunde Manuel al nadar (la animación "swim" va tumbada)
+  const profundidad = (x, z) => aguaEn(x, z) - suelo(x, z);
+  const btnCambiar = document.getElementById('btn-cambiar');
+  const btnAccion = document.getElementById('btn-guau');
+
+  function cambiarJugador() {
+    if (!listo || ninoE.modo === 'pescar' || ninoE.modo === 'tobogan') return;
+    jugador = jugador === 'perro' ? 'nino' : 'perro';
+    btnCambiar.textContent = jugador === 'perro' ? 'Manuel' : 'Perro';
+    btnCambiar.setAttribute('aria-label', jugador === 'perro' ? 'Jugar con Manuel' : 'Jugar con el perro');
+    ninoE.vy = 0;
+    ninoE.vel = 0;
+    ninoE.enSuelo = true;
+    document.body.classList.toggle('con-manuel', jugador === 'nino');
+    pintarTarea();
+    avisar(jugador === 'nino' ? 'Ahora juegas con Manuel' : 'Ahora juegas con el perro', 1500);
+  }
+
+  function saltarNino() {
+    const E = ninoE;
+    if (E.modo !== 'libre' || !E.enSuelo || E.nadando) return;
+    E.vy = 5.4;
+    E.enSuelo = false;
+  }
+
+  // Lo que puede hacer Manuel ahora mismo (también es la etiqueta del botón)
+  function accionNino() {
+    const E = ninoE;
+    if (E.modo !== 'libre') return null;
+    if (cercaDePesca()) return { texto: 'Pescar', hacer: empezarPesca };
+    const t = toboganCerca();
+    if (t) return { texto: 'Subir', hacer: () => subirTobogan(t) };
+    if (balon.estado === 'mano') return { texto: 'Chutar', hacer: () => empezarTiro(E.rumbo) };
+    return { texto: '¡Hola!', hacer: () => ninoCelebra(['¡Hola!', '¡Qué calor!', '¡Vamos!'][Math.floor(azar() * 3)]) };
+  }
+  function accionPrincipal() {
+    if (!listo || pesca.activa) return;
+    if (jugador === 'perro') return ladrar();
+    const a = accionNino();
+    if (a) a.hacer();
+  }
+  let textoAccion = '';
+  function actualizarBotonAccion() {
+    let t = '¡Guau!';
+    if (jugador === 'nino') {
+      const a = accionNino();
+      t = a ? a.texto : '…';
+    }
+    if (t !== textoAccion) {
+      textoAccion = t;
+      btnAccion.textContent = t;
+    }
+  }
+
+  // Movimiento de Manuel con el joystick o el teclado
+  const movNino = new V3();
+  function controlarNino(dt) {
+    const E = ninoE;
+    let ix = joy.x, iy = joy.y;
+    if (autopiloto && misionNino()) {
+      const o = misionNino().objetivo();
+      if (o) [ix, iy] = entradaHacia(o, E.pos, 0.3);
+    }
+    if (teclas.has('KeyW') || teclas.has('ArrowUp')) iy += 1;
+    if (teclas.has('KeyS') || teclas.has('ArrowDown')) iy -= 1;
+    if (teclas.has('KeyD') || teclas.has('ArrowRight')) ix += 1;
+    if (teclas.has('KeyA') || teclas.has('ArrowLeft')) ix -= 1;
+    const fuerza = Math.min(Math.hypot(ix, iy), 1);
+    adelante.set(-Math.sin(cam.yaw), 0, -Math.cos(cam.yaw));
+    derecha.set(Math.cos(cam.yaw), 0, -Math.sin(cam.yaw));
+    movNino.set(0, 0, 0).addScaledVector(derecha, ix).addScaledVector(adelante, iy);
+    if (movNino.lengthSq() > 0) movNino.normalize();
+    const corre = teclas.has('ShiftLeft') || teclas.has('ShiftRight') || fuerza > 0.95;
+
+    const prof = profundidad(E.pos.x, E.pos.z);
+    let vmax = corre ? 4.2 : 1.9;
+    if (E.nadando) vmax = 1.7;
+    else if (prof > 0.2) vmax *= 0.6;  // andando por el agua cuesta más
+    E.vel = damp(E.vel, fuerza * vmax, 8, dt);
+    if (fuerza > 0.05) E.rumbo = angulo(E.rumbo, Math.atan2(movNino.x, movNino.z), 1 - Math.exp(-10 * dt));
+    const zAntes = E.pos.z, xAntes = E.pos.x, alturaAntes = E.pos.y - suelo(E.pos.x, E.pos.z, E.pos.y);
+    E.pos.x += Math.sin(E.rumbo) * E.vel * dt + E.impulso.x * dt;
+    E.pos.z += Math.cos(E.rumbo) * E.vel * dt + E.impulso.z * dt;
+    E.impulso.multiplyScalar(Math.exp(-2.5 * dt));
+
+    // Altura: suelo, salto y nado
+    const h = suelo(E.pos.x, E.pos.z, E.pos.y);
+    const agua = aguaEn(E.pos.x, E.pos.z);
+    const cubre = agua - h > 0.95;
+    const nivelNado = agua - NADO_NINO;
+    const estabaNadando = E.nadando;
+    if (cubre && E.pos.y <= nivelNado + 0.05 && E.vy <= 0) {
+      if (!estabaNadando && E.vy < -2) salpicar(new V3(E.pos.x, agua, E.pos.z), 26);
+      E.pos.y = damp(E.pos.y, nivelNado, 6, dt);
+      E.vy = 0;
+      E.enSuelo = true;
+      E.nadando = true;
+    } else {
+      E.nadando = false;
+      E.vy -= 20 * dt;
+      E.pos.y += E.vy * dt;
+      if (E.pos.y <= h || (E.enSuelo && E.vy <= 0 && E.pos.y - h < 0.3)) {
+        // Si el escalón es alto (salir de una piscina), sube rápido pero sin teletransportarse
+        E.pos.y = h - E.pos.y > 0.4 ? damp(E.pos.y, h, 14, dt) : h;
+        E.vy = 0;
+        E.enSuelo = true;
+      } else {
+        E.enSuelo = false;
+      }
+    }
+    if (!E.nadando) animarNino(!E.enSuelo ? (nino.actual === nino.acciones.run ? 'run' : 'idle') :
+      E.vel > 2.6 ? 'run' : E.vel > 0.3 ? 'walk' : 'idle');
+    else animarNino('swim');
+
+    // Coger el balón al pasar por encima
+    if (balon.estado === 'libre' && !balon.reservado && !E.nadando && distXZ(E.pos, balon.pos) < 0.6 &&
+        Math.abs(balon.pos.y - E.pos.y) < 1.2) empezarRecoger();
+
+    comprobarVallas(xAntes, zAntes, alturaAntes);
+  }
+
+  // Estado (arriba a la derecha) cuando juegas con Manuel
+  function actualizarEstadoNino() {
+    const E = ninoE;
+    let zona = 'arena', texto;
+    if (E.modo === 'tobogan') { zona = 'agua'; texto = '¡Bajando por el tobogán!'; }
+    else if (E.modo === 'pescar') { zona = 'muelle'; texto = 'Pescando en el muelle'; }
+    else if (fueraDe(E.pos.x, -E.pos.z, PARQUE) === 0) {
+      const p = piscinaEn(E.pos.x, E.pos.z);
+      zona = p ? 'agua' : 'arena';
+      texto = p ? (E.nadando ? 'Nadando en la piscina' : 'En la piscina') : 'En el parque acuático';
+    } else if (E.nadando) { zona = 'agua'; texto = 'Nadando en el mar'; }
+    else if (sobreMuelle(E.pos.x, E.pos.z) && E.pos.y > MUELLE.y - 0.1) { zona = 'muelle'; texto = 'En el muelle'; }
+    else texto = 'En la playa';
+    if (texto !== ultimoTexto) {
+      ultimoTexto = texto;
+      estadoTexto.textContent = texto;
+      estadoEl.dataset.zona = zona;
+    }
+  }
+
+  // ---------- Salpicaduras ----------
+  const MAX_GOTAS = 90;
+  const gotasMesh = new THREE.InstancedMesh(
+    new THREE.SphereGeometry(0.06, 6, 4),
+    new THREE.MeshBasicMaterial({ color: 0xeafcff, transparent: true, opacity: 0.85 }),
+    MAX_GOTAS
+  );
+  gotasMesh.frustumCulled = false;
+  scene.add(gotasMesh);
+  const gotas = [];
+  let siguienteGota = 0;
+  function salpicar(p, n = 20) {
+    for (let i = 0; i < n; i++) {
+      const a = azar() * Math.PI * 2, v = 1 + azar() * 2.5;
+      gotas[siguienteGota] = { p: p.clone(), v: new V3(Math.cos(a) * v * 0.6, 2.5 + azar() * 3, Math.sin(a) * v * 0.6), t: 0 };
+      siguienteGota = (siguienteGota + 1) % MAX_GOTAS;
+    }
+  }
+  function actualizarSalpicaduras(dt) {
+    for (let i = 0; i < MAX_GOTAS; i++) {
+      const g = gotas[i];
+      let s = 0;
+      if (g && g.t < 1.2) {
+        g.t += dt;
+        g.v.y -= 9.8 * dt;
+        g.p.addScaledVector(g.v, dt);
+        s = Math.max(0, 1 - g.t / 1.2);
+      }
+      tmpP.copy(g ? g.p : tmpP.set(0, -99, 0));
+      tmpM.compose(tmpP, tmpQ.identity(), tmpS.set(s, s, s));
+      gotasMesh.setMatrixAt(i, tmpM);
+    }
+    gotasMesh.instanceMatrix.needsUpdate = true;
+  }
+
+  // Fundido a negro para "teletransportes" (subir a lo alto de un tobogán, volver a empezar una prueba)
+  const fundidoEl = document.getElementById('fundido');
+  function fundido(accion) {
+    fundidoEl.classList.add('activo');
+    setTimeout(() => {
+      accion();
+      setTimeout(() => fundidoEl.classList.remove('activo'), 120);
+    }, 380);
+  }
+
+  // =====================================================================
+  // ---------- Parque acuático ----------
+  // =====================================================================
+  const Y0 = PARQUE_ALTO;
+  // Rectángulo de Blender (x0, x1, y0, y1) -> web (x0, x1, z0, z1)
+  const aWeb = (r) => [r[0], r[1], -r[3], -r[2]];
+  const parque = {
+    puertaAbierta: false,
+    hojas: [],
+    cajaPuerta: null,
+    vallas: [],
+    siguienteValla: 0,
+    patitos: [],
+    patitosActiva: false,
+    patitosFin: 0,
+    patitosRecogidos: 0,
+    flotadoresActiva: false,
+    toboganes: [],
+    agua: [],
+  };
+  const matPiedra = new THREE.MeshStandardMaterial({ color: '#d4b98c', roughness: 0.9 });
+  const matPiedraOsc = new THREE.MeshStandardMaterial({ color: '#b89a6a', roughness: 0.95 });
+  const matMadera = new THREE.MeshStandardMaterial({ color: '#6b4526', roughness: 0.8 });
+  const matAzulejo = new THREE.MeshStandardMaterial({ color: '#f1fbfd', roughness: 0.4 });
+  const matBlanco = new THREE.MeshStandardMaterial({ color: '#fbf8f1', roughness: 0.5 });
+
+  function caja(w, h, d, mat, x, y, z, colisiona = true) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+    m.position.set(x, y + h / 2, z);
+    m.castShadow = m.receiveShadow = true;
+    scene.add(m);
+    if (colisiona) {
+      const c = { x0: x - w / 2, x1: x + w / 2, z0: z - d / 2, z1: z + d / 2, activa: true };
+      cajas.push(c);
+      m.userData.caja = c;
+    }
+    return m;
+  }
+
+  // Almenas: bloques sobre un muro, como en un castillo
+  const almenas = [];
+  function ponerAlmenas(x0, z0, x1, z1, y) {
+    const largo = Math.hypot(x1 - x0, z1 - z0);
+    const n = Math.floor(largo / 1.4);
+    for (let i = 0; i <= n; i++) {
+      const t = n ? i / n : 0;
+      almenas.push([x0 + (x1 - x0) * t, y, z0 + (z1 - z0) * t]);
+    }
+  }
+
+  // Agua de las piscinas: transparente, con reflejos de luz en el fondo
+  function materialPiscina(olas) {
+    return new THREE.ShaderMaterial({
+      transparent: true,
+      depthWrite: false,
+      uniforms: { uTiempo, uOlas: { value: olas ? 1 : 0 }, uSol: { value: SOL.clone().normalize() } },
+      vertexShader: `
+        uniform float uTiempo;
+        uniform float uOlas;
+        varying vec3 vW;
+        void main() {
+          vec4 w = modelMatrix * vec4(position, 1.0);
+          w.y += uOlas * 0.15 * sin(w.z * 0.6 + uTiempo * 2.0);
+          vW = w.xyz;
+          gl_Position = projectionMatrix * viewMatrix * w;
+        }`,
+      fragmentShader: `
+        uniform float uTiempo;
+        uniform vec3 uSol;
+        varying vec3 vW;
+        float causticas(vec2 p, float t) {
+          vec2 q = p;
+          float c = 0.0;
+          for (int i = 0; i < 3; i++) {
+            q += vec2(sin(q.y * 1.3 + t * 0.9), cos(q.x * 1.1 - t * 0.7)) * 0.45;
+            c += abs(sin(q.x) * sin(q.y));
+          }
+          return pow(1.0 - c / 3.0, 6.0);
+        }
+        void main() {
+          vec3 V = normalize(cameraPosition - vW);
+          vec2 g = vec2(sin(vW.x * 2.1 + uTiempo * 2.3), cos(vW.z * 1.9 - uTiempo * 2.0)) * 0.06;
+          vec3 N = normalize(vec3(g.x, 1.0, g.y));
+          float fres = 0.02 + 0.98 * pow(1.0 - max(dot(N, V), 0.0), 5.0);
+          vec3 col = vec3(0.12, 0.72, 0.86) + causticas(vW.xz * 1.4, uTiempo) * 0.35;
+          float alpha = 0.55 + fres * 0.35;
+          vec3 R = reflect(-V, N);
+          col += pow(max(dot(R, uSol), 0.0), 300.0) * 4.0;
+          gl_FragColor = vec4(col, alpha);
+          #include <tonemapping_fragment>
+          #include <encodings_fragment>
+        }`,
+    });
+  }
+
+  function construirPiscina(nombre) {
+    const r = PISCINAS[nombre];
+    const [x0, x1, z0, z1] = aWeb(r);
+    const fondo = Y0 - r[4];
+    const w = x1 - x0, d = z1 - z0;
+    const agua = new THREE.Mesh(new THREE.PlaneGeometry(w, d, Math.ceil(w), Math.ceil(d)), materialPiscina(nombre === 'olas'));
+    agua.geometry.rotateX(-Math.PI / 2);
+    agua.position.set((x0 + x1) / 2, AGUA_PARQUE, (z0 + z1) / 2);
+    agua.renderOrder = 3;
+    scene.add(agua);
+    // Bordes de azulejo, que tapan el escalón del terreno
+    const alto = r[4] + 0.25, grosor = 0.45, yb = fondo - 0.2;
+    caja(w + grosor * 2, alto, grosor, matAzulejo, (x0 + x1) / 2, yb, z0 - grosor / 2, false);
+    caja(w + grosor * 2, alto, grosor, matAzulejo, (x0 + x1) / 2, yb, z1 + grosor / 2, false);
+    caja(grosor, alto, d, matAzulejo, x0 - grosor / 2, yb, (z0 + z1) / 2, false);
+    caja(grosor, alto, d, matAzulejo, x1 + grosor / 2, yb, (z0 + z1) / 2, false);
+  }
+
+  // Tobogán: canal en forma de U a lo largo de una curva, a rayas de dos colores
+  function crearTobogan(puntos, radio, colA, colB) {
+    const curva = new THREE.CatmullRomCurve3(puntos.map((p) => new V3(...p)), false, 'catmullrom', 0.35);
+    const N = Math.ceil(curva.getLength() * 3), M = 14;
+    const pos = [], col = [], idx = [];
+    const P = new V3(), T = new V3(), S = new V3(), U = new V3(), arriba = new V3(0, 1, 0);
+    const cA = new THREE.Color(colA).convertSRGBToLinear(), cB = new THREE.Color(colB).convertSRGBToLinear();
+    for (let i = 0; i <= N; i++) {
+      const t = i / N;
+      curva.getPointAt(t, P);
+      curva.getTangentAt(t, T);
+      S.crossVectors(T, arriba).normalize();
+      U.crossVectors(S, T).normalize();
+      const c = Math.floor(i / 4) % 2 ? cA : cB;
+      for (let j = 0; j <= M; j++) {
+        const a = -1.95 + 3.9 * j / M;  // de un borde al otro pasando por abajo
+        const sa = Math.sin(a) * radio, ca = Math.cos(a) * radio;
+        pos.push(P.x + S.x * sa - U.x * ca, P.y + S.y * sa - U.y * ca, P.z + S.z * sa - U.z * ca);
+        col.push(c.r, c.g, c.b);
+      }
+    }
+    for (let i = 0; i < N; i++) {
+      for (let j = 0; j < M; j++) {
+        const a = i * (M + 1) + j, b = a + M + 1;
+        idx.push(a, b, a + 1, a + 1, b, b + 1);
+      }
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+    geo.setIndex(idx);
+    geo.computeVertexNormals();
+    const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.3, side: THREE.DoubleSide }));
+    mesh.castShadow = mesh.receiveShadow = true;
+    scene.add(mesh);
+    // Pilares hasta el suelo
+    const largo = curva.getLength();
+    for (let d = 3; d < largo - 2; d += 4) {
+      curva.getPointAt(d / largo, P);
+      const hS = suelo(P.x, P.z);
+      if (P.y - hS < 1.2) continue;
+      const pil = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, P.y - radio - hS, 8), matBlanco);
+      pil.position.set(P.x, hS + (P.y - radio - hS) / 2, P.z);
+      pil.castShadow = true;
+      scene.add(pil);
+    }
+    return { curva, radio, largo };
+  }
+
+  function torre(x, z, lado, alto) {
+    caja(lado, alto, lado, matPiedra, x, Y0, z);
+    ponerAlmenas(x - lado / 2, z - lado / 2, x + lado / 2, z - lado / 2, Y0 + alto);
+    ponerAlmenas(x - lado / 2, z + lado / 2, x + lado / 2, z + lado / 2, Y0 + alto);
+    ponerAlmenas(x - lado / 2, z - lado / 2, x - lado / 2, z + lado / 2, Y0 + alto);
+    ponerAlmenas(x + lado / 2, z - lado / 2, x + lado / 2, z + lado / 2, Y0 + alto);
+    // Arcos oscuros decorativos
+    const arco = new THREE.Mesh(new THREE.PlaneGeometry(lado * 0.45, alto * 0.35), matPiedraOsc);
+    arco.position.set(x, Y0 + alto * 0.5, z + lado / 2 + 0.01);
+    scene.add(arco);
+  }
+
+  function crearPatito() {
+    const g = new THREE.Group();
+    const amarillo = new THREE.MeshStandardMaterial({ color: '#ffd42a', roughness: 0.4 });
+    const cuerpo = new THREE.Mesh(new THREE.SphereGeometry(0.18, 14, 10), amarillo);
+    cuerpo.scale.set(1, 0.75, 1.25);
+    const cabeza = new THREE.Mesh(new THREE.SphereGeometry(0.11, 12, 10), amarillo);
+    cabeza.position.set(0, 0.17, 0.12);
+    const pico = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.1, 8), new THREE.MeshStandardMaterial({ color: '#ff8a1f' }));
+    pico.rotation.x = Math.PI / 2;
+    pico.position.set(0, 0.16, 0.25);
+    g.add(cuerpo, cabeza, pico);
+    g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+    return g;
+  }
+
+  function crearBarcoPirata() {
+    const g = new THREE.Group();
+    const casco = new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.6, 7), matMadera);
+    casco.position.y = 0.8;
+    const proa = new THREE.Mesh(new THREE.ConeGeometry(1.35, 2.4, 4), matMadera);
+    proa.rotation.x = Math.PI / 2;
+    proa.rotation.y = Math.PI / 4;
+    proa.scale.set(1, 1, 0.85);
+    proa.position.set(0, 0.8, 4.6);
+    const popa = new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.2, 2), matMadera);
+    popa.position.set(0, 2.1, -2.4);
+    g.add(casco, proa, popa);
+    const velaMat = new THREE.MeshStandardMaterial({ color: '#f3ead7', side: THREE.DoubleSide, roughness: 0.8 });
+    [[0.8, 5.2, 2.6], [-1.2, 4.2, 2.0]].forEach(([z, alto, ancho]) => {
+      const mastil = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, alto, 8), matMadera);
+      mastil.position.set(0, 1.6 + alto / 2, z);
+      const vela = new THREE.Mesh(new THREE.PlaneGeometry(ancho, alto * 0.45, 4, 2), velaMat);
+      vela.position.set(0, 1.6 + alto * 0.62, z + 0.12);
+      vela.rotation.y = Math.PI / 2;
+      g.add(mastil, vela);
+    });
+    const bandera = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.5), new THREE.MeshStandardMaterial({ color: '#141414', side: THREE.DoubleSide }));
+    bandera.position.set(0, 7.0, 1.2);
+    bandera.rotation.y = Math.PI / 2;
+    g.add(bandera);
+    g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+    return g;
+  }
+
+  function cartel(texto, ancho, alto) {
+    const lienzo = document.createElement('canvas');
+    lienzo.width = 1024;
+    lienzo.height = Math.round(1024 * alto / ancho);
+    const c = lienzo.getContext('2d');
+    c.fillStyle = '#14a9bb';
+    c.fillRect(0, 0, lienzo.width, lienzo.height);
+    c.strokeStyle = '#fffdf7';
+    c.lineWidth = 16;
+    c.strokeRect(12, 12, lienzo.width - 24, lienzo.height - 24);
+    c.fillStyle = '#fffdf7';
+    // Letra lo más grande posible sin salirse del cartel
+    let tam = Math.round(lienzo.height * 0.5);
+    c.font = `800 ${tam}px "Baloo 2", "Nunito", sans-serif`;
+    const medida = c.measureText(texto).width;
+    if (medida > lienzo.width * 0.88) tam = Math.floor(tam * lienzo.width * 0.88 / medida);
+    c.font = `800 ${tam}px "Baloo 2", "Nunito", sans-serif`;
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.fillText(texto, lienzo.width / 2, lienzo.height * 0.54);
+    const tex = new THREE.CanvasTexture(lienzo);
+    tex.encoding = THREE.sRGBEncoding;
+    return new THREE.Mesh(new THREE.PlaneGeometry(ancho, alto), new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide, toneMapped: false }));
+  }
+
+  // Copia una palmera de la playa (tronco, hojas y cocos) en otro sitio
+  function copiarPalmera(escenaPlaya, i, x, z) {
+    const base = escenaPlaya.getObjectByName(`Tronco_${i}`);
+    if (!base) return;
+    const piezas = escenaPlaya.children.filter((o) => o.name === `Tronco_${i}` || o.name.startsWith(`Hoja_${i}_`) || o.name.startsWith(`Coco_${i}_`));
+    const caja3 = new THREE.Box3().setFromObject(base);
+    const g = new THREE.Group();
+    piezas.forEach((o) => g.add(o.clone()));
+    g.position.set(x - (caja3.min.x + caja3.max.x) / 2, suelo(x, z) - caja3.min.y - 0.2, z - (caja3.min.z + caja3.max.z) / 2);
+    scene.add(g);
+    colisiones.push({ x, z, r: 0.4 });
+  }
+
+  function construirParque(escenaPlaya) {
+    const [px0, px1, pz0, pz1] = aWeb(PARQUE);
+    const altoMuro = 2.4, grosor = 1.0;
+    const PUERTA = [-47, -41];  // hueco de la entrada en el muro sur
+    // Murallas
+    caja(px1 - px0 + grosor, altoMuro, grosor, matPiedra, (px0 + px1) / 2, Y0, pz0);
+    caja(grosor, altoMuro, pz1 - pz0, matPiedra, px0, Y0, (pz0 + pz1) / 2);
+    caja(grosor, altoMuro, pz1 - pz0, matPiedra, px1, Y0, (pz0 + pz1) / 2);
+    caja(PUERTA[0] - px0, altoMuro, grosor, matPiedra, (px0 + PUERTA[0]) / 2, Y0, pz1);
+    caja(px1 - PUERTA[1], altoMuro, grosor, matPiedra, (PUERTA[1] + px1) / 2, Y0, pz1);
+    ponerAlmenas(px0, pz0, px1, pz0, Y0 + altoMuro);
+    ponerAlmenas(px0, pz0, px0, pz1, Y0 + altoMuro);
+    ponerAlmenas(px1, pz0, px1, pz1, Y0 + altoMuro);
+    ponerAlmenas(px0, pz1, PUERTA[0] - 1.6, pz1, Y0 + altoMuro);
+    ponerAlmenas(PUERTA[1] + 1.6, pz1, px1, pz1, Y0 + altoMuro);
+    // Torres de la entrada y cartel
+    [PUERTA[0] - 1.1, PUERTA[1] + 1.1].forEach((x) => {
+      const t = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.7, 5, 16), matPiedra);
+      t.position.set(x, Y0 + 2.5, pz1);
+      t.castShadow = t.receiveShadow = true;
+      scene.add(t);
+      colisiones.push({ x, z: pz1, r: 1.7 });
+      for (let k = 0; k < 8; k++) {
+        const a = k / 8 * Math.PI * 2;
+        almenas.push([x + Math.cos(a) * 1.3, Y0 + 5, pz1 + Math.sin(a) * 1.3]);
+      }
+    });
+    const letrero = cartel('PARQUE ACUÁTICO', 7, 1.3);
+    letrero.position.set((PUERTA[0] + PUERTA[1]) / 2, Y0 + 4.1, pz1 + 0.6);
+    scene.add(letrero);
+    caja(PUERTA[1] - PUERTA[0] + 1, 0.6, 1, matPiedra, (PUERTA[0] + PUERTA[1]) / 2, Y0 + 3.2, pz1, false);
+    // Puerta de madera (dos hojas) cerrada hasta superar las vallas
+    const anchoHoja = (PUERTA[1] - PUERTA[0]) / 2;
+    [[PUERTA[0], 1], [PUERTA[1], -1]].forEach(([x, lado]) => {
+      const bisagra = new THREE.Group();
+      bisagra.position.set(x, Y0, pz1);
+      const hoja = new THREE.Mesh(new THREE.BoxGeometry(anchoHoja, 2.8, 0.2), matMadera);
+      hoja.position.set(lado * anchoHoja / 2, 1.4, 0);
+      hoja.castShadow = true;
+      bisagra.add(hoja);
+      scene.add(bisagra);
+      parque.hojas.push({ bisagra, lado });
+    });
+    parque.cajaPuerta = { x0: PUERTA[0], x1: PUERTA[1], z0: pz1 - 0.3, z1: pz1 + 0.3, activa: true };
+    cajas.push(parque.cajaPuerta);
+
+    // Vallas delante de la puerta (prueba de entrada): hay que saltarlas
+    const franja = new THREE.MeshStandardMaterial({ color: '#e8412c', roughness: 0.5 });
+    [-28, -31.5, -35].forEach((z, i) => {
+      const x0 = -46.5, x1 = -41.5, hS = suelo(-44, z);
+      const barra = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, 0.1, 0.1), i % 2 ? matBlanco : franja);
+      barra.position.set((x0 + x1) / 2, hS + 0.4, z);
+      scene.add(barra);
+      [x0, x1].forEach((x) => {
+        const poste = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.5, 8), matBlanco);
+        poste.position.set(x, suelo(x, z) + 0.25, z);
+        scene.add(poste);
+      });
+      barra.castShadow = true;
+      const c = { x0, x1, z0: z - 0.08, z1: z + 0.08, alto: 0.38, soloNino: true, activa: true };
+      cajas.push(c);
+      parque.vallas.push({ z, x0, x1, barra, pasada: false });
+    });
+
+    // Piscinas
+    Object.keys(PISCINAS).forEach(construirPiscina);
+
+    // Barco pirata en la piscina de olas
+    const barco = crearBarcoPirata();
+    barco.position.set(-69, Y0 - 1.5, -47.5);
+    barco.rotation.y = 0.5;
+    scene.add(barco);
+    colisiones.push({ x: -69, z: -47.5, r: 2.2 }, { x: -67.6, z: -45, r: 1.6 }, { x: -70.4, z: -50, r: 1.6 });
+
+    // Piscina infantil: seta de agua y patitos de goma
+    const [ix0, ix1, iz0, iz1] = aWeb(PISCINAS.infantil);
+    const seta = new THREE.Group();
+    const pie = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.3, 2.2, 12), matBlanco);
+    pie.position.y = 1.1;
+    const sombrero = new THREE.Mesh(new THREE.ConeGeometry(1.6, 0.9, 20), new THREE.MeshStandardMaterial({ color: '#ff6f59', roughness: 0.5 }));
+    sombrero.position.y = 2.4;
+    seta.add(pie, sombrero);
+    seta.position.set((ix0 + ix1) / 2, Y0 - 0.3, (iz0 + iz1) / 2);
+    seta.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+    scene.add(seta);
+    parque.seta = seta;
+    colisiones.push({ x: seta.position.x, z: seta.position.z, r: 0.35 });
+    for (let i = 0; i < 5; i++) {
+      const p = crearPatito();
+      scene.add(p);
+      parque.patitos.push({ mesh: p, cogido: false, x: 0, z: 0, fase: azar() * 6 });
+    }
+    colocarPatitos();
+
+    // Piscina de flotadores: plataformas que flotan en fila (hay que ir saltando)
+    const matFlot = [new THREE.MeshStandardMaterial({ color: '#7cd35a', roughness: 0.5 }),
+      new THREE.MeshStandardMaterial({ color: '#ff9fc2', roughness: 0.5 })];
+    for (let i = 0; i < 6; i++) {
+      const f = { x: i % 2 ? -62.4 : -64.6, z: -68.4 - i * 1.85, r: 0.75, y: AGUA_PARQUE + 0.12, fase: i * 1.3 };
+      f.mesh = new THREE.Mesh(new THREE.CylinderGeometry(f.r, f.r * 0.95, 0.25, 20), matFlot[i % 2]);
+      f.mesh.castShadow = f.mesh.receiveShadow = true;
+      scene.add(f.mesh);
+      flotadores.push(f);
+    }
+    [[-63.5, -66.2, '#7cd35a'], [-63.5, -79.6, '#ffd42a']].forEach(([x, z, color]) => {
+      const mastil = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 2, 8), matBlanco);
+      mastil.position.set(x + 1.6, Y0 + 1, z);
+      const tela = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.45), new THREE.MeshStandardMaterial({ color, side: THREE.DoubleSide }));
+      tela.position.set(x + 1.95, Y0 + 1.75, z);
+      scene.add(mastil, tela);
+    });
+
+    // Toboganes: torres de piedra, espiral verde y kamikaze doble azul
+    torre(-30, -80, 4, 9);
+    torre(-42, -80, 4, 9);
+    const espiral = [];
+    const vueltas = 1.75, a1 = Math.PI / 2, a0 = a1 - vueltas * Math.PI * 2;
+    for (let k = 0; k <= 28; k++) {
+      const a = a0 + (a1 - a0) * k / 28;
+      espiral.push([-30 + Math.cos(a) * 3.4, Y0 + 9.2 - 6.2 * k / 28, -80 + Math.sin(a) * 3.4]);
+    }
+    espiral.push([-31.6, Y0 + 2.6, -75.2], [-32.8, Y0 + 1.5, -72.4], [-33.2, Y0 + 0.6, -69.4], [-33.2, AGUA_PARQUE + 0.25, -66.8]);
+    const t1 = crearTobogan(espiral, 0.75, '#2fae62', '#f4fbf2');
+    parque.toboganes.push({ id: 'espiral', nombre: 'tobogán espiral', ...t1, entrada: new V3(-27.2, Y0, -80), requiere: 'patitos' });
+    [-43.1, -40.9].forEach((x, i) => {
+      const t = crearTobogan([[x, Y0 + 9.1, -78.3], [x, Y0 + 9.0, -77.3], [x, Y0 + 6.2, -74.6], [x, Y0 + 3.0, -71.6],
+        [x, Y0 + 1.1, -69.2], [x, AGUA_PARQUE + 0.25, -66.4]], 0.7, '#2a7de1', '#f3f8ff');
+      if (i === 1) parque.toboganes.push({ id: 'kamikaze', nombre: 'tobogán kamikaze', ...t, entrada: new V3(-44.9, Y0, -80), requiere: 'flotadores' });
+    });
+    // Aros brillantes donde se sube a cada tobogán
+    parque.toboganes.forEach((t) => {
+      const aro = new THREE.Mesh(new THREE.RingGeometry(0.55, 0.8, 32), new THREE.MeshBasicMaterial({ color: '#ffd42a', side: THREE.DoubleSide, transparent: true, opacity: 0.85 }));
+      aro.rotation.x = -Math.PI / 2;
+      aro.position.set(t.entrada.x, Y0 + 0.03, t.entrada.z);
+      scene.add(aro);
+      t.aro = aro;
+    });
+
+    // Tumbonas y sombrillas alrededor de las piscinas
+    const matLona = [new THREE.MeshStandardMaterial({ color: '#f2efe8' }), new THREE.MeshStandardMaterial({ color: '#2aa7b8' })];
+    [[-48, -46], [-48, -50], [-48, -54], [-24.5, -46], [-24.5, -50], [-50, -64], [-50, -70], [-24.5, -58]].forEach(([x, z], i) => {
+      const tumbona = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.25, 1.8), matLona[i % 2]);
+      tumbona.position.set(x, Y0 + 0.3, z);
+      tumbona.rotation.x = -0.12;
+      tumbona.castShadow = true;
+      scene.add(tumbona);
+      if (i % 2 === 0) {
+        const palo = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 2.4, 8), matBlanco);
+        palo.position.set(x + 0.7, Y0 + 1.2, z);
+        const tela = new THREE.Mesh(new THREE.ConeGeometry(1.3, 0.45, 12), new THREE.MeshStandardMaterial({ color: i % 4 ? '#ff6f59' : '#2aa7b8' }));
+        tela.position.set(x + 0.7, Y0 + 2.4, z);
+        tela.castShadow = true;
+        scene.add(palo, tela);
+      }
+    });
+    // Palmeras (copias de las de la playa)
+    [[-49, -40.5], [-39, -40.5], [-24.5, -55], [-76, -64], [-51, -79], [-24.5, -64]].forEach(([x, z], i) => copiarPalmera(escenaPlaya, i % 8, x, z));
+
+    // Almenas (todas en un solo InstancedMesh)
+    const almenaMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(0.7, 0.6, 0.7), matPiedra, almenas.length);
+    almenas.forEach(([x, y, z], i) => {
+      tmpM.makeTranslation(x, y + 0.3, z);
+      almenaMesh.setMatrixAt(i, tmpM);
+    });
+    almenaMesh.castShadow = true;
+    scene.add(almenaMesh);
+  }
+
+  function colocarPatitos() {
+    const [x0, x1, z0, z1] = aWeb(PISCINAS.infantil);
+    parque.patitos.forEach((p, i) => {
+      p.cogido = false;
+      const a = i / 5 * Math.PI * 2 + 0.4;
+      p.x = (x0 + x1) / 2 + Math.cos(a) * (2.2 + (i % 2) * 1.8);
+      p.z = (z0 + z1) / 2 + Math.sin(a) * (2.0 + (i % 3) * 0.6);
+      p.mesh.visible = true;
+      p.mesh.scale.setScalar(1);
+    });
+    parque.patitosRecogidos = 0;
+  }
+
+  function abrirPuerta() {
+    parque.puertaAbierta = true;
+    parque.cajaPuerta.activa = false;
+    parque.aperturaT = 0;
+    avisar('¡La puerta del parque acuático está abierta!', 2600);
+    ninoCelebra('¡Al parque!');
+  }
+
+  // Prueba de las vallas: hay que cruzarlas saltando, en orden, hacia la puerta
+  function comprobarVallas(xAntes, zAntes, alturaAntes) {
+    if (parque.puertaAbierta || !parque.vallas.length) return;
+    const E = ninoE;
+    const v = parque.vallas[parque.siguienteValla];
+    if (!v) return;
+    if (zAntes > v.z && E.pos.z <= v.z && E.pos.x > v.x0 && E.pos.x < v.x1) {
+      const pies = Math.max(alturaAntes, E.pos.y - suelo(E.pos.x, E.pos.z));
+      if (pies > 0.3) {
+        v.pasada = true;
+        parque.siguienteValla++;
+        sumarNino('entrada');
+        if (parque.siguienteValla < parque.vallas.length) avisar(`¡Valla ${parque.siguienteValla} de 3!`, 1100);
+        else abrirPuerta();
+      }
+    }
+  }
+
+  function toboganCerca() {
+    if (jugador !== 'nino') return null;
+    return parque.toboganes.find((t) => distXZ(ninoE.pos, t.entrada) < 1.6 && Math.abs(ninoE.pos.y - Y0) < 0.6) || null;
+  }
+
+  function subirTobogan(t) {
+    const E = ninoE;
+    if (!hechaNino(t.requiere)) {
+      const m = MISIONES_NINO.find((k) => k.id === t.requiere);
+      avisar(`Para subir, primero: ${m.titulo.toLowerCase()}`, 2600);
+      return;
+    }
+    if (balon.estado === 'mano') soltarBalon(new V3(0, 0, 0));
+    fundido(() => {
+      E.modo = 'tobogan';
+      E.tob = { t, s: 0, v: 1.5, vmax: 0 };
+      animarNino('skill');
+      nino.acciones.skill.setLoop(THREE.LoopRepeat, Infinity);
+      ninoDice('¡Wiii!', 2);
+    });
+  }
+
+  const tP = new V3(), tT = new V3(), tS = new V3(), tU = new V3();
+  function bajarTobogan(dt) {
+    const E = ninoE, tb = E.tob, t = tb.t;
+    t.curva.getTangentAt(Math.min(tb.s, 1), tT);
+    // Gravedad a lo largo del tobogán y un poco de rozamiento
+    tb.v = Math.max(1.5, tb.v + (9.8 * -tT.y - 0.25 * tb.v) * dt);
+    tb.vmax = Math.max(tb.vmax, tb.v);
+    tb.s += tb.v * dt / t.largo;
+    const s = Math.min(tb.s, 1);
+    t.curva.getPointAt(s, tP);
+    t.curva.getTangentAt(s, tT);
+    tS.crossVectors(tT, EJE_Y).normalize();
+    tU.crossVectors(tS, tT).normalize();
+    E.pos.copy(tP).addScaledVector(tU, -t.radio * 0.92);
+    E.rumbo = Math.atan2(tT.x, tT.z);
+    if (tb.s >= 1) {
+      // Sale disparado a la piscina
+      E.modo = 'libre';
+      E.vy = 1.5;
+      E.enSuelo = false;
+      E.nadando = false;
+      E.vel = 0;
+      E.impulso.set(tT.x, 0, tT.z).setLength(Math.min(tb.v, 7));
+      nino.acciones.skill.setLoop(THREE.LoopOnce, 1);
+      const kmh = Math.round(tb.vmax * 3.6);
+      avisar(`¡Splash! Has bajado a ${kmh} km/h`, 2200);
+      sumarNino(t.id);
+      if (jugador !== 'nino') cambiarJugador();
+    }
+  }
+
+  function actualizarParque(dt) {
+    const tiempo = reloj.elapsedTime;
+    // Puerta abriéndose
+    if (parque.puertaAbierta && parque.aperturaT < 1) {
+      parque.aperturaT = Math.min(1, parque.aperturaT + dt / 1.6);
+      const a = smoothstep(0, 1, parque.aperturaT) * 1.9;
+      parque.hojas.forEach(({ bisagra, lado }) => { bisagra.rotation.y = lado * a; });
+    }
+    // Flotadores y patitos se mecen
+    flotadores.forEach((f) => {
+      f.y = AGUA_PARQUE + 0.12 + Math.sin(tiempo * 1.6 + f.fase) * 0.05;
+      f.mesh.position.set(f.x, f.y - 0.12, f.z);
+    });
+    parque.patitos.forEach((p) => {
+      if (!p.mesh.visible) return;
+      if (p.cogido) {
+        p.mesh.position.y += dt * 2.5;
+        p.mesh.scale.multiplyScalar(Math.exp(-3 * dt));
+        if (p.mesh.scale.x < 0.08) p.mesh.visible = false;
+        return;
+      }
+      p.mesh.position.set(p.x + Math.sin(tiempo * 0.5 + p.fase) * 0.4, AGUA_PARQUE + Math.sin(tiempo * 2 + p.fase) * 0.03, p.z + Math.cos(tiempo * 0.4 + p.fase) * 0.4);
+      p.mesh.rotation.y = tiempo * 0.3 + p.fase;
+    });
+    if (parque.seta) parque.toboganes.forEach((t) => { t.aro.material.opacity = hechaNino(t.requiere) ? 0.55 + 0.35 * Math.sin(tiempo * 4) : 0.25; });
+
+    const E = ninoE;
+    if (E.modo === 'tobogan') { bajarTobogan(dt); return; }
+    if (jugador !== 'nino') return;
+    const piscina = piscinaEn(E.pos.x, E.pos.z);
+
+    // Prueba de los patitos: empieza al entrar en la piscina infantil
+    if (!hechaNino('patitos')) {
+      if (piscina === 'infantil' && !parque.patitosActiva && !parque.patitosFallada) {
+        parque.patitosActiva = true;
+        parque.patitosFin = tiempo + 45;
+        colocarPatitos();
+        misionPor('patitos').cuenta = 0;
+        avisar('¡Recoge los 5 patitos en 45 segundos!', 2000);
+      }
+      if (piscina !== 'infantil') parque.patitosFallada = false;
+      if (parque.patitosActiva) {
+        parque.patitos.forEach((p) => {
+          if (!p.cogido && Math.hypot(p.mesh.position.x - E.pos.x, p.mesh.position.z - E.pos.z) < 0.8) {
+            p.cogido = true;
+            sumarNino('patitos');
+            if (!hechaNino('patitos')) avisar(`Patito ${misionPor('patitos').cuenta} de 5`, 900);
+          }
+        });
+        if (hechaNino('patitos')) parque.patitosActiva = false;
+        else if (tiempo > parque.patitosFin) {
+          parque.patitosActiva = false;
+          parque.patitosFallada = true;
+          misionPor('patitos').cuenta = 0;
+          colocarPatitos();
+          avisar('¡Se acabó el tiempo! Sal de la piscina y vuelve a entrar para intentarlo', 2800);
+        }
+        pintarTarea();
+      }
+    }
+
+    // Prueba de los flotadores
+    if (!hechaNino('flotadores')) {
+      const f0 = flotadores[0];
+      if (f0 && Math.hypot(E.pos.x - f0.x, E.pos.z - f0.z) < f0.r && E.enSuelo && !E.nadando) parque.flotadoresActiva = true;
+      if (parque.flotadoresActiva && piscina === 'flotadores' && (E.nadando || E.pos.y < AGUA_PARQUE - 0.2)) {
+        parque.flotadoresActiva = false;
+        salpicar(new V3(E.pos.x, AGUA_PARQUE, E.pos.z), 24);
+        avisar('¡Al agua! Vuelve a intentarlo', 1600);
+        fundido(() => {
+          E.pos.set(-63.5, Y0, -65.9);
+          E.vy = 0;
+          E.nadando = false;
+          E.rumbo = Math.PI;
+        });
+      }
+      const [x0, x1, z0] = aWeb(PISCINAS.flotadores);
+      if (parque.flotadoresActiva && E.pos.z < z0 - 0.3 && E.pos.x > x0 && E.pos.x < x1 && E.enSuelo && !E.nadando) {
+        parque.flotadoresActiva = false;
+        sumarNino('flotadores');
+      }
+    }
+  }
+
+  // ---------- Tareas de Manuel ----------
+  const MISIONES_NINO = [
+    { id: 'pesca', titulo: 'Pesca 3 peces distintos en el muelle', total: 3, cuenta: 0,
+      objetivo: () => PESCA_SITIO },
+    { id: 'entrada', titulo: 'Salta las 3 vallas para abrir el parque acuático', total: 3, cuenta: 0,
+      objetivo: () => {
+        const v = parque.vallas[parque.siguienteValla];
+        return v ? new V3((v.x0 + v.x1) / 2, suelo(-44, v.z + 2.5), v.z + 2.5) : null;
+      } },
+    { id: 'patitos', titulo: 'Recoge los 5 patitos de la piscina infantil en 45 s', total: 5, cuenta: 0,
+      objetivo: () => {
+        if (!parque.puertaAbierta) return new V3(-44, Y0, -39);
+        const libres = parque.patitos.filter((p) => !p.cogido).map((p) => p.mesh.position);
+        return parque.patitosActiva ? masCercanoA(libres, ninoE.pos) : new V3(-32, AGUA_PARQUE, -44.5);
+      } },
+    { id: 'flotadores', titulo: 'Cruza la piscina de flotadores sin caerte al agua', total: 1, cuenta: 0,
+      objetivo: () => {
+        if (!parque.flotadoresActiva) return new V3(-63.5, Y0, -66);
+        const sig = flotadores.find((f) => f.z < ninoE.pos.z - 0.5);
+        return sig ? new V3(sig.x, sig.y, sig.z) : new V3(-63.5, Y0, -80.2);
+      } },
+    { id: 'espiral', titulo: 'Tírate por el tobogán espiral', total: 1, cuenta: 0,
+      objetivo: () => parque.toboganes[0] && parque.toboganes[0].entrada },
+    { id: 'kamikaze', titulo: 'Tírate por el tobogán kamikaze', total: 1, cuenta: 0,
+      objetivo: () => parque.toboganes[1] && parque.toboganes[1].entrada },
+  ];
+  const misionPor = (id) => MISIONES_NINO.find((m) => m.id === id);
+  const hechaNino = (id) => { const m = misionPor(id); return m && m.cuenta >= m.total; };
+  const misionNino = () => MISIONES_NINO.find((m) => m.cuenta < m.total) || null;
+  function masCercanoA(lista, desde) {
+    let mejor = null, d = Infinity;
+    for (const p of lista) {
+      const dd = distXZ(p, desde);
+      if (dd < d) { d = dd; mejor = p; }
+    }
+    return mejor;
+  }
+  function sumarNino(id, n = 1) {
+    const m = misionPor(id);
+    if (!m || m.cuenta >= m.total) return;
+    m.cuenta = Math.min(m.total, m.cuenta + n);
+    if (m.cuenta >= m.total) {
+      setTimeout(() => {
+        avisar('¡Prueba superada!', 1800);
+        if (ninoE.modo === 'libre') ninoCelebra(['¡Bien!', '¡Lo he conseguido!', '¡Genial!'][Math.floor(azar() * 3)]);
+        if (!misionNino()) setTimeout(() => avisar('¡Manuel ha superado todas las pruebas!', 3200), 1900);
+      }, 400);
+    }
+    pintarTarea();
+  }
+  function pintarTareaNino() {
+    const lista = MISIONES_NINO;
+    const m = misionNino();
+    puntosEl.innerHTML = lista.map((k) =>
+      `<i class="${k.cuenta >= k.total ? 'hecha' : k === m ? 'actual' : ''}"></i>`).join('');
+    if (!m) {
+      tituloEl.textContent = '¡Manuel ha superado todas las pruebas!';
+      progresoEl.textContent = '';
+      return;
+    }
+    tituloEl.textContent = m.titulo;
+    let prog = m.total > 1 ? `${m.cuenta} de ${m.total}` : `Prueba ${lista.indexOf(m) + 1} de ${lista.length}`;
+    if (m.id === 'patitos' && parque.patitosActiva) prog += ` · ${Math.max(0, Math.ceil(parque.patitosFin - reloj.elapsedTime))} s`;
+    progresoEl.textContent = prog;
+  }
+
+  // =====================================================================
+  // ---------- Pesca ----------
+  // =====================================================================
+  const PESCA_SITIO = new V3(45, MUELLE.y, 30.6);
+  const CEBOS = [
+    { id: 'gusano', nombre: 'Gusano' },
+    { id: 'gamba', nombre: 'Gamba' },
+    { id: 'calamar', nombre: 'Calamar' },
+  ];
+  // Cada especie vive a una distancia de la orilla y prefiere unos cebos; la fuerza es lo que tira
+  const ESPECIES = [
+    { id: 'sardina', nombre: 'Sardina', min: 5, max: 14, cebos: ['gusano', 'gamba'], fuerza: 1, talla: [12, 20], peso: [0.04, 0.1], color: '#a9bfd0', prob: 1 },
+    { id: 'dorada', nombre: 'Dorada', min: 10, max: 22, cebos: ['gusano'], fuerza: 2, talla: [25, 45], peso: [0.3, 1.3], color: '#d8cfa4', prob: 0.8 },
+    { id: 'pulpo', nombre: 'Pulpo', min: 5, max: 16, cebos: ['calamar'], fuerza: 3, talla: [40, 90], peso: [0.8, 2.8], color: '#b8587e', prob: 0.7 },
+    { id: 'lubina', nombre: 'Lubina', min: 15, max: 28, cebos: ['gamba'], fuerza: 3, talla: [35, 65], peso: [0.6, 3], color: '#8e9ba6', prob: 0.8 },
+    { id: 'caballa', nombre: 'Caballa', min: 18, max: 32, cebos: ['gamba', 'calamar'], fuerza: 2, talla: [25, 40], peso: [0.2, 0.7], color: '#3d8a94', prob: 0.9 },
+    { id: 'pezespada', nombre: 'Pez espada', min: 28, max: 40, cebos: ['calamar'], fuerza: 5, talla: [120, 220], peso: [25, 70], color: '#34598a', prob: 0.3 },
+  ];
+  const BOTA = { id: 'bota', nombre: 'Bota vieja', fuerza: 1, talla: [28, 32], peso: [0.9, 1.1], color: '#5a4632' };
+  const DIST_MIN = 5, DIST_MAX = 38;
+
+  const pesca = { activa: false, fase: '', cebo: null, t: 0, angulo: 0, potencia: 0, dir: new V3(), destino: new V3(),
+    dist: 0, especie: null, tension: 0, flojo: 0, recogiendo: false, pezMesh: null, resultado: null };
+  let cuaderno = {};
+  try { cuaderno = JSON.parse(localStorage.getItem('playa-del-perro-cuaderno') || '{}'); } catch (e) { cuaderno = {}; }
+  function guardarCuaderno() {
+    try { localStorage.setItem('playa-del-perro-cuaderno', JSON.stringify(cuaderno)); } catch (e) { /* sin guardar */ }
+  }
+
+  const pescaEl = document.getElementById('pesca');
+  const pescaTitulo = document.getElementById('pesca-titulo');
+  const pescaCuerpo = document.getElementById('pesca-cuerpo');
+  const pescaBoton = document.getElementById('pesca-boton');
+  const pescaBarra = document.getElementById('pesca-barra');
+  const pescaRelleno = document.getElementById('pesca-relleno');
+
+  // Caña, sedal, corcho, línea de puntería y aro de destino
+  let cana, sedal, corcho, lineaMira, aroMira;
+  function construirPesca() {
+    cana = new THREE.Group();
+    const vara = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.03, 1.9, 8), new THREE.MeshStandardMaterial({ color: '#2b2b30', roughness: 0.4 }));
+    vara.position.y = 0.95;
+    const carrete = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.05, 12), new THREE.MeshStandardMaterial({ color: '#d9d9d9', metalness: 0.6, roughness: 0.3 }));
+    carrete.rotation.z = Math.PI / 2;
+    carrete.position.y = 0.3;
+    cana.add(vara, carrete);
+    cana.visible = false;
+    scene.add(cana);
+    sedal = new THREE.Line(new THREE.BufferGeometry().setFromPoints(Array.from({ length: 16 }, () => new V3())),
+      new THREE.LineBasicMaterial({ color: '#f5f5f5', transparent: true, opacity: 0.8 }));
+    sedal.frustumCulled = false;
+    sedal.visible = false;
+    scene.add(sedal);
+    corcho = new THREE.Group();
+    const arriba = new THREE.Mesh(new THREE.SphereGeometry(0.07, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#e8412c' }));
+    const abajo = new THREE.Mesh(new THREE.SphereGeometry(0.07, 12, 8, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#fbf8f1' }));
+    corcho.add(arriba, abajo);
+    corcho.visible = false;
+    scene.add(corcho);
+    lineaMira = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new V3(), new V3()]),
+      new THREE.LineDashedMaterial({ color: '#ffd42a', dashSize: 0.5, gapSize: 0.35 }));
+    lineaMira.frustumCulled = false;
+    lineaMira.visible = false;
+    scene.add(lineaMira);
+    aroMira = new THREE.Mesh(new THREE.RingGeometry(0.45, 0.7, 32), new THREE.MeshBasicMaterial({ color: '#ffd42a', side: THREE.DoubleSide, transparent: true, opacity: 0.8 }));
+    aroMira.rotation.x = -Math.PI / 2;
+    aroMira.visible = false;
+    scene.add(aroMira);
+  }
+
+  function cercaDePesca() {
+    return jugador === 'nino' && distXZ(ninoE.pos, PESCA_SITIO) < 2.4 && ninoE.pos.y > MUELLE.y - 0.3;
+  }
+
+  function empezarPesca() {
+    const E = ninoE;
+    if (balon.estado === 'mano') soltarBalon(new V3(0, 0, 0));
+    E.modo = 'pescar';
+    E.vel = 0;
+    E.rumbo = 0;  // mirando al mar
+    animarNino('idle');
+    pesca.activa = true;
+    document.body.classList.add('pescando');
+    pescaEl.hidden = false;
+    cana.visible = true;
+    irFase('cebo');
+  }
+  function terminarPesca() {
+    pesca.activa = false;
+    document.body.classList.remove('pescando');
+    pescaEl.hidden = true;
+    cana.visible = sedal.visible = corcho.visible = lineaMira.visible = aroMira.visible = false;
+    if (pesca.pezMesh) { scene.remove(pesca.pezMesh); pesca.pezMesh = null; }
+    ninoE.modo = 'libre';
+  }
+
+  const nombreEspecie = (id) => (ESPECIES.find((e) => e.id === id) || BOTA).nombre;
+  function htmlCuaderno() {
+    const filas = ESPECIES.map((e) => {
+      const c = cuaderno[e.id];
+      return `<li class="${c ? 'pescado' : ''}"><i style="background:${e.color}"></i>${c ? e.nombre : '¿…?'}` +
+        `${c ? `<span>${c.n} · récord ${c.mejor} cm</span>` : ''}</li>`;
+    }).join('');
+    const n = ESPECIES.filter((e) => cuaderno[e.id]).length;
+    return `<p class="cuaderno-tit">Cuaderno de pesca · ${n} de ${ESPECIES.length} especies</p><ul class="cuaderno">${filas}</ul>`;
+  }
+
+  function irFase(fase) {
+    pesca.fase = fase;
+    pesca.t = 0;
+    pescaBarra.hidden = true;
+    pescaBoton.hidden = false;
+    pescaBoton.classList.remove('peligro');
+    lineaMira.visible = aroMira.visible = fase === 'apuntar' || fase === 'fuerza';
+    if (fase === 'cebo') {
+      pescaTitulo.textContent = 'Elige el cebo';
+      pescaCuerpo.innerHTML = `<div class="cebos">${CEBOS.map((c) =>
+        `<button type="button" class="cebo" data-cebo="${c.id}">${c.nombre}</button>`).join('')}</div>` +
+        `<p class="pista">Cada pez prefiere un cebo y vive a una distancia distinta del muelle.</p>` + htmlCuaderno();
+      pescaBoton.hidden = true;
+    } else if (fase === 'apuntar') {
+      animarNino('idle');
+      pescaTitulo.textContent = 'Apunta';
+      pescaCuerpo.innerHTML = '<p class="pista">La línea amarilla se mueve de lado a lado. Toca para fijar la dirección.</p>';
+      pescaBoton.textContent = 'Fijar dirección';
+    } else if (fase === 'fuerza') {
+      pescaTitulo.textContent = 'Fuerza del lanzamiento';
+      pescaCuerpo.innerHTML = '<p class="pista">Más fuerza, más lejos. El aro amarillo marca dónde caerá.</p>';
+      pescaBoton.textContent = '¡Lanzar!';
+      pescaBarra.hidden = false;
+      pescaBarra.className = 'barra fuerza';
+    } else if (fase === 'lanzando' || fase === 'esperar') {
+      pescaTitulo.textContent = fase === 'lanzando' ? '¡Allá va!' : 'Esperando a que pique…';
+      pescaCuerpo.innerHTML = `<p class="pista">Cebo: ${pesca.cebo} · a ${Math.round(pesca.dist)} m. Mira el corcho.</p>`;
+      pescaBoton.hidden = true;
+    } else if (fase === 'pica') {
+      pescaTitulo.textContent = '¡Pica! ¡Tira ya!';
+      pescaCuerpo.innerHTML = '';
+      pescaBoton.textContent = '¡Tirar!';
+      pescaBoton.classList.add('peligro');
+    } else if (fase === 'recoger') {
+      pescaTitulo.textContent = '¡Recoge el sedal!';
+      pescaCuerpo.innerHTML = '<p class="pista">Mantén pulsado para recoger. Si la tensión llega al rojo, suelta o se romperá el sedal.</p>';
+      pescaBoton.textContent = 'Recoger (mantén)';
+      pescaBarra.hidden = false;
+      pescaBarra.className = 'barra tension';
+    } else if (fase === 'resultado') {
+      pescaBoton.textContent = 'Lanzar otra vez';
+    } else if (fase === 'nada') {
+      pescaTitulo.textContent = 'No pica nada';
+      pescaCuerpo.innerHTML = '<p class="pista">Aquí no hay peces que quieran este cebo. Prueba otra distancia u otro cebo.</p>';
+      pescaBoton.textContent = 'Volver a lanzar';
+    }
+  }
+
+  function elegirEspecie() {
+    const d = pesca.dist;
+    const candidatas = ESPECIES.filter((e) => d >= e.min && d <= e.max && e.cebos.includes(pesca.cebo));
+    if (!candidatas.length) return azar() < 0.3 ? BOTA : null;
+    if (azar() < 0.08) return BOTA;
+    const total = candidatas.reduce((s, e) => s + e.prob, 0);
+    let r = azar() * total;
+    for (const e of candidatas) { r -= e.prob; if (r <= 0) return e; }
+    return candidatas[0];
+  }
+
+  // Pez de "dibujo" para enseñarlo al pescarlo
+  function crearPez(esp, talla) {
+    const g = new THREE.Group();
+    const mat = new THREE.MeshStandardMaterial({ color: esp.color, roughness: 0.35, metalness: esp.id === 'bota' ? 0 : 0.3 });
+    const escala = Math.min(Math.max(talla / 40, 0.45), 2.2);
+    if (esp.id === 'pulpo') {
+      const cabeza = new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 12), mat);
+      cabeza.scale.set(1, 1.2, 1);
+      cabeza.position.y = 0.2;
+      g.add(cabeza);
+      for (let i = 0; i < 8; i++) {
+        const a = i / 8 * Math.PI * 2;
+        const t = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.05, 0.45, 6), mat);
+        t.position.set(Math.cos(a) * 0.12, -0.12, Math.sin(a) * 0.12);
+        t.rotation.set(Math.sin(a) * 0.5, 0, -Math.cos(a) * 0.5);
+        g.add(t);
+      }
+    } else if (esp.id === 'bota') {
+      const cana2 = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.4, 0.22), mat);
+      cana2.position.y = 0.2;
+      const pie = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.14, 0.42), mat);
+      pie.position.set(0, 0.02, 0.1);
+      g.add(cana2, pie);
+    } else {
+      const cuerpo = new THREE.Mesh(new THREE.SphereGeometry(0.2, 16, 12), mat);
+      cuerpo.scale.set(0.45, esp.id === 'dorada' ? 0.95 : 0.7, 1.4);
+      const cola = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.2, 4), mat);
+      cola.scale.set(0.2, 1, 1);
+      cola.rotation.x = Math.PI / 2;
+      cola.position.z = -0.34;
+      const aleta = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.14, 4), mat);
+      aleta.scale.set(0.2, 1, 1);
+      aleta.position.set(0, 0.16, -0.02);
+      g.add(cuerpo, cola, aleta);
+      if (esp.id === 'pezespada') {
+        const espada = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.5, 8), mat);
+        espada.rotation.x = Math.PI / 2;
+        espada.position.z = 0.5;
+        g.add(espada);
+      }
+      [-1, 1].forEach((l) => {
+        const ojo = new THREE.Mesh(new THREE.SphereGeometry(0.025, 8, 6), new THREE.MeshStandardMaterial({ color: '#111' }));
+        ojo.position.set(l * 0.075, 0.04, 0.17);
+        g.add(ojo);
+      });
+    }
+    g.scale.setScalar(escala);
+    return g;
+  }
+
+  // Botones del panel de pesca
+  pescaCuerpo.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-cebo]');
+    if (!b || pesca.fase !== 'cebo') return;
+    pesca.cebo = b.dataset.cebo;
+    irFase('apuntar');
+  });
+  document.getElementById('pesca-salir').addEventListener('click', () => terminarPesca());
+  function pulsarPesca(abajo) {
+    if (!pesca.activa) return;
+    const f = pesca.fase;
+    if (f === 'recoger') { pesca.recogiendo = abajo; return; }
+    if (!abajo) return;
+    if (f === 'apuntar') irFase('fuerza');
+    else if (f === 'fuerza') lanzarAnzuelo();
+    else if (f === 'pica') { pesca.enganchado = true; irFase('recoger'); pesca.tension = 35; }
+    else if (f === 'resultado' || f === 'nada') {
+      if (pesca.pezMesh) { scene.remove(pesca.pezMesh); pesca.pezMesh = null; }
+      irFase('apuntar');
+    }
+  }
+  pescaBoton.addEventListener('pointerdown', (e) => { e.preventDefault(); pulsarPesca(true); });
+  pescaBoton.addEventListener('pointerup', () => pulsarPesca(false));
+  pescaBoton.addEventListener('pointerleave', () => { if (pesca.fase === 'recoger') pulsarPesca(false); });
+  pescaBoton.addEventListener('pointercancel', () => pulsarPesca(false));
+  function teclaPesca(code, abajo) {
+    if (code === 'Space' || code === 'Enter' || code === 'KeyE') pulsarPesca(abajo);
+    if (code === 'Escape' && abajo) terminarPesca();
+    if (pesca.fase === 'cebo' && abajo && ['Digit1', 'Digit2', 'Digit3'].includes(code)) {
+      pesca.cebo = CEBOS[Number(code.slice(-1)) - 1].id;
+      irFase('apuntar');
+    }
+  }
+
+  function lanzarAnzuelo() {
+    pesca.dist = DIST_MIN + pesca.potencia * (DIST_MAX - DIST_MIN);
+    pesca.destino.copy(PESCA_SITIO).addScaledVector(pesca.dir, pesca.dist);
+    pesca.destino.y = 0;
+    pesca.especie = elegirEspecie();
+    pesca.espera = 1.6 + azar() * 3;
+    animarNino('attack', true, 0.1);
+    irFase('lanzando');
+  }
+
+  const puntaCana = new V3(), baseCana = new V3(), dirCana = new V3(), vM = new V3();
+  function colocarCana(tension) {
+    const E = ninoE;
+    nino.huesos.RightHand.getWorldPosition(baseCana);
+    const f = new V3(Math.sin(E.rumbo), 0, Math.cos(E.rumbo));
+    const doblez = pesca.fase === 'recoger' ? tension / 100 : 0;
+    dirCana.copy(f).multiplyScalar(0.55 + doblez * 0.35).add(vM.set(0, 0.84 - doblez * 0.5, 0)).normalize();
+    cana.position.copy(baseCana).addScaledVector(dirCana, -0.3);
+    cana.quaternion.setFromUnitVectors(EJE_Y, dirCana);
+    puntaCana.copy(cana.position).addScaledVector(dirCana, 1.9);
+  }
+  function dibujarSedal(desde, hasta, caida) {
+    const pos = sedal.geometry.attributes.position;
+    for (let i = 0; i < 16; i++) {
+      const t = i / 15;
+      vM.lerpVectors(desde, hasta, t);
+      vM.y -= Math.sin(t * Math.PI) * caida;
+      pos.setXYZ(i, vM.x, vM.y, vM.z);
+    }
+    pos.needsUpdate = true;
+  }
+
+  function actualizarPesca(dt) {
+    if (!pesca.activa) return;
+    const E = ninoE;
+    pesca.t += dt;
+    E.pos.y = damp(E.pos.y, suelo(E.pos.x, E.pos.z, E.pos.y), 10, dt);
+    colocarCana(pesca.tension);
+    const f = pesca.fase;
+    if (f === 'apuntar' || f === 'fuerza') {
+      if (f === 'apuntar') pesca.angulo = Math.sin(pesca.t * 1.5) * 0.75;
+      else pesca.potencia = 1 - Math.abs(((pesca.t * 0.7) % 2) - 1);
+      pesca.dir.set(Math.sin(pesca.angulo), 0, Math.cos(pesca.angulo));
+      const d = f === 'fuerza' ? DIST_MIN + pesca.potencia * (DIST_MAX - DIST_MIN) : 20;
+      const fin = vA.copy(PESCA_SITIO).addScaledVector(pesca.dir, d);
+      fin.y = 0.05;
+      lineaMira.geometry.setFromPoints([vB.copy(PESCA_SITIO).setY(MUELLE.y + 0.05), fin]);
+      lineaMira.computeLineDistances();
+      aroMira.position.copy(fin);
+      aroMira.visible = f === 'fuerza';
+      if (f === 'fuerza') pescaRelleno.style.width = `${Math.round(pesca.potencia * 100)}%`;
+      sedal.visible = corcho.visible = false;
+      return;
+    }
+    if (f === 'lanzando') {
+      const t = Math.min(pesca.t / 1.0, 1);
+      corcho.visible = sedal.visible = true;
+      vA.lerpVectors(puntaCana, pesca.destino, t);
+      vA.y += Math.sin(t * Math.PI) * (2 + pesca.dist * 0.12);
+      corcho.position.copy(vA);
+      dibujarSedal(puntaCana, corcho.position, 0.1);
+      if (t >= 1) { salpicar(pesca.destino, 8); animarNino('idle'); irFase('esperar'); }
+      return;
+    }
+    if (f === 'esperar') {
+      corcho.position.set(pesca.destino.x, Math.sin(pesca.t * 2) * 0.03, pesca.destino.z);
+      dibujarSedal(puntaCana, corcho.position, 0.6);
+      if (!pesca.especie && pesca.t > 5) irFase('nada');
+      else if (pesca.especie && pesca.t > pesca.espera) { irFase('pica'); salpicar(corcho.position, 6); }
+      return;
+    }
+    if (f === 'pica') {
+      corcho.position.set(pesca.destino.x, -0.12 + Math.sin(pesca.t * 25) * 0.06, pesca.destino.z);
+      dibujarSedal(puntaCana, corcho.position, 0.3);
+      if (pesca.t > (pesca.especie.fuerza >= 4 ? 0.9 : 1.3)) {
+        pescaTitulo.textContent = 'Se ha escapado…';
+        pescaCuerpo.innerHTML = '<p class="pista">Hay que tirar en cuanto el corcho se hunde.</p>';
+        pesca.fase = 'nada';
+        pescaBoton.textContent = 'Volver a lanzar';
+        pescaBoton.classList.remove('peligro');
+      }
+      return;
+    }
+    if (f === 'recoger') {
+      const esp = pesca.especie, fz = esp.fuerza;
+      // El pez tira a tirones; recoger sube la tensión y aflojar la baja
+      const tiron = fz * 9 * (0.6 + 0.4 * Math.sin(pesca.t * 2.3)) + (Math.sin(pesca.t * 0.9 + fz) > 0.85 ? fz * 18 : 0);
+      pesca.tension += ((pesca.recogiendo ? 38 : -55) + tiron) * dt;
+      pesca.tension = clamp(pesca.tension, 0, 110);
+      if (pesca.recogiendo && pesca.tension < 100) pesca.dist -= (2.6 + 3 / fz) * dt;
+      else pesca.dist += fz * 0.35 * dt;
+      pesca.flojo = pesca.tension < 6 ? pesca.flojo + dt : 0;
+      pescaRelleno.style.width = `${Math.min(pesca.tension, 100)}%`;
+      pescaBarra.classList.toggle('roja', pesca.tension > 85);
+      pescaCuerpo.innerHTML = `<p class="pista">Faltan ${Math.max(0, Math.round(pesca.dist))} m · ${pesca.tension > 85 ? '¡Suelta!' : pesca.tension < 15 ? '¡Recoge!' : 'Así, así…'}</p>`;
+      const pezPos = vA.copy(PESCA_SITIO).addScaledVector(pesca.dir, Math.max(pesca.dist, 0.5));
+      pezPos.y = Math.sin(pesca.t * 6) * 0.05;
+      corcho.position.copy(pezPos);
+      dibujarSedal(puntaCana, corcho.position, 0.05);
+      if (pesca.tension >= 100) {
+        pesca.recogiendo = false;
+        pescaTitulo.textContent = '¡Se ha roto el sedal!';
+        pescaCuerpo.innerHTML = `<p class="pista">Era un pez fuerte. Suelta el botón cuando la tensión esté en rojo.</p>`;
+        pesca.fase = 'nada';
+        pescaBoton.textContent = 'Volver a lanzar';
+        pescaBarra.hidden = true;
+        corcho.visible = sedal.visible = false;
+      } else if (pesca.flojo > 2.5 || pesca.dist > DIST_MAX + 6) {
+        pesca.recogiendo = false;
+        pescaTitulo.textContent = 'Se ha soltado…';
+        pescaCuerpo.innerHTML = '<p class="pista">Si aflojas demasiado rato, el pez se escapa.</p>';
+        pesca.fase = 'nada';
+        pescaBoton.textContent = 'Volver a lanzar';
+        pescaBarra.hidden = true;
+        corcho.visible = sedal.visible = false;
+      } else if (pesca.dist <= 0.6) {
+        pescado(esp);
+      }
+      return;
+    }
+    if (f === 'resultado' && pesca.pezMesh) {
+      pesca.pezMesh.rotation.y += dt * 1.5;
+      pesca.pezMesh.position.y = E.pos.y + 1.6 + Math.sin(pesca.t * 3) * 0.05;
+    }
+  }
+
+  function pescado(esp) {
+    const talla = Math.round(esp.talla[0] + azar() * (esp.talla[1] - esp.talla[0]));
+    const t = (talla - esp.talla[0]) / Math.max(1, esp.talla[1] - esp.talla[0]);
+    const peso = esp.peso[0] + t * (esp.peso[1] - esp.peso[0]);
+    const nueva = esp.id !== 'bota' && !cuaderno[esp.id];
+    if (esp.id !== 'bota') {
+      const c = cuaderno[esp.id] || { n: 0, mejor: 0 };
+      c.n++;
+      c.mejor = Math.max(c.mejor, talla);
+      cuaderno[esp.id] = c;
+      guardarCuaderno();
+      const distintas = ESPECIES.filter((e) => cuaderno[e.id]).length;
+      const m = misionPor('pesca');
+      if (m.cuenta < m.total) sumarNino('pesca', Math.min(distintas, m.total) - m.cuenta);
+    }
+    irFase('resultado');
+    pescaBarra.hidden = true;
+    corcho.visible = sedal.visible = false;
+    pesca.recogiendo = false;
+    pesca.tension = 0;
+    const pesoTxt = peso < 1 ? `${Math.round(peso * 1000)} g` : `${formato.format(peso)} kg`;
+    pescaTitulo.textContent = esp.id === 'bota' ? '¡Una bota vieja!' : `¡Una ${esp.nombre.toLowerCase()}!`;
+    if (esp.id === 'pulpo' || esp.id === 'pezespada') pescaTitulo.textContent = `¡Un ${esp.nombre.toLowerCase()}!`;
+    pescaCuerpo.innerHTML = `<div class="ficha-pez"><i style="background:${esp.color}"></i><div><strong>${esp.nombre}</strong>` +
+      `<span>${talla} cm · ${pesoTxt}${nueva ? ' · ¡especie nueva!' : ''}</span></div></div>` + htmlCuaderno();
+    pesca.pezMesh = crearPez(esp, talla);
+    pesca.pezMesh.position.set(ninoE.pos.x, ninoE.pos.y + 1.6, ninoE.pos.z + 0.6);
+    scene.add(pesca.pezMesh);
+    animarNino('skill', true, 0.15);
+    ninoDice(esp.id === 'bota' ? '¡Puaj!' : nueva ? '¡Nuevo!' : '¡Otro!', 1.8);
   }
 
   // ---------- Bucle principal ----------
@@ -1437,12 +2925,44 @@
         balon: balon.estado, nino: ninoE.modo, perro: estado.pos.toArray().map((v) => +v.toFixed(1)),
         montones: montones.map((m) => [+m.x.toFixed(1), +m.z.toFixed(1), +m.excavado.toFixed(2), m.vacio]) }),
       saltarA: (i) => empezarMision(i),
+      jugarCon: (q) => { if (jugador !== q) cambiarJugador(); },
+      moverNino: (x, z, rumbo = 0) => { ninoE.pos.set(x, suelo(x, z) + 0.05, z); ninoE.rumbo = rumbo; ninoE.vy = 0; },
+      camara: (yaw, pitch, dist) => { cam.yaw = yaw; if (pitch !== undefined) cam.pitch = pitch; if (dist) cam.dist = dist; },
+      nino: () => ({ modo: ninoE.modo, pos: ninoE.pos.toArray().map((v) => +v.toFixed(2)), nadando: ninoE.nadando,
+        enSuelo: ninoE.enSuelo, accion: textoAccion, mision: misionNino() && misionNino().id,
+        cuentas: MISIONES_NINO.map((m) => `${m.id}:${m.cuenta}/${m.total}`).join(' '), puerta: parque.puertaAbierta,
+        pesca: pesca.fase, especie: pesca.especie && pesca.especie.id, dist: +pesca.dist.toFixed(1), tension: Math.round(pesca.tension) }),
+      completarNino: (id) => { const m = misionPor(id); sumarNino(id, m.total - m.cuenta); if (id === 'entrada' && !parque.puertaAbierta) abrirPuerta(); },
+      pescarCon: (cebo, angulo, potencia) => { pesca.cebo = cebo; pesca.angulo = angulo; pesca.potencia = potencia;
+        pesca.dir.set(Math.sin(angulo), 0, Math.cos(angulo)); lanzarAnzuelo(); },
+      saltarNino: () => saltarNino(),
     };
   }
   const adelante = new V3(), derecha = new V3(), mov = new V3();
 
+  // Hacia dónde va el perro solo cuando juegas con Manuel
+  function objetivoPerroIA() {
+    if (balon.estado === 'perro') return { p: ninoE.pos, parar: 1.0 };
+    if (balon.estado === 'libre' && !balon.reservado && distXZ(balon.pos, ninoE.pos) < 30 && ninoE.modo !== 'pescar') {
+      return { p: balon.pos, parar: 0.1 };
+    }
+    return { p: ninoE.pos, parar: 2.6 };
+  }
+  // Convierte una dirección del mundo en entrada de joystick (ejes de la cámara)
+  function entradaHacia(obj, desde, parar) {
+    const dx = obj.x - desde.x, dz = obj.z - desde.z, d = Math.hypot(dx, dz);
+    if (d <= parar + 0.05) return [0, 0];
+    const f = Math.min(1, (d - parar) / 3 + 0.25);
+    return [(dx * Math.cos(cam.yaw) - dz * Math.sin(cam.yaw)) / d * f,
+      (-dx * Math.sin(cam.yaw) - dz * Math.cos(cam.yaw)) / d * f];
+  }
+
   function actualizarPerro(dt) {
-    let ix = joy.x, iy = joy.y;
+    let ix = jugador === 'perro' ? joy.x : 0, iy = jugador === 'perro' ? joy.y : 0;
+    if (jugador === 'nino') {
+      const o = objetivoPerroIA();
+      [ix, iy] = entradaHacia(o.p, estado.pos, o.parar);
+    }
     if (autopiloto) {
       // Solo para pruebas (#prueba): el perro va solo hacia el objetivo de la tarea
       const m = misionActual();
@@ -1456,17 +2976,19 @@
         if (m.id === 'muelle' && estado.pos.z > 29) { ix = -Math.sin(cam.yaw); iy = -Math.cos(cam.yaw); }
       }
     }
-    if (teclas.has('KeyW') || teclas.has('ArrowUp')) iy += 1;
-    if (teclas.has('KeyS') || teclas.has('ArrowDown')) iy -= 1;
-    if (teclas.has('KeyD') || teclas.has('ArrowRight')) ix += 1;
-    if (teclas.has('KeyA') || teclas.has('ArrowLeft')) ix -= 1;
+    if (jugador === 'perro') {
+      if (teclas.has('KeyW') || teclas.has('ArrowUp')) iy += 1;
+      if (teclas.has('KeyS') || teclas.has('ArrowDown')) iy -= 1;
+      if (teclas.has('KeyD') || teclas.has('ArrowRight')) ix += 1;
+      if (teclas.has('KeyA') || teclas.has('ArrowLeft')) ix -= 1;
+    }
     const fuerza = Math.min(Math.hypot(ix, iy), 1);
     adelante.set(-Math.sin(cam.yaw), 0, -Math.cos(cam.yaw));
     derecha.set(Math.cos(cam.yaw), 0, -Math.sin(cam.yaw));
     mov.set(0, 0, 0).addScaledVector(derecha, ix).addScaledVector(adelante, iy);
     if (mov.lengthSq() > 0) mov.normalize();
 
-    const corre = teclas.has('ShiftLeft') || teclas.has('ShiftRight') || fuerza > 0.95;
+    const corre = (jugador === 'perro' && (teclas.has('ShiftLeft') || teclas.has('ShiftRight'))) || fuerza > 0.95;
     let vmax = corre ? 7 : 3.6;
     if (estado.nadando) vmax = 2.4;
     estado.velocidad = damp(estado.velocidad, fuerza * vmax, 8, dt);
@@ -1475,11 +2997,12 @@
     const dirX = Math.sin(estado.rumbo), dirZ = Math.cos(estado.rumbo);
     estado.pos.x += dirX * estado.velocidad * dt;
     estado.pos.z += dirZ * estado.velocidad * dt;
-    chocar(estado.pos, 0.3);
+    chocar(estado.pos, 0.3, estado.pos.y - suelo(estado.pos.x, estado.pos.z, estado.pos.y));
 
     const h = suelo(estado.pos.x, estado.pos.z, estado.pos.y);
-    estado.nadando = h < NIVEL_NADO;
-    const base = estado.nadando ? NIVEL_NADO + Math.sin(reloj.elapsedTime * 2.5) * 0.03 : h;
+    const agua = aguaEn(estado.pos.x, estado.pos.z);
+    estado.nadando = h < agua + NIVEL_NADO;
+    const base = estado.nadando ? agua + NIVEL_NADO + Math.sin(reloj.elapsedTime * 2.5) * 0.03 : h;
     if (estado.nadando && estado.pos.y > base + 0.3) {
       // Cayendo al agua (por ejemplo, desde el muelle)
       estado.vy -= 20 * dt;
@@ -1538,13 +3061,15 @@
       ponerHuella(estado.pos.x + dirZ * lado, estado.pos.z - dirX * lado, estado.rumbo);
     }
 
-    actualizarEstado(h);
+    if (jugador === 'perro') actualizarEstado(h);
   }
 
   function actualizarCamara(dt) {
-    cam.objetivo.x = damp(cam.objetivo.x, estado.pos.x, 6, dt);
-    cam.objetivo.z = damp(cam.objetivo.z, estado.pos.z, 6, dt);
-    cam.objetivo.y = damp(cam.objetivo.y, estado.pos.y + 0.6, 4, dt);
+    const foco = jugador === 'perro' ? estado.pos : ninoE.pos;
+    const alto = jugador === 'perro' ? 0.6 : 1.0;
+    cam.objetivo.x = damp(cam.objetivo.x, foco.x, 6, dt);
+    cam.objetivo.z = damp(cam.objetivo.z, foco.z, 6, dt);
+    cam.objetivo.y = damp(cam.objetivo.y, foco.y + alto, 4, dt);
     const cp = Math.cos(cam.pitch);
     camera.position.set(
       cam.objetivo.x + Math.sin(cam.yaw) * cp * cam.dist,
@@ -1591,6 +3116,14 @@
         actualizarBalon(dt);
         actualizarNino(dt);
         actualizarMisiones(dt);
+        actualizarParque(dt);
+        actualizarPesca(dt);
+      }
+      actualizarSalpicaduras(dt);
+      actualizarBotonAccion();
+      if (jugador === 'nino') {
+        actualizarEstadoNino();
+        if (parque.patitosActiva && Math.floor(reloj.elapsedTime * 2) !== Math.floor((reloj.elapsedTime - dt) * 2)) pintarTarea();
       }
       actualizarHuellas(dt);
       actualizarCamara(dt);
