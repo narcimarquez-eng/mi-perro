@@ -5,6 +5,7 @@ Drako, un perro bretón español hecho con Blender (Python), y una playa de agua
 - `Perro.py`: crea el perro (un bretón español blanco y negro, con el hocico moteado y ojos color miel), renderiza `perro.png` y exporta `perro.glb`. Los colores del pelaje van pintados en los vértices para que también se vean en la web.
 - `Playa.py`: crea la playa (arena, dunas, agua, palmeras, rocas, sombrilla, muelle) con una explanada en las dunas para el parque acuático y sus piscinas; renderiza `playa.png` y exporta `playa.glb`.
 - `Nino.py`: prepara el modelo 3D de Manuel: le quita el balón de la mano, baja el brazo derecho y rehace sus animaciones en espejo del izquierdo, añade las animaciones `kick` (chutar) y `pickup` (agacharse), crea un balón aparte y reduce las texturas. Exporta `nino.glb`.
+- `Padres.py`: crea a papá y mamá en estilo de dibujo (papá con pelo rizado, barba y chaqueta de cuero; mamá con melena ondulada color miel, blusa blanca y pendientes rosas), con esqueleto y animaciones (reposo, hablar, andar, llevar el plato y saludar); exporta `papa.glb` y `mama.glb` y renderiza `padres.png`.
 - `web/index.html`: juego en el navegador (three.js). Manuel juega al balón con el perro y hay seis tareas: traer el balón, recoger conchas, encontrar el hueso, rescatar el balón del mar, saltar desde el muelle y nadar hasta la boya.
 
 ## Renderizar

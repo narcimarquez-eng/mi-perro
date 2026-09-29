@@ -963,14 +963,17 @@
     balon.r = new THREE.Box3().setFromObject(balon.obj).getSize(new V3()).y / 2;
   }
 
-  Promise.all([cargar('playa.glb'), cargar('perro.glb'), cargar('nino.glb')]).then(([playa, gPerro, gNino]) => {
+  // Papá y mamá (hechos en Blender con Padres.py); si faltan, se usan los muñecos sencillos
+  const cargarOpcional = (n) => cargar(n).catch(() => null);
+  Promise.all([cargar('playa.glb'), cargar('perro.glb'), cargar('nino.glb'), cargarOpcional('papa.glb'), cargarOpcional('mama.glb')])
+    .then(([playa, gPerro, gNino, gPapa, gMama]) => {
     prepararPlaya(playa);
     prepararPerro(gPerro);
     prepararNino(gNino);
     construirParque(playa.scene);
     construirCasa(playa.scene);
     construirParqueBolas();
-    construirInterior();
+    construirInterior(gPapa, gMama);
     parque.toboganes.forEach((t) => {
       if (t.aro) return;
       const aro = new THREE.Mesh(new THREE.RingGeometry(0.4, 0.6, 32), new THREE.MeshBasicMaterial({ color: '#ffd42a', side: THREE.DoubleSide, transparent: true, opacity: 0.85 }));
@@ -4521,6 +4524,29 @@
     g.traverse((m) => { if (m.isMesh) m.castShadow = true; });
     return { grupo: g, brazos, cabeza };
   }
+  // Papá o mamá cargados del .glb, con sus animaciones: reposo, hablar, andar, llevar (el plato) y saludar
+  function prepararPadre(g) {
+    const grupo = g.scene;
+    let cabeza = null;
+    grupo.traverse((o) => {
+      if (o.isMesh) { o.castShadow = true; o.frustumCulled = false; }
+      if (o.isBone && o.name === 'cabeza') cabeza = o;
+    });
+    const mixer = new THREE.AnimationMixer(grupo);
+    const acciones = {};
+    g.animations.forEach((c) => { acciones[c.name] = mixer.clipAction(c); });
+    const p = { grupo, cabeza: cabeza || grupo, altoGlobo: cabeza ? 0.5 : 0.35, brazos: [], mixer, acciones, actual: null };
+    animarPadre(p, 'reposo');
+    return p;
+  }
+  function animarPadre(p, nombre) {
+    const a = p.acciones && p.acciones[nombre];
+    if (!a || p.actual === a) return;
+    a.reset().fadeIn(0.3).play();
+    if (p.actual) p.actual.fadeOut(0.3);
+    p.actual = a;
+  }
+
   function peloPapa(cabeza) {
     const oscuro = matBlando('#1e1612');
     // Pelo rizado: muchas bolitas encima de la cabeza
@@ -4561,7 +4587,7 @@
     });
   }
 
-  function construirInterior() {
+  function construirInterior(gPapa, gMama) {
     const Yi = INT.y, cx = INT.x, cz = INT.z;
     const blanco = new THREE.MeshStandardMaterial({ color: '#f7f6f2', roughness: 0.9 });
     const azulejo = texturaCocina();
@@ -4704,10 +4730,10 @@
     puntosAccion.push({ pos: new V3(cx - 4.0, Yi, cz - 0.3), radio: 1.1, texto: 'Comer', hacer: () => empezarComida() });
 
     // Papá y mamá
-    dentro.mama = crearPersona({ alto: 1.62, piel: '#e8b894', camisa: '#fbfbf8', pantalon: '#3a3f4a', pelo: peloMama });
+    dentro.mama = gMama ? prepararPadre(gMama) : crearPersona({ alto: 1.62, piel: '#e8b894', camisa: '#fbfbf8', pantalon: '#3a3f4a', pelo: peloMama });
     dentro.mama.grupo.position.set(cx - 6.2, Yi, cz - 4.7);
     dentro.mama.casa = dentro.mama.grupo.position.clone();
-    dentro.papa = crearPersona({ alto: 1.78, piel: '#d9a57e', camisa: '#f3f1ec', chaqueta: '#8a5a36', pantalon: '#2f3440', pelo: peloPapa });
+    dentro.papa = gPapa ? prepararPadre(gPapa) : crearPersona({ alto: 1.78, piel: '#d9a57e', camisa: '#f3f1ec', chaqueta: '#8a5a36', pantalon: '#2f3440', pelo: peloPapa });
     dentro.papa.grupo.position.set(cx - 3.4, Yi, cz + 2.2);
     scene.add(dentro.mama.grupo, dentro.papa.grupo);
     colisiones.push({ x: cx - 6.2, z: cz - 4.7, r: 0.35 }, { x: cx - 3.4, z: cz + 2.2, r: 0.35 });
@@ -4867,7 +4893,11 @@
       cam.objetivo.copy(ninoE.pos);
       musica.proximo = 'casa';
       sumarNino('entrar');
-      setTimeout(() => { diga(dentro.mama, '¡Hola, cariño!'); diga(dentro.papa, '¡Hola, campeón! ¿Tienes hambre?', 3); }, 600);
+      setTimeout(() => {
+        diga(dentro.mama, '¡Hola, cariño!');
+        diga(dentro.papa, '¡Hola, campeón! ¿Tienes hambre?', 3);
+        dentro.papa.saludaHasta = dentro.mama.saludaHasta = reloj.elapsedTime + 2.2;
+      }, 600);
     });
   }
   function salirDeCasa() {
@@ -4895,24 +4925,34 @@
     empezarAtraccion({ tipo: 'comer', pos: s.pos.clone(), ry: s.ry, sentado: true, asientoY: INT.y + 0.48, salida: new V3(s.pos.x + 0.6, INT.y, s.pos.z),
       actualizar: (dt, a) => {
         const m = dentro.mama;
-        // Mamá trae el plato, lo deja y vuelve
-        if (a.t < 1.6) m.grupo.position.lerpVectors(m.casa, new V3(dentro.platoPos.x - 0.6, INT.y, dentro.platoPos.z - 0.6), a.t / 1.6);
-        if (a.t >= 1.6 && !dentro.comida) {
+        const junto = new V3(dentro.platoPos.x - 0.6, INT.y, dentro.platoPos.z - 0.65);
+        // Mamá trae el plato en las manos, lo deja en la mesa y vuelve a la cocina
+        if (!dentro.comida) {
           const platos = ['macarrones', 'tortilla', 'pescado'];
-          const tipo = platos[Math.floor(azar() * platos.length)];
-          dentro.comida = crearPlato(tipo);
-          dentro.comida.position.copy(dentro.platoPos);
+          a.plato = platos[Math.floor(azar() * platos.length)];
+          dentro.comida = crearPlato(a.plato);
           scene.add(dentro.comida);
-          diga(m, `¡A comer! Hoy hay ${tipo}`, 2.6);
-          setTimeout(() => diga(dentro.papa, '¡Que aproveche, Manuel!', 2.4), 1200);
+          diga(m, '¡Ya va la comida!', 1.8);
         }
-        if (a.t > 2.2 && a.t < 4) m.grupo.position.lerpVectors(new V3(dentro.platoPos.x - 0.6, INT.y, dentro.platoPos.z - 0.6), m.casa, (a.t - 2.2) / 1.8);
-        if (dentro.comida && a.t > 3) {
-          dentro.comida.userData.resto = Math.max(0.05, 1 - (a.t - 3) / 5);
+        if (a.t < 2.6) {
+          m.grupo.position.lerpVectors(m.casa, junto, smoothstep(0, 1, a.t / 2.6));
+          dentro.llevando = true;
+          const r = m.grupo.rotation.y;
+          dentro.comida.position.set(m.grupo.position.x + Math.sin(r) * 0.38, INT.y + 1.02, m.grupo.position.z + Math.cos(r) * 0.38);
+        } else if (!a.servido) {
+          a.servido = true;
+          dentro.llevando = false;
+          dentro.comida.position.copy(dentro.platoPos);
+          diga(m, `¡A comer! Hoy hay ${a.plato}`, 2.6);
+          setTimeout(() => diga(dentro.papa, '¡Que aproveche, Manuel!', 2.4), 1400);
+        }
+        if (a.t > 3.4 && a.t < 6) m.grupo.position.lerpVectors(junto, m.casa, smoothstep(0, 1, (a.t - 3.4) / 2.6));
+        if (a.t > 4) {
+          dentro.comida.userData.resto = Math.max(0.05, 1 - (a.t - 4) / 5);
           dentro.comida.children.forEach((c, k) => { if (k > 0) c.scale.setScalar(dentro.comida.userData.resto); });
-          if (Math.floor(a.t) !== Math.floor(a.t - dt) && a.t < 8) ninoDice('Ñam, ñam…', 0.8);
+          if (Math.floor(a.t) !== Math.floor(a.t - dt) && a.t < 9) ninoDice('Ñam, ñam…', 0.8);
         }
-        if (a.t > 8 && !a.contado) {
+        if (a.t > 9 && !a.contado) {
           a.contado = true;
           ninoDice('¡Qué rico!', 2.2);
           diga(dentro.papa, '¡Muy bien, te lo has comido todo!', 2.6);
@@ -4921,6 +4961,7 @@
       },
       alSalir: () => {
         estado.descansando = false;
+        dentro.llevando = false;
         if (dentro.comida) { scene.remove(dentro.comida); dentro.comida = null; }
         dentro.mama.grupo.position.copy(dentro.mama.casa);
       } });
@@ -5005,14 +5046,25 @@
     // Papá y mamá: respiran, miran a Manuel y mueven los brazos al hablar
     [dentro.papa, dentro.mama].forEach((p, k) => {
       const g = p.grupo;
-      g.position.y = INT.y + Math.sin(reloj.elapsedTime * 2 + k) * 0.01;
-      const objetivo = Math.atan2(E.pos.x - g.position.x, E.pos.z - g.position.z);
-      g.rotation.y = angulo(g.rotation.y, objetivo, 1 - Math.exp(-3 * dt));
+      // ¿Está andando? Entonces mira hacia donde va; si no, mira a Manuel
+      if (!p.antes) p.antes = g.position.clone();
+      const dx = g.position.x - p.antes.x, dz = g.position.z - p.antes.z;
+      const anda = Math.hypot(dx, dz) > 0.25 * dt;
+      p.antes.copy(g.position);
+      const objetivo = anda ? Math.atan2(dx, dz) : Math.atan2(E.pos.x - g.position.x, E.pos.z - g.position.z);
+      g.rotation.y = angulo(g.rotation.y, objetivo, 1 - Math.exp(-(anda ? 8 : 3) * dt));
       const hablando = !p.globo.el.hidden;
-      p.brazos.forEach((b, l) => { b.rotation.x = hablando ? Math.sin(reloj.elapsedTime * 6 + l * 2) * 0.5 - 0.4 : 0; });
+      if (p.mixer) {
+        animarPadre(p, anda ? (p === dentro.mama && dentro.llevando ? 'llevar' : 'andar') :
+          reloj.elapsedTime < (p.saludaHasta || 0) ? 'saludar' : hablando ? 'hablar' : 'reposo');
+        if (cerca) p.mixer.update(dt);
+      } else {
+        g.position.y = INT.y + Math.sin(reloj.elapsedTime * 2 + k) * 0.01;
+        p.brazos.forEach((b, l) => { b.rotation.x = hablando ? Math.sin(reloj.elapsedTime * 6 + l * 2) * 0.5 - 0.4 : 0; });
+      }
       if (!p.globo.el.hidden) {
         if (reloj.elapsedTime > p.globo.hasta) p.globo.el.hidden = true;
-        else ponerEnPantalla(p.globo.el, p.cabeza, 0.35);
+        else ponerEnPantalla(p.globo.el, p.cabeza, p.altoGlobo || 0.35);
       }
     });
     // Noche al dormir
