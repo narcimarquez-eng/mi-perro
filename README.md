@@ -1,6 +1,6 @@
 # mi-perro
 
-Un perro bretón español hecho con Blender (Python) y una playa de agua cristalina para pasearlo.
+Drako, un perro bretón español hecho con Blender (Python), y una playa de agua cristalina para pasearlo con Manuel.
 
 - `Perro.py`: crea el perro (un bretón español blanco y negro, con el hocico moteado y ojos color miel), renderiza `perro.png` y exporta `perro.glb`. Los colores del pelaje van pintados en los vértices para que también se vean en la web.
 - `Playa.py`: crea la playa (arena, dunas, agua, palmeras, rocas, sombrilla, muelle) con una explanada en las dunas para el parque acuático y sus piscinas; renderiza `playa.png` y exporta `playa.glb`.
@@ -44,8 +44,11 @@ Con el botón **Manuel** (tecla `C`) cambias de personaje. Con Manuel:
 - **Pesca** en el final del muelle: eliges cebo, apuntas y eliges la fuerza del lanzamiento, tiras cuando pica y recoges controlando la tensión del sedal. Cada especie (sardina, dorada, pulpo, lubina, caballa, pez espada) vive a una distancia y quiere un cebo.
 - **Parque acuático** en las dunas: salta las 3 vallas para abrir la puerta, recoge los 5 patitos de la piscina infantil en 45 s para desbloquear el tobogán espiral y cruza la piscina de flotadores sin caerte para desbloquear el kamikaze. También hay piscina de olas con barco pirata.
 
-Mientras juegas con Manuel, el perro le sigue y va a por el balón.
+- **Casa de Manuel y Drako** en las dunas: casa blanca con terraza, porche, piscina de arena y jardín. Junto a la mesa del porche pueden **descansar** juntos.
+- **Llamar a Drako**: con el botón «¡Drako!» Manuel silba y le llama; Drako viene corriendo aunque esté lejos.
+
+Si Manuel está cerca, Drako le sigue y va a por el balón; si está lejos, se queda curioseando hasta que le llaman. Suena una música alegre (más tranquila en casa) que se quita con el botón ♪ o la tecla `M`. Los botones reaccionan al tocarlos, así que se puede saltar con un dedo mientras el otro mueve el joystick.
 
 Con `#prueba` al final de la dirección se activa un modo de pruebas (`window.prueba`) con piloto automático.
 
-Si cambias `Perro.py` o `Playa.py`, copia los `.glb` nuevos a `web/`. La forma del terreno (`altura()`, con el parque y sus piscinas) y el rectángulo del muelle están duplicados en `Playa.py` y `web/index.html`: si los cambias, cámbialos en los dos.
+Si cambias `Perro.py` o `Playa.py`, copia los `.glb` nuevos a `web/`. La forma del terreno (`altura()`, con el parque, la casa y sus piscinas) y el rectángulo del muelle están duplicados en `Playa.py` y `web/index.html`: si los cambias, cámbialos en los dos.

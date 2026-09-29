@@ -25,6 +25,15 @@ PISCINAS = {  # x0, x1, y0, y1, profundidad
     "flotadores": (-74.0, -54.0, 67.0, 79.0, 1.4),
 }
 
+# La casa de Manuel y Drako: otra explanada en las dunas, con una piscina de arena (entrada de playa)
+CASA = (30.0, 62.0, 44.0, 76.0)
+CASA_ALTO = 6.5
+PISCINA_CASA = [(38.0, 52.0, 5.5, 3.5), (43.5, 50.0, 3.5, 3.0)]  # centro x, centro y, radio x, radio y
+
+def hondo_casa(x, y):
+    """Mayor que 0 dentro de la piscina de la casa (1 en el centro)."""
+    return max(1.0 - math.hypot((x - cx) / rx, (y - cy) / ry) for cx, cy, rx, ry in PISCINA_CASA)
+
 def fuera_de(x, y, r):
     """Distancia desde (x, y) al rectángulo r (0 si está dentro)."""
     dx = max(r[0] - x, 0.0, x - r[1])
@@ -44,6 +53,12 @@ def altura(x, y):
     for p in PISCINAS.values():
         if fuera_de(x, y, p) == 0.0:
             h = PARQUE_ALTO - p[4]
+    # Explanada de la casa y su piscina, que va cubriendo poco a poco como una playa
+    m = 1.0 - smoothstep(0.0, 8.0, fuera_de(x, y, CASA))
+    h += (CASA_ALTO - h) * m
+    k = hondo_casa(x, y)
+    if k > 0.0:
+        h = CASA_ALTO - 1.4 * smoothstep(0.0, 0.55, k)
     return max(h, -3.0)
 
 # ---------- MATERIALES ----------

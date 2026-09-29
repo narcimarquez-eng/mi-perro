@@ -190,6 +190,16 @@
     box-shadow: 0 4px 0 #c9bfa6, 0 6px 14px rgba(18, 59, 74, 0.2);
   }
   .accion.cambiar:active { box-shadow: 0 1px 0 #c9bfa6; }
+  .accion.largo { font-size: 13px; }
+  .accion.musica {
+    width: 44px; height: 44px;
+    font-size: 20px;
+    color: var(--tinta);
+    background: var(--espuma);
+    box-shadow: 0 3px 0 #c9bfa6, 0 4px 10px rgba(18, 59, 74, 0.2);
+  }
+  .accion.musica.apagada { opacity: 0.55; text-decoration: line-through; }
+  .accion { touch-action: none; }
   body.pescando .acciones, body.pescando .joystick { display: none; }
 
   .pesca {
@@ -331,7 +341,7 @@
   }
 </style>
 
-<canvas id="escena" aria-label="Playa en 3D con un perro bretón y un niño que juegan con un balón"></canvas>
+<canvas id="escena" aria-label="Playa en 3D con Drako, un perro bretón, y Manuel, que juegan con un balón"></canvas>
 
 <div class="panel">
   <div class="ficha tarea" aria-live="polite">
@@ -345,8 +355,8 @@
   </div>
   <div class="ficha estado" id="estado" data-zona="arena"><i></i><span id="estado-texto">En la arena</span></div>
   <p class="ficha ayuda" id="ayuda">
-    <span class="solo-teclado"><kbd>WASD</kbd> o flechas para andar, <kbd>Shift</kbd> corre, <kbd>Espacio</kbd> salta, <kbd>B</kbd> ladra o hace la acción de Manuel, <kbd>C</kbd> cambia entre el perro y Manuel. Con Manuel puedes pescar en el muelle y entrar en el parque acuático de las dunas.</span>
-    <span class="solo-tactil">Joystick para andar. Arrastra para mirar y pellizca para acercarte. El botón «Manuel» cambia de personaje: con él puedes pescar en el muelle y entrar en el parque acuático.</span>
+    <span class="solo-teclado"><kbd>WASD</kbd> o flechas para andar, <kbd>Shift</kbd> corre, <kbd>Espacio</kbd> salta, <kbd>B</kbd> ladra o hace la acción de Manuel, <kbd>C</kbd> cambia entre Drako y Manuel, <kbd>M</kbd> quita o pone la música. Con Manuel puedes llamar a Drako, pescar en el muelle, entrar en el parque acuático y descansar en casa.</span>
+    <span class="solo-tactil">Joystick para andar. Arrastra para mirar y pellizca para acercarte. El botón «Manuel» cambia de personaje: con él puedes llamar a Drako, pescar en el muelle, entrar en el parque acuático y descansar en casa.</span>
   </p>
 </div>
 
@@ -355,6 +365,7 @@
 <div class="joystick" id="joystick" aria-hidden="true"><div class="bola" id="bola"></div></div>
 
 <div class="acciones">
+  <button class="accion musica" id="btn-musica" type="button" aria-pressed="true" aria-label="Quitar la música">♪</button>
   <button class="accion cambiar" id="btn-cambiar" type="button" aria-label="Jugar con Manuel">Manuel</button>
   <button class="accion guau" id="btn-guau" type="button">¡Guau!</button>
   <button class="accion" id="btn-saltar" type="button">Saltar</button>
@@ -370,6 +381,7 @@
 <div class="fundido" id="fundido"></div>
 
 <div class="bocadillo" id="bocadillo" hidden>¡Guau!</div>
+<div class="bocadillo" id="bocadillo-drako" hidden></div>
 <div class="bocadillo" id="bocadillo-nino" hidden></div>
 
 <div class="cargando" id="cargando">
@@ -402,6 +414,16 @@
     flotadores: [-74, -54, 67, 79, 1.4],
   };
   const AGUA_PARQUE = PARQUE_ALTO - 0.15;
+  // La casa de Manuel y Drako (mismos números que en Playa.py)
+  const CASA = [30, 62, 44, 76];
+  const CASA_ALTO = 6.5;
+  const AGUA_CASA = CASA_ALTO - 0.08;
+  const PISCINA_CASA = [[38, 52, 5.5, 3.5], [43.5, 50, 3.5, 3.0]];  // centro x, centro y, radio x, radio y
+  function hondoCasa(x, y) {
+    let k = -Infinity;
+    for (const [cx, cy, rx, ry] of PISCINA_CASA) k = Math.max(k, 1 - Math.hypot((x - cx) / rx, (y - cy) / ry));
+    return k;
+  }
   function fueraDe(x, y, r) {
     const dx = Math.max(r[0] - x, 0, x - r[1]);
     const dy = Math.max(r[2] - y, 0, y - r[3]);
@@ -418,6 +440,10 @@
     for (const k in PISCINAS) {
       if (fueraDe(x, y, PISCINAS[k]) === 0) h = PARQUE_ALTO - PISCINAS[k][4];
     }
+    const mc = 1 - smoothstep(0, 8, fueraDe(x, y, CASA));
+    h += (CASA_ALTO - h) * mc;
+    const k = hondoCasa(x, y);
+    if (k > 0) h = CASA_ALTO - 1.4 * smoothstep(0, 0.55, k);
     return Math.max(h, -3);
   }
   // Piscina en la que está un punto de la web (o null)
@@ -428,6 +454,7 @@
   const olaPiscina = (x, z) => 0.15 * Math.sin(z * 0.6 + uTiempo.value * 2.0);
   // Nivel del agua: el de la piscina si hay una; si no, el del mar (y = 0)
   function aguaEn(x, z) {
+    if (hondoCasa(x, -z) > 0) return AGUA_CASA;
     const p = piscinaEn(x, z);
     if (!p) return 0;
     return AGUA_PARQUE + (p === 'olas' ? olaPiscina(x, z) : 0);
@@ -532,6 +559,9 @@
   const colHierba = new THREE.Color('#9aa65a').convertSRGBToLinear();
   const colPlaza = new THREE.Color('#efe3c9').convertSRGBToLinear();
   const colAzulejo = new THREE.Color('#8fd8ec').convertSRGBToLinear();
+  const colCesped = new THREE.Color('#5f9444').convertSRGBToLinear();
+  const colCespedOsc = new THREE.Color('#4a7d38').convertSRGBToLinear();
+  const colArenaPiscina = new THREE.Color('#e3cfa0').convertSRGBToLinear();
   function pintarArena(geo) {
     const pos = geo.attributes.position;
     const colores = new Float32Array(pos.count * 3);
@@ -544,6 +574,12 @@
       const mata = smoothstep(3.6, 4.6, y) * (0.5 + 0.5 * Math.sin(x * 0.9) * Math.cos(z * 0.7));
       c.lerp(colHierba, Math.min(mata, 1) * 0.8);
       if (fueraDe(x, -z, PARQUE) < 0.6) c.copy(piscinaEn(x, z) ? colAzulejo : colPlaza);
+      // Jardín de la casa: césped y el borde de arena de la piscina
+      const fc = fueraDe(x, -z, CASA);
+      if (fc < 3) {
+        c.copy(colCesped).lerp(colCespedOsc, 0.5 + 0.5 * Math.sin(x * 1.7) * Math.cos(z * 1.3)).lerp(c, smoothstep(0, 3, fc));
+        if (hondoCasa(x, -z) > -0.28) c.copy(colArenaPiscina);
+      }
       c.toArray(colores, i * 3);
     }
     geo.setAttribute('color', new THREE.BufferAttribute(colores, 3));
@@ -914,6 +950,7 @@
     prepararPerro(gPerro);
     prepararNino(gNino);
     construirParque(playa.scene);
+    construirCasa(playa.scene);
     construirPesca();
 
     estado.pos.set(0, suelo(0, -4), -4);
@@ -931,7 +968,7 @@
 
   // ---------- Controles ----------
   const teclas = new Set();
-  const TECLAS_JUEGO = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'ShiftLeft', 'ShiftRight', 'KeyB', 'KeyE', 'KeyC', 'Tab'];
+  const TECLAS_JUEGO = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'ShiftLeft', 'ShiftRight', 'KeyB', 'KeyE', 'KeyC', 'Tab', 'KeyM'];
   window.addEventListener('keydown', (e) => {
     if (TECLAS_JUEGO.includes(e.code)) e.preventDefault();
     if (e.repeat) return;
@@ -940,6 +977,7 @@
     if (e.code === 'Space') saltar();
     if (e.code === 'KeyB' || e.code === 'KeyE') accionPrincipal();
     if (e.code === 'KeyC' || e.code === 'Tab') cambiarJugador();
+    if (e.code === 'KeyM') alternarMusica();
   });
   window.addEventListener('keyup', (e) => {
     teclas.delete(e.code);
@@ -1010,9 +1048,22 @@
     cam.dist = clamp(cam.dist * Math.exp(e.deltaY * 0.001), 3, 22);
   }, { passive: false });
 
-  document.getElementById('btn-saltar').addEventListener('click', () => saltar());
-  document.getElementById('btn-guau').addEventListener('click', () => accionPrincipal());
-  document.getElementById('btn-cambiar').addEventListener('click', () => cambiarJugador());
+  // Los botones reaccionan al tocarlos (pointerdown) y no al soltar: así se puede saltar
+  // con un dedo mientras el otro sigue en el joystick. El "click" queda para el teclado.
+  function alPulsar(id, accion) {
+    const b = document.getElementById(id);
+    let ultimo = 0;
+    b.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      ultimo = performance.now();
+      accion();
+    });
+    b.addEventListener('click', () => { if (performance.now() - ultimo > 600) accion(); });
+  }
+  alPulsar('btn-saltar', () => saltar());
+  alPulsar('btn-guau', () => accionPrincipal());
+  alPulsar('btn-cambiar', () => cambiarJugador());
+  alPulsar('btn-musica', () => alternarMusica());
 
   // ---------- Estado del perro ----------
   const estado = {
@@ -1035,8 +1086,9 @@
   function saltar() {
     if (!listo) return;
     if (jugador === 'nino') return saltarNino();
-    if (!estado.enSuelo || estado.nadando) return;
+    if (!estado.enSuelo || estado.nadando || estado.descansando) return;
     estado.vy = 6;
+    estado.velocidad = Math.max(estado.velocidad, joy.id !== null || teclas.size ? 3.6 : 0);
     estado.enSuelo = false;
   }
 
@@ -1085,6 +1137,7 @@
     if (estado.nadando) { zona = 'agua'; texto = `Nadando · ${formato.format(aguaEn(estado.pos.x, estado.pos.z) - altura(estado.pos.x, -estado.pos.z))} m de profundidad`; }
     else if (h >= MUELLE.y - 0.01 && sobreMuelle(estado.pos.x, estado.pos.z)) { zona = 'muelle'; texto = 'En el muelle'; }
     else if (estado.excavando > 0) { zona = 'arena'; texto = 'Excavando…'; }
+    else if (fueraDe(estado.pos.x, -estado.pos.z, CASA) === 0) { zona = 'arena'; texto = estado.descansando ? 'Descansando en casa' : 'En casa'; }
     else if (h < 0.35) { zona = 'orilla'; texto = h < 0 ? 'Chapoteando en la orilla' : 'En la orilla'; }
     else { zona = 'arena'; texto = `En la arena · ${formato.format(h)} m sobre el mar`; }
     if (texto !== ultimoTexto) {
@@ -1350,7 +1403,7 @@
       }
       animarNino(vel === 0 ? 'idle' : correr ? 'run' : 'walk');
     }
-    if (E.modo !== 'tobogan') {
+    if (E.modo !== 'tobogan' && E.modo !== 'descansar') {
       chocar(E.pos, 0.3, E.pos.y - suelo(E.pos.x, E.pos.z, E.pos.y), true);
       // No pisar al perro
       const dp = distXZ(E.pos, estado.pos);
@@ -1359,7 +1412,7 @@
         E.pos.z = estado.pos.z + (E.pos.z - estado.pos.z) / dp * 0.75;
       }
     }
-    if (!(controlado && E.modo === 'libre') && E.modo !== 'tobogan') {
+    if (!(controlado && E.modo === 'libre') && E.modo !== 'tobogan' && E.modo !== 'descansar') {
       // Pegado al suelo, o flotando si está donde cubre
       const hS = suelo(E.pos.x, E.pos.z, E.pos.y), aguaS = aguaEn(E.pos.x, E.pos.z);
       E.nadando = aguaS - hS > 0.95;
@@ -1507,7 +1560,7 @@
     puntosEl.innerHTML = MISIONES.map((_, i) =>
       `<i class="${i < indiceMision ? 'hecha' : i === indiceMision ? 'actual' : ''}"></i>`).join('');
     if (!m) {
-      tituloEl.textContent = '¡Todas las tareas hechas! Sigue jugando con Manuel';
+      tituloEl.textContent = '¡Todas las tareas de Drako hechas! Sigue jugando con Manuel';
       progresoEl.textContent = '';
       distanciaEl.textContent = '';
       return;
@@ -1660,15 +1713,16 @@
 
   function cambiarJugador() {
     if (!listo || ninoE.modo === 'pescar' || ninoE.modo === 'tobogan') return;
+    if (ninoE.modo === 'descansar' || estado.descansando) levantarse();
     jugador = jugador === 'perro' ? 'nino' : 'perro';
-    btnCambiar.textContent = jugador === 'perro' ? 'Manuel' : 'Perro';
-    btnCambiar.setAttribute('aria-label', jugador === 'perro' ? 'Jugar con Manuel' : 'Jugar con el perro');
+    btnCambiar.textContent = jugador === 'perro' ? 'Manuel' : 'Drako';
+    btnCambiar.setAttribute('aria-label', jugador === 'perro' ? 'Jugar con Manuel' : 'Jugar con Drako');
     ninoE.vy = 0;
     ninoE.vel = 0;
     ninoE.enSuelo = true;
     document.body.classList.toggle('con-manuel', jugador === 'nino');
     pintarTarea();
-    avisar(jugador === 'nino' ? 'Ahora juegas con Manuel' : 'Ahora juegas con el perro', 1500);
+    avisar(jugador === 'nino' ? 'Ahora juegas con Manuel' : 'Ahora juegas con Drako', 1500);
   }
 
   function saltarNino() {
@@ -1676,17 +1730,21 @@
     if (E.modo !== 'libre' || !E.enSuelo || E.nadando) return;
     E.vy = 5.4;
     E.enSuelo = false;
+    E.vel = Math.max(E.vel, Math.hypot(joy.x, joy.y) > 0.2 || teclas.size ? 2.4 : 0);
   }
 
   // Lo que puede hacer Manuel ahora mismo (también es la etiqueta del botón)
   function accionNino() {
     const E = ninoE;
+    if (E.modo === 'descansar') return { texto: 'Levantarse', hacer: levantarse };
     if (E.modo !== 'libre') return null;
     if (cercaDePesca()) return { texto: 'Pescar', hacer: empezarPesca };
     const t = toboganCerca();
     if (t) return { texto: 'Subir', hacer: () => subirTobogan(t) };
-    if (balon.estado === 'mano') return { texto: 'Chutar', hacer: () => empezarTiro(E.rumbo) };
-    return { texto: '¡Hola!', hacer: () => ninoCelebra(['¡Hola!', '¡Qué calor!', '¡Vamos!'][Math.floor(azar() * 3)]) };
+    if (cercaDeDescanso()) return { texto: 'Descansar', hacer: descansar };
+    const lejos = distXZ(estado.pos, E.pos) > 6;
+    if (balon.estado === 'mano' && !lejos) return { texto: 'Chutar', hacer: () => empezarTiro(E.rumbo) };
+    return { texto: '¡Drako!', hacer: llamarDrako };
   }
   function accionPrincipal() {
     if (!listo || pesca.activa) return;
@@ -1704,6 +1762,7 @@
     if (t !== textoAccion) {
       textoAccion = t;
       btnAccion.textContent = t;
+      btnAccion.classList.toggle('largo', t.length > 7);
     }
   }
 
@@ -1786,6 +1845,7 @@
       texto = p ? (E.nadando ? 'Nadando en la piscina' : 'En la piscina') : 'En el parque acuático';
     } else if (E.nadando) { zona = 'agua'; texto = 'Nadando en el mar'; }
     else if (sobreMuelle(E.pos.x, E.pos.z) && E.pos.y > MUELLE.y - 0.1) { zona = 'muelle'; texto = 'En el muelle'; }
+    else if (fueraDe(E.pos.x, -E.pos.z, CASA) === 0) texto = E.modo === 'descansar' ? 'Descansando en casa' : 'En casa';
     else texto = 'En la playa';
     if (texto !== ultimoTexto) {
       ultimoTexto = texto;
@@ -2383,6 +2443,7 @@
 
     const E = ninoE;
     if (E.modo === 'tobogan') { bajarTobogan(dt); return; }
+    if (E.modo === 'descansar') return;
     if (jugador !== 'nino') return;
     const piscina = piscinaEn(E.pos.x, E.pos.z);
 
@@ -2464,6 +2525,8 @@
       objetivo: () => parque.toboganes[0] && parque.toboganes[0].entrada },
     { id: 'kamikaze', titulo: 'Tírate por el tobogán kamikaze', total: 1, cuenta: 0,
       objetivo: () => parque.toboganes[1] && parque.toboganes[1].entrada },
+    { id: 'descanso', titulo: 'Vuelve a casa y descansa con Drako', total: 1, cuenta: 0,
+      objetivo: () => casa.mesa },
   ];
   const misionPor = (id) => MISIONES_NINO.find((m) => m.id === id);
   const hechaNino = (id) => { const m = misionPor(id); return m && m.cuenta >= m.total; };
@@ -2913,6 +2976,568 @@
     ninoDice(esp.id === 'bota' ? '¡Puaj!' : nueva ? '¡Nuevo!' : '¡Otro!', 1.8);
   }
 
+  // =====================================================================
+  // ---------- Música (se genera en el navegador, sin archivos) ----------
+  // =====================================================================
+  function audioCtx() {
+    if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)();
+    if (audio.state === 'suspended') audio.resume();
+    return audio;
+  }
+  let preferenciaMusica = true;
+  try { preferenciaMusica = localStorage.getItem('playa-del-perro-musica') !== 'no'; } catch (e) { /* por defecto, con música */ }
+  const musica = { on: preferenciaMusica, sonando: false, modo: 'playa', proximo: 'playa', paso: 0, tiempo: 0, master: null, timer: null };
+  const btnMusica = document.getElementById('btn-musica');
+  const nota = (m) => 440 * Math.pow(2, (m - 69) / 12);
+  // Canción de la playa: alegre, en do mayor, a 132 pulsaciones (32 corcheas)
+  const CANCIONES = {
+    playa: {
+      corchea: 60 / 132 / 2,
+      melodia: [72, 76, 79, 76, 77, 76, 74, 72, 74, 77, 81, 77, 79, 77, 76, 74,
+        72, 76, 79, 84, 83, 79, 77, 76, 74, 76, 77, 79, 76, 74, 72, -1],
+      bajo: [48, 53, 55, 48, 45, 53, 55, 48],  // una nota cada 4 corcheas
+      ritmo: true,
+      volumen: 0.16,
+    },
+    // En la casa: tranquila, más lenta, sin percusión
+    casa: {
+      corchea: 60 / 84 / 2,
+      melodia: [64, 67, 71, 67, 64, 67, 71, 74, 69, 72, 76, 72, 69, 72, 76, 72,
+        65, 69, 72, 69, 65, 69, 72, 76, 67, 71, 74, 71, 67, 71, 74, 79],
+      bajo: [48, 48, 45, 45, 41, 41, 43, 43],
+      ritmo: false,
+      volumen: 0.12,
+    },
+  };
+  function tono(ctx, frec, t, dur, tipo, vol, destino) {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = tipo;
+    o.frequency.setValueAtTime(frec, t);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(destino);
+    o.start(t);
+    o.stop(t + dur + 0.02);
+  }
+  let ruidoBuffer = null;
+  function platillo(ctx, t, vol) {
+    if (!ruidoBuffer) {
+      ruidoBuffer = ctx.createBuffer(1, ctx.sampleRate * 0.1, ctx.sampleRate);
+      const d = ruidoBuffer.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    }
+    const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+    s.buffer = ruidoBuffer;
+    f.type = 'highpass';
+    f.frequency.value = 7000;
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+    s.connect(f).connect(g).connect(musica.master);
+    s.start(t);
+    s.stop(t + 0.06);
+  }
+  function tocarPaso(ctx, c, paso, t) {
+    const i = paso % c.melodia.length;
+    const m = c.melodia[i];
+    // "Marimba": seno con un armónico agudo que se apaga rápido
+    if (m > 0) {
+      tono(ctx, nota(m), t, c.corchea * 1.8, 'sine', 0.5, musica.master);
+      tono(ctx, nota(m) * 4, t, 0.08, 'sine', 0.06, musica.master);
+    }
+    if (i % 4 === 0) tono(ctx, nota(c.bajo[(i / 4) % c.bajo.length]), t, c.corchea * 3.5, 'triangle', 0.45, musica.master);
+    if (c.ritmo) {
+      platillo(ctx, t, i % 2 ? 0.25 : 0.1);
+      if (i % 8 === 0 || i % 8 === 5) tono(ctx, 60, t, 0.12, 'sine', 0.6, musica.master);  // bombo
+    }
+  }
+  function programarMusica() {
+    const ctx = audio;
+    if (!ctx || !musica.sonando) return;
+    let c = CANCIONES[musica.modo];
+    while (musica.tiempo < ctx.currentTime + 0.25) {
+      // Cambia de canción al empezar un compás
+      if (musica.proximo !== musica.modo && musica.paso % 8 === 0) {
+        musica.modo = musica.proximo;
+        musica.paso = 0;
+        c = CANCIONES[musica.modo];
+        musica.master.gain.setTargetAtTime(c.volumen, musica.tiempo, 0.3);
+      }
+      tocarPaso(ctx, c, musica.paso, musica.tiempo);
+      musica.tiempo += c.corchea;
+      musica.paso++;
+    }
+  }
+  function empezarMusica() {
+    if (!musica.on || musica.sonando) return;
+    try {
+      const ctx = audioCtx();
+      if (!musica.master) {
+        musica.master = ctx.createGain();
+        musica.master.connect(ctx.destination);
+      }
+      musica.master.gain.value = CANCIONES[musica.modo].volumen;
+      musica.sonando = true;
+      musica.tiempo = ctx.currentTime + 0.1;
+      musica.timer = setInterval(programarMusica, 60);
+    } catch (e) { musica.sonando = false; }
+  }
+  function pararMusica() {
+    musica.sonando = false;
+    clearInterval(musica.timer);
+    if (musica.master) musica.master.gain.setTargetAtTime(0.0001, audio.currentTime, 0.05);
+  }
+  function pintarBotonMusica() {
+    btnMusica.setAttribute('aria-pressed', String(musica.on));
+    btnMusica.classList.toggle('apagada', !musica.on);
+    btnMusica.setAttribute('aria-label', musica.on ? 'Quitar la música' : 'Poner música');
+  }
+  function alternarMusica() {
+    musica.on = !musica.on;
+    try { localStorage.setItem('playa-del-perro-musica', musica.on ? 'si' : 'no'); } catch (e) { /* sin guardar */ }
+    if (musica.on) empezarMusica(); else pararMusica();
+    pintarBotonMusica();
+  }
+  pintarBotonMusica();
+  // Los navegadores solo dejan sonar audio tras tocar la pantalla o una tecla
+  const arrancarAudio = () => empezarMusica();
+  window.addEventListener('pointerdown', arrancarAudio);
+  window.addEventListener('keydown', arrancarAudio);
+
+  // =====================================================================
+  // ---------- Manuel llama a Drako ----------
+  // =====================================================================
+  const drakoIA = { llamado: 0, paseo: null, tPaseo: 0 };
+  const bocadilloDrako = document.getElementById('bocadillo-drako');
+  let bocadilloDrakoHasta = 0;
+  function drakoDice(texto, s = 1.6) {
+    bocadilloDrako.textContent = texto;
+    bocadilloDrako.hidden = false;
+    bocadilloDrakoHasta = reloj.elapsedTime + s;
+  }
+  function silbido() {
+    try {
+      const ctx = audioCtx();
+      const t = ctx.currentTime;
+      [[1400, 2100, 0], [1500, 2300, 0.28]].forEach(([a, b, r]) => {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(a, t + r);
+        o.frequency.exponentialRampToValueAtTime(b, t + r + 0.18);
+        g.gain.setValueAtTime(0.0001, t + r);
+        g.gain.exponentialRampToValueAtTime(0.18, t + r + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + r + 0.22);
+        o.connect(g).connect(ctx.destination);
+        o.start(t + r);
+        o.stop(t + r + 0.25);
+      });
+    } catch (e) { /* sin sonido */ }
+  }
+  function llamarDrako() {
+    silbido();
+    try {
+      // Voz del navegador, si la hay; si no, basta el silbido
+      const voz = new SpeechSynthesisUtterance('¡Drako! ¡Ven!');
+      voz.lang = 'es-ES';
+      voz.pitch = 1.7;
+      voz.rate = 1.1;
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(voz);
+    } catch (e) { /* sin voz */ }
+    ninoDice('¡Drako, ven!', 1.8);
+    drakoIA.llamado = 40;  // hasta que llegue (como mucho 40 s)
+    drakoIA.paseo = null;
+    if (estado.descansando) levantarse();
+  }
+
+  // Hacia dónde va Drako solo cuando juegas con Manuel
+  function objetivoPerroIA() {
+    const E = ninoE;
+    if (balon.estado === 'perro') return { p: E.pos, parar: 1.0 };
+    const d = distXZ(estado.pos, E.pos);
+    if (drakoIA.llamado > 0) {
+      if (d < 1.6 && !drakoIA.contento) {
+        drakoIA.contento = true;
+        drakoIA.llamado = Math.min(drakoIA.llamado, 4);  // ya ha llegado: se queda un rato al lado
+        ladrar();
+      }
+      return { p: E.pos, parar: 1.2 };
+    }
+    drakoIA.contento = false;
+    if (balon.estado === 'libre' && !balon.reservado && distXZ(balon.pos, E.pos) < 30 && E.modo !== 'pescar') {
+      return { p: balon.pos, parar: 0.1 };
+    }
+    if (d < 14) { drakoIA.paseo = null; return { p: E.pos, parar: 2.6 }; }
+    // Lejos de Manuel: Drako se entretiene olisqueando por ahí hasta que le llamen
+    if (!drakoIA.paseo || reloj.elapsedTime > drakoIA.tPaseo) {
+      const a = azar() * Math.PI * 2, r = 2 + azar() * 5;
+      const x = clamp(estado.pos.x + Math.cos(a) * r, -LIMITE_X, LIMITE_X), z = clamp(estado.pos.z + Math.sin(a) * r, LIMITE_Z0, LIMITE_Z1);
+      drakoIA.paseo = new V3(x, 0, z);
+      drakoIA.tPaseo = reloj.elapsedTime + 3 + azar() * 4;
+      if (profundidad(x, z) > 0.2) drakoIA.paseo = null;
+    }
+    return drakoIA.paseo ? { p: drakoIA.paseo, parar: 0.5, lento: true } : { p: estado.pos, parar: 1 };
+  }
+
+  // =====================================================================
+  // ---------- La casa de Manuel y Drako ----------
+  // =====================================================================
+  const casa = { mesa: null, banco: null, sitioDrako: null, bocadillo: 0 };
+  const Y1 = CASA_ALTO;
+
+  function texturaLadrillo() {
+    const l = document.createElement('canvas');
+    l.width = l.height = 256;
+    const c = l.getContext('2d');
+    c.fillStyle = '#8f7568';
+    c.fillRect(0, 0, 256, 256);
+    // Espiga: ladrillos en zigzag
+    for (let y = -2; y < 10; y++) {
+      for (let x = -2; x < 10; x++) {
+        const tono = 150 + Math.floor(Math.random() * 40);
+        c.fillStyle = `rgb(${tono}, ${tono - 30}, ${tono - 42})`;
+        c.save();
+        c.translate(x * 32 + (y % 2) * 16, y * 32);
+        c.rotate((x + y) % 2 ? Math.PI / 4 : -Math.PI / 4);
+        c.fillRect(-20, -8, 40, 15);
+        c.restore();
+      }
+    }
+    const t = new THREE.CanvasTexture(l);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.encoding = THREE.sRGBEncoding;
+    return t;
+  }
+  function texturaRayas() {
+    const l = document.createElement('canvas');
+    l.width = 64;
+    l.height = 8;
+    const c = l.getContext('2d');
+    for (let i = 0; i < 8; i++) {
+      c.fillStyle = i % 2 ? '#fbf8f1' : '#3b2a4a';
+      c.fillRect(i * 8, 0, 8, 8);
+    }
+    const t = new THREE.CanvasTexture(l);
+    t.encoding = THREE.sRGBEncoding;
+    return t;
+  }
+
+  // Tejado a cuatro aguas (pirámide aplastada) de teja rojiza
+  const matTeja = new THREE.MeshStandardMaterial({ color: '#b5563a', roughness: 0.8, flatShading: true });
+  function tejado(x, z, ancho, fondo, y, alto) {
+    // Un cono de 4 lados girado 45° tiene la base cuadrada de lado 1; el grupo lo estira al tamaño del tejado
+    const t = new THREE.Mesh(new THREE.ConeGeometry(Math.SQRT1_2, 1, 4, 1), matTeja);
+    t.rotation.y = Math.PI / 4;
+    t.position.y = 0.5;
+    t.castShadow = true;
+    const g = new THREE.Group();
+    g.add(t);
+    g.scale.set(ancho + 0.8, alto, fondo + 0.8);
+    g.position.set(x, y, z);
+    scene.add(g);
+    return g;
+  }
+
+  function reja(x, y, z, ancho, alto, normal) {
+    // Ventana: fondo oscuro con barrotes negros
+    const g = new THREE.Group();
+    const fondo = new THREE.Mesh(new THREE.PlaneGeometry(ancho, alto), new THREE.MeshStandardMaterial({ color: '#3a4450', roughness: 0.3 }));
+    g.add(fondo);
+    const matHierro = new THREE.MeshStandardMaterial({ color: '#16181b', roughness: 0.5 });
+    const n = Math.round(ancho / 0.14);
+    for (let i = 0; i <= n; i++) {
+      const b = new THREE.Mesh(new THREE.BoxGeometry(0.025, alto, 0.025), matHierro);
+      b.position.set(-ancho / 2 + i * ancho / n, 0, 0.06);
+      g.add(b);
+    }
+    [-alto / 2, alto / 2, alto / 6].forEach((yy) => {
+      const b = new THREE.Mesh(new THREE.BoxGeometry(ancho + 0.05, 0.03, 0.03), matHierro);
+      b.position.set(0, yy, 0.07);
+      g.add(b);
+    });
+    g.position.set(x, y, z);
+    g.rotation.y = normal;
+    scene.add(g);
+  }
+
+  function farol(x, y, z, rot) {
+    const g = new THREE.Group();
+    const negro = new THREE.MeshStandardMaterial({ color: '#1b1d20', roughness: 0.5 });
+    const cuerpo = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.07, 0.25, 6), new THREE.MeshStandardMaterial({ color: '#f6e7b0', emissive: '#f3d37a', emissiveIntensity: 0.4 }));
+    const tapa = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.12, 6), negro);
+    tapa.position.y = 0.18;
+    const brazo = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.03, 0.25), negro);
+    brazo.position.set(0, 0.05, -0.15);
+    g.add(cuerpo, tapa, brazo);
+    g.position.set(x, y, z);
+    g.rotation.y = rot;
+    scene.add(g);
+  }
+
+  function maceta(x, z, alto = 0.45, conPlanta = true) {
+    const barro = new THREE.MeshStandardMaterial({ color: '#c9714a', roughness: 0.85 });
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(alto * 0.6, alto * 0.42, alto, 14), barro);
+    const y = suelo(x, z);
+    m.position.set(x, y + alto / 2, z);
+    m.castShadow = true;
+    scene.add(m);
+    if (conPlanta) {
+      const hoja = new THREE.Mesh(new THREE.SphereGeometry(alto * 0.75, 10, 8), new THREE.MeshStandardMaterial({ color: '#3f7d3a', roughness: 0.8 }));
+      hoja.scale.set(1, 0.8, 1);
+      hoja.position.set(x, y + alto * 1.3, z);
+      hoja.castShadow = true;
+      scene.add(hoja);
+    }
+  }
+
+  function pinoPinonero(x, z, alto) {
+    const y = suelo(x, z);
+    const tronco = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.35, alto, 10), new THREE.MeshStandardMaterial({ color: '#7a4b33', roughness: 0.9 }));
+    tronco.position.set(x, y + alto / 2, z);
+    tronco.rotation.z = 0.06;
+    tronco.castShadow = true;
+    scene.add(tronco);
+    const verde = new THREE.MeshStandardMaterial({ color: '#35602f', roughness: 0.9 });
+    [[0, 0, 0, 3.6], [1.6, -0.2, 0.8, 2.4], [-1.5, -0.3, -0.6, 2.2], [0.3, 0.3, -1.4, 2.3]].forEach(([dx, dy, dz, r]) => {
+      const copa = new THREE.Mesh(new THREE.SphereGeometry(r, 16, 10), verde);
+      copa.scale.set(1, 0.38, 1);
+      copa.position.set(x + dx, y + alto + dy, z + dz);
+      copa.castShadow = true;
+      scene.add(copa);
+    });
+    colisiones.push({ x, z, r: 0.4 });
+  }
+
+  // Palmera de abanico (como las del jardín): tronco y hojas en forma de abanico
+  function palmeraAbanico(x, z, alto) {
+    const y = suelo(x, z);
+    const tronco = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.3, alto, 10), new THREE.MeshStandardMaterial({ color: '#9c8870', roughness: 1 }));
+    tronco.position.set(x, y + alto / 2, z);
+    tronco.castShadow = true;
+    scene.add(tronco);
+    const verde = new THREE.MeshStandardMaterial({ color: '#4d8a4a', roughness: 0.6, side: THREE.DoubleSide });
+    for (let i = 0; i < 12; i++) {
+      const a = i / 12 * Math.PI * 2;
+      const hoja = new THREE.Mesh(new THREE.CircleGeometry(1.2, 10, -0.6, 1.2), verde);
+      hoja.position.set(x + Math.cos(a) * 0.3, y + alto + 0.1, z + Math.sin(a) * 0.3);
+      hoja.rotation.set(-0.5 - (i % 3) * 0.2, -a + Math.PI / 2, 0, 'YXZ');
+      hoja.castShadow = true;
+      scene.add(hoja);
+    }
+    colisiones.push({ x, z, r: 0.35 });
+  }
+
+  function construirCasa(escenaPlaya) {
+    const blanco = new THREE.MeshStandardMaterial({ color: '#f7f6f1', roughness: 0.85 });
+    const ladrillo = texturaLadrillo();
+    const matLadrillo = new THREE.MeshStandardMaterial({ color: '#c9a291', roughness: 0.9 });
+    const verdeHierro = new THREE.MeshStandardMaterial({ color: '#1f2e2a', roughness: 0.5 });
+    const madera = new THREE.MeshStandardMaterial({ color: '#7a2e24', roughness: 0.7 });
+
+    // Suelo de ladrillo en espiga del porche y el patio
+    const t = ladrillo.clone();
+    t.needsUpdate = true;
+    t.repeat.set(8, 3);
+    const patio = new THREE.Mesh(new THREE.PlaneGeometry(16, 5.2), new THREE.MeshStandardMaterial({ map: t, roughness: 0.95 }));
+    patio.rotation.x = -Math.PI / 2;
+    patio.position.set(46, Y1 + 0.03, -58.9);
+    patio.receiveShadow = true;
+    scene.add(patio);
+
+    // Planta baja (12 x 8) y planta alta con terraza delante
+    caja(12, 3.2, 8, blanco, 46, Y1, -66);
+    caja(12.1, 0.5, 8.1, matLadrillo, 46, Y1, -66, false);  // zócalo de ladrillo
+    caja(7, 2.9, 6, blanco, 43.5, Y1 + 3.2, -67);
+    // Torre lateral, más alta, como la de la foto
+    caja(3.5, 7.4, 3.5, blanco, 50.5, Y1, -67.5, false);
+    tejado(43.5, -67, 7, 6, Y1 + 6.1, 1.3);
+    tejado(50.5, -67.5, 3.5, 3.5, Y1 + 7.4, 1.0);
+    tejado(49, -66, 6, 8, Y1 + 3.2, 1.2);
+
+    // Terraza con balaustrada sobre el porche oeste
+    caja(7.2, 0.3, 3.6, blanco, 43.5, Y1 + 3.0, -60.2, false);
+    const matBal = blanco;
+    const balaustres = [];
+    for (let x = 40.2; x <= 46.8; x += 0.32) balaustres.push([x, -58.5]);
+    for (let z = -61.8; z <= -58.6; z += 0.32) { balaustres.push([40.05, z]); balaustres.push([46.95, z]); }
+    const geoBal = new THREE.CylinderGeometry(0.06, 0.08, 0.75, 8);
+    const instBal = new THREE.InstancedMesh(geoBal, matBal, balaustres.length);
+    balaustres.forEach(([x, z], i) => {
+      tmpM.makeTranslation(x, Y1 + 3.3 + 0.37, z);
+      instBal.setMatrixAt(i, tmpM);
+    });
+    instBal.castShadow = true;
+    scene.add(instBal);
+    caja(7.2, 0.12, 0.25, matBal, 43.5, Y1 + 4.05, -58.5, false);
+    caja(0.25, 0.12, 3.4, matBal, 40.05, Y1 + 4.05, -60.2, false);
+    caja(0.25, 0.12, 3.4, matBal, 46.95, Y1 + 4.05, -60.2, false);
+    [[40.05, -58.5], [43.5, -58.5], [46.95, -58.5]].forEach(([x, z]) => {
+      caja(0.4, 1.0, 0.4, matBal, x, Y1 + 3.3, z, false);
+      const bola = new THREE.Mesh(new THREE.SphereGeometry(0.2, 12, 10), matBal);
+      bola.position.set(x, Y1 + 4.5, z);
+      scene.add(bola);
+    });
+    // Pilares blancos del porche oeste
+    caja(0.5, 3.0, 0.5, blanco, 40.3, Y1, -58.7);
+    caja(0.5, 3.0, 0.5, blanco, 46.7, Y1, -58.7);
+
+    // Porche este con vigas de madera y columnas oscuras
+    caja(5.2, 0.12, 3.6, blanco, 49.6, Y1 + 3.05, -60.2, false);
+    for (let x = 47.3; x <= 52; x += 0.45) caja(0.12, 0.18, 3.6, madera, x, Y1 + 2.87, -60.2, false);
+    [48.2, 51.8].forEach((x) => {
+      const col = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 2.9, 12), verdeHierro);
+      col.position.set(x, Y1 + 1.45, -58.6);
+      col.castShadow = true;
+      scene.add(col);
+      colisiones.push({ x, z: -58.6, r: 0.15 });
+    });
+
+    // Ventanas con rejas, puerta, ventanuco redondo y faroles
+    reja(42.5, Y1 + 1.5, -61.99, 1.6, 1.6, 0);
+    reja(48.5, Y1 + 1.4, -61.99, 1.3, 1.3, 0);
+    reja(42, Y1 + 4.6, -63.99, 1.1, 1.2, 0);
+    reja(45.2, Y1 + 4.6, -63.99, 1.0, 1.2, 0);
+    const puerta = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 2.2), new THREE.MeshStandardMaterial({ color: '#5a3a26', roughness: 0.7 }));
+    puerta.position.set(45.3, Y1 + 1.1, -61.98);
+    scene.add(puerta);
+    const ojo = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.07, 8, 24), blanco);
+    ojo.position.set(50.5, Y1 + 5.2, -65.72);
+    const cristal = new THREE.Mesh(new THREE.CircleGeometry(0.4, 24), new THREE.MeshStandardMaterial({ color: '#2b3440' }));
+    cristal.position.set(50.5, Y1 + 5.2, -65.74);
+    scene.add(ojo, cristal);
+    farol(44.3, Y1 + 5.0, -63.85, 0);
+    farol(47.4, Y1 + 2.3, -61.85, 0);
+    farol(52.1, Y1 + 2.3, -61.85, 0);
+
+    // Mesa con mantel de rayas y bancos (la zona de descanso)
+    const mantel = new THREE.MeshStandardMaterial({ map: texturaRayas(), roughness: 0.8 });
+    const mesa = new THREE.Group();
+    const tabla = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.08, 1.0), mantel);
+    tabla.position.y = 0.78;
+    mesa.add(tabla);
+    [[-0.9, -0.35], [0.9, -0.35], [-0.9, 0.35], [0.9, 0.35]].forEach(([x, z]) => {
+      const pata = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.76, 0.08), matMadera);
+      pata.position.set(x, 0.38, z);
+      mesa.add(pata);
+    });
+    mesa.position.set(43.3, Y1, -60.4);
+    mesa.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+    scene.add(mesa);
+    cajas.push({ x0: 42.1, x1: 44.5, z0: -60.95, z1: -59.85, activa: true });
+    [-61.4, -59.4].forEach((z) => {
+      const banco = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.08, 0.35), matMadera);
+      banco.position.set(43.3, Y1 + 0.45, z);
+      banco.castShadow = true;
+      scene.add(banco);
+    });
+    casa.mesa = new V3(43.3, Y1, -60.4);
+    casa.banco = new V3(43.3, Y1, -59.25);
+    casa.sitioDrako = new V3(44.9, Y1, -59.0);
+
+    // Piscina de arena con jacuzzi redondo
+    const agua = new THREE.Mesh(new THREE.PlaneGeometry(16, 11, 16, 11), materialPiscina(false));
+    agua.geometry.rotateX(-Math.PI / 2);
+    agua.position.set(40.5, AGUA_CASA, -51);
+    agua.renderOrder = 3;
+    scene.add(agua);
+    const jac = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.4, 0.45, 24, 1, true), matLadrillo);
+    jac.position.set(34.8, Y1 + 0.22, -55.2);
+    scene.add(jac);
+    const jacAgua = new THREE.Mesh(new THREE.CircleGeometry(1.25, 24), materialPiscina(false));
+    jacAgua.rotation.x = -Math.PI / 2;
+    jacAgua.position.set(34.8, Y1 + 0.38, -55.2);
+    jacAgua.renderOrder = 3;
+    scene.add(jacAgua);
+    colisiones.push({ x: 34.8, z: -55.2, r: 1.4 });
+    // Sillas de playa de colores junto a la piscina
+    [['#b99be6', 33.2, -49.5], ['#f3a9a0', 34.4, -48.6]].forEach(([color, x, z]) => {
+      const lona = new THREE.MeshStandardMaterial({ color, roughness: 0.8, side: THREE.DoubleSide });
+      const asiento = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.04, 0.5), lona);
+      asiento.position.set(x, Y1 + 0.28, z);
+      const respaldo = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.6, 0.04), lona);
+      respaldo.position.set(x, Y1 + 0.55, z - 0.3);
+      respaldo.rotation.x = -0.35;
+      scene.add(asiento, respaldo);
+    });
+
+    // Jardín: pinos piñoneros, palmeras, macetas
+    pinoPinonero(33, -70, 7.5);
+    pinoPinonero(58, -52, 6.5);
+    palmeraAbanico(37, -58.5, 4.2);
+    palmeraAbanico(31.5, -52, 3.6);
+    palmeraAbanico(55, -60, 4.8);
+    [[45.5, -44.5, 0], [56, -47, 2], [32, -45.5, 4]].forEach(([x, z, i]) => copiarPalmera(escenaPlaya, i, x, z));
+    [[40.6, -61.6], [41.2, -61.6], [47.6, -61.7], [52.6, -61.2], [53.2, -58.6], [39.8, -57.2]].forEach(([x, z], i) => maceta(x, z, 0.4 + (i % 3) * 0.1));
+    // Montón de leña junto a la casa
+    for (let i = 0; i < 9; i++) {
+      const tronco = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.9, 8), new THREE.MeshStandardMaterial({ color: i % 2 ? '#7d5a3c' : '#6a4a30', roughness: 1 }));
+      tronco.rotation.x = Math.PI / 2;
+      tronco.position.set(53.6 + (i % 3) * 0.33, Y1 + 0.17 + Math.floor(i / 3) * 0.3, -63.1);
+      tronco.castShadow = true;
+      scene.add(tronco);
+    }
+    const cartelCasa = cartel('CASA DE MANUEL Y DRAKO', 5, 0.7);
+    cartelCasa.position.set(49.6, Y1 + 3.5, -58.35);
+    scene.add(cartelCasa);
+  }
+
+  // ---------- Descansar en casa ----------
+  function cercaDeDescanso() {
+    return jugador === 'nino' && casa.mesa && distXZ(ninoE.pos, casa.mesa) < 2.4;
+  }
+  function descansar() {
+    const E = ninoE;
+    if (balon.estado === 'mano') soltarBalon(new V3(0, 0, 0));
+    fundido(() => {
+      E.modo = 'descansar';
+      E.t = 0;
+      E.vel = 0;
+      E.pos.set(casa.banco.x, Y1 - 0.12, casa.banco.z);
+      E.rumbo = Math.PI;  // mirando a la mesa
+      animarNino('pickup', true, 0.2);
+      estado.descansando = true;
+      estado.pos.copy(casa.sitioDrako);
+      estado.rumbo = -Math.PI / 2;
+      estado.velocidad = 0;
+      musica.proximo = 'casa';
+      avisar('Manuel y Drako descansan en casa', 2200);
+      sumarNino('descanso');
+    });
+  }
+  function levantarse() {
+    const E = ninoE;
+    if (E.modo === 'descansar') {
+      E.modo = 'libre';
+      if (nino.actual) nino.actual.paused = false;
+      E.pos.set(casa.banco.x, Y1, casa.banco.z + 0.6);
+      animarNino('idle');
+    }
+    estado.descansando = false;
+  }
+
+  function actualizarCasa(dt) {
+    const E = ninoE;
+    const quien = jugador === 'nino' ? E.pos : estado.pos;
+    const enCasa = fueraDe(quien.x, -quien.z, CASA) < 4;
+    if (!estado.descansando && E.modo !== 'descansar') musica.proximo = enCasa ? 'casa' : 'playa';
+    drakoIA.llamado = Math.max(0, drakoIA.llamado - dt);
+    if (E.modo === 'descansar') {
+      // Se queda sentado (la animación de agacharse, parada a mitad)
+      if (E.t > 0.42 && nino.actual && !nino.actual.paused) nino.actual.paused = true;
+      if (reloj.elapsedTime > casa.bocadillo) {
+        casa.bocadillo = reloj.elapsedTime + 4;
+        ninoDice('Zzz…', 2.2);
+        setTimeout(() => { if (estado.descansando) drakoDice('Zzz…', 2); }, 1200);
+      }
+      const mueve = Math.hypot(joy.x, joy.y) > 0.3 || ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].some((k) => teclas.has(k));
+      if (mueve) levantarse();
+    }
+    if (!bocadilloDrako.hidden) {
+      if (reloj.elapsedTime > bocadilloDrakoHasta) bocadilloDrako.hidden = true;
+      else ponerEnPantalla(bocadilloDrako, partes.cabeza, 0.75);
+    }
+  }
+
   // ---------- Bucle principal ----------
   const reloj = new THREE.Clock();
   let autopiloto = false;
@@ -2926,6 +3551,8 @@
         montones: montones.map((m) => [+m.x.toFixed(1), +m.z.toFixed(1), +m.excavado.toFixed(2), m.vacio]) }),
       saltarA: (i) => empezarMision(i),
       jugarCon: (q) => { if (jugador !== q) cambiarJugador(); },
+      drako: () => ({ pos: estado.pos.toArray().map((v) => +v.toFixed(1)), llamado: +drakoIA.llamado.toFixed(1), descansando: !!estado.descansando }),
+      musica: () => ({ on: musica.on, sonando: musica.sonando, modo: musica.modo }),
       moverNino: (x, z, rumbo = 0) => { ninoE.pos.set(x, suelo(x, z) + 0.05, z); ninoE.rumbo = rumbo; ninoE.vy = 0; },
       camara: (yaw, pitch, dist) => { cam.yaw = yaw; if (pitch !== undefined) cam.pitch = pitch; if (dist) cam.dist = dist; },
       nino: () => ({ modo: ninoE.modo, pos: ninoE.pos.toArray().map((v) => +v.toFixed(2)), nadando: ninoE.nadando,
@@ -2940,14 +3567,6 @@
   }
   const adelante = new V3(), derecha = new V3(), mov = new V3();
 
-  // Hacia dónde va el perro solo cuando juegas con Manuel
-  function objetivoPerroIA() {
-    if (balon.estado === 'perro') return { p: ninoE.pos, parar: 1.0 };
-    if (balon.estado === 'libre' && !balon.reservado && distXZ(balon.pos, ninoE.pos) < 30 && ninoE.modo !== 'pescar') {
-      return { p: balon.pos, parar: 0.1 };
-    }
-    return { p: ninoE.pos, parar: 2.6 };
-  }
   // Convierte una dirección del mundo en entrada de joystick (ejes de la cámara)
   function entradaHacia(obj, desde, parar) {
     const dx = obj.x - desde.x, dz = obj.z - desde.z, d = Math.hypot(dx, dz);
@@ -2958,10 +3577,12 @@
   }
 
   function actualizarPerro(dt) {
+    if (estado.descansando) return perroTumbado(dt);
     let ix = jugador === 'perro' ? joy.x : 0, iy = jugador === 'perro' ? joy.y : 0;
     if (jugador === 'nino') {
       const o = objetivoPerroIA();
       [ix, iy] = entradaHacia(o.p, estado.pos, o.parar);
+      if (o.lento) { ix *= 0.35; iy *= 0.35; }
     }
     if (autopiloto) {
       // Solo para pruebas (#prueba): el perro va solo hacia el objetivo de la tarea
@@ -3064,6 +3685,22 @@
     if (jugador === 'perro') actualizarEstado(h);
   }
 
+  // Drako tumbado junto al banco de casa
+  function perroTumbado(dt) {
+    estado.pos.y = suelo(estado.pos.x, estado.pos.z);
+    perro.position.copy(estado.pos);
+    perro.rotation.y = estado.rumbo;
+    partes.cuerpo.position.y = damp(partes.cuerpo.position.y, -0.2, 4, dt);
+    partes.cuerpo.rotation.x = 0;
+    partes.delIzq.rotation.x = partes.delDer.rotation.x = damp(partes.delIzq.rotation.x, -1.35, 4, dt);
+    partes.traIzq.rotation.x = partes.traDer.rotation.x = damp(partes.traIzq.rotation.x, 1.3, 4, dt);
+    partes.cabeza.rotation.x = 0.25 + Math.sin(reloj.elapsedTime * 1.2) * 0.03;
+    partes.cola.rotation.y = Math.sin(reloj.elapsedTime * 2) * 0.15;
+    estado.velocidad = 0;
+    estado.enSuelo = true;
+    estado.nadando = false;
+  }
+
   function actualizarCamara(dt) {
     const foco = jugador === 'perro' ? estado.pos : ninoE.pos;
     const alto = jugador === 'perro' ? 0.6 : 1.0;
@@ -3118,6 +3755,7 @@
         actualizarMisiones(dt);
         actualizarParque(dt);
         actualizarPesca(dt);
+        actualizarCasa(dt);
       }
       actualizarSalpicaduras(dt);
       actualizarBotonAccion();
