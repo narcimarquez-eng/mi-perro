@@ -468,7 +468,7 @@
     let h = altura(x, -z);
     if (sobreMuelle(x, z) && (yActual === undefined || yActual > MUELLE.y - 0.45)) h = Math.max(h, MUELLE.y);
     for (const f of flotadores) {
-      if (Math.hypot(x - f.x, z - f.z) < f.r && (yActual === undefined || yActual > f.y - 0.35)) h = Math.max(h, f.y);
+      if (Math.hypot(x - f.x, z - f.z) < f.r + 0.25 && (yActual === undefined || yActual > f.y - 0.5)) h = Math.max(h, f.y);
     }
     return h;
   }
@@ -2252,8 +2252,9 @@
     // Piscina de flotadores: plataformas que flotan en fila (hay que ir saltando)
     const matFlot = [new THREE.MeshStandardMaterial({ color: '#7cd35a', roughness: 0.5 }),
       new THREE.MeshStandardMaterial({ color: '#ff9fc2', roughness: 0.5 })];
+    // En fila recta, grandes y con poco hueco entre ellas: basta un saltito para pasar de una a otra
     for (let i = 0; i < 6; i++) {
-      const f = { x: i % 2 ? -62.4 : -64.6, z: -68.4 - i * 1.85, r: 0.75, y: AGUA_PARQUE + 0.12, fase: i * 1.3 };
+      const f = { x: -63.5 + (i % 2 ? 0.25 : -0.25), z: -68.0 - i * 2.0, r: 0.8, y: AGUA_PARQUE + 0.12, fase: i * 1.3 };
       f.mesh = new THREE.Mesh(new THREE.CylinderGeometry(f.r, f.r * 0.95, 0.25, 20), matFlot[i % 2]);
       f.mesh.castShadow = f.mesh.receiveShadow = true;
       scene.add(f.mesh);
@@ -2425,7 +2426,7 @@
     }
     // Flotadores y patitos se mecen
     flotadores.forEach((f) => {
-      f.y = AGUA_PARQUE + 0.12 + Math.sin(tiempo * 1.6 + f.fase) * 0.05;
+      f.y = AGUA_PARQUE + 0.12 + Math.sin(tiempo * 1.6 + f.fase) * 0.02;
       f.mesh.position.set(f.x, f.y - 0.12, f.z);
     });
     parque.patitos.forEach((p) => {
@@ -2480,16 +2481,27 @@
     // Prueba de los flotadores
     if (!hechaNino('flotadores')) {
       const f0 = flotadores[0];
-      if (f0 && Math.hypot(E.pos.x - f0.x, E.pos.z - f0.z) < f0.r && E.enSuelo && !E.nadando) parque.flotadoresActiva = true;
-      if (parque.flotadoresActiva && piscina === 'flotadores' && (E.nadando || E.pos.y < AGUA_PARQUE - 0.2)) {
-        parque.flotadoresActiva = false;
+      if (f0 && Math.hypot(E.pos.x - f0.x, E.pos.z - f0.z) < f0.r + 0.25 && E.enSuelo && !E.nadando) parque.flotadoresActiva = true;
+      // Recuerda la última colchoneta pisada, para volver a ella si se cae
+      if (parque.flotadoresActiva && E.enSuelo && !E.nadando) {
+        const i = flotadores.findIndex((f) => Math.hypot(E.pos.x - f.x, E.pos.z - f.z) < f.r + 0.25);
+        if (i >= 0) parque.ultimaColchoneta = i;
+      }
+      if (parque.flotadoresActiva && !parque.volviendo && piscina === 'flotadores' && (E.nadando || E.pos.y < AGUA_PARQUE - 0.5)) {
+        const f = flotadores[parque.ultimaColchoneta || 0];
+        parque.volviendo = true;
         salpicar(new V3(E.pos.x, AGUA_PARQUE, E.pos.z), 24);
-        avisar('¡Al agua! Vuelve a intentarlo', 1600);
+        avisar('¡Al agua! Sigue desde la última colchoneta', 1600);
+        E.nadando = false;
+        E.vy = 0;
         fundido(() => {
-          E.pos.set(-63.5, Y0, -65.9);
+          E.pos.set(f.x, f.y + 0.05, f.z);
           E.vy = 0;
+          E.vel = 0;
           E.nadando = false;
-          E.rumbo = Math.PI;
+          E.enSuelo = true;
+          E.rumbo = Math.PI;  // mirando hacia la siguiente
+          parque.volviendo = false;
         });
       }
       const [x0, x1, z0] = aWeb(PISCINAS.flotadores);
@@ -2515,7 +2527,7 @@
         const libres = parque.patitos.filter((p) => !p.cogido).map((p) => p.mesh.position);
         return parque.patitosActiva ? masCercanoA(libres, ninoE.pos) : new V3(-32, AGUA_PARQUE, -44.5);
       } },
-    { id: 'flotadores', titulo: 'Cruza la piscina de flotadores sin caerte al agua', total: 1, cuenta: 0,
+    { id: 'flotadores', titulo: 'Cruza la piscina saltando por las colchonetas', total: 1, cuenta: 0,
       objetivo: () => {
         if (!parque.flotadoresActiva) return new V3(-63.5, Y0, -66);
         const sig = flotadores.find((f) => f.z < ninoE.pos.z - 0.5);

@@ -42,7 +42,7 @@ Abre http://localhost:8000. Controles: WASD o flechas para andar, Shift corre, E
 Con el botón **Manuel** (tecla `C`) cambias de personaje. Con Manuel:
 
 - **Pesca** en el final del muelle: eliges cebo, apuntas y eliges la fuerza del lanzamiento, tiras cuando pica y recoges controlando la tensión del sedal. Cada especie (sardina, dorada, pulpo, lubina, caballa, pez espada) vive a una distancia y quiere un cebo.
-- **Parque acuático** en las dunas: salta las 3 vallas para abrir la puerta, recoge los 5 patitos de la piscina infantil en 45 s para desbloquear el tobogán espiral y cruza la piscina de flotadores sin caerte para desbloquear el kamikaze. También hay piscina de olas con barco pirata.
+- **Parque acuático** en las dunas: salta las 3 vallas para abrir la puerta, recoge los 5 patitos de la piscina infantil en 45 s para desbloquear el tobogán espiral y cruza la piscina saltando por las colchonetas para desbloquear el kamikaze (si te caes, vuelves a la última colchoneta). También hay piscina de olas con barco pirata.
 
 - **Casa de Manuel y Drako** en las dunas: casa blanca con terraza, porche, piscina de arena y jardín. Junto a la mesa del porche pueden **descansar** juntos.
 - **Llamar a Drako**: con el botón «¡Drako!» Manuel silba y le llama; Drako viene corriendo aunque esté lejos.
