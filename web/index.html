@@ -304,6 +304,13 @@
     transition: opacity 0.35s;
   }
   .fundido.activo { opacity: 1; }
+  .noche {
+    position: fixed;
+    inset: 0;
+    background: #061433;
+    opacity: 0;
+    pointer-events: none;
+  }
   @media (prefers-reduced-motion: reduce) { .fundido { transition: none; } }
 
   .bocadillo {
@@ -442,6 +449,8 @@
     }
     const mc = 1 - smoothstep(0, 8, fueraDe(x, y, CASA));
     h += (CASA_ALTO - h) * mc;
+    const mb = 1 - smoothstep(0, 8, fueraDe(x, y, [68, 100, 44, 76]));
+    h += (6.5 - h) * mb;
     const k = hondoCasa(x, y);
     if (k > 0) h = CASA_ALTO - 1.4 * smoothstep(0, 0.55, k);
     return Math.max(h, -3);
@@ -581,6 +590,8 @@
       const mata = smoothstep(3.6, 4.6, y) * (0.5 + 0.5 * Math.sin(x * 0.9) * Math.cos(z * 0.7));
       c.lerp(colHierba, Math.min(mata, 1) * 0.8);
       if (fueraDe(x, -z, PARQUE) < 0.6) c.copy(piscinaEn(x, z) ? colAzulejo : colPlaza);
+      // Parque de bolas: suelo de goma a cuadros
+      if (fueraDe(x, -z, [68, 100, 44, 76]) < 0.6) c.set((Math.floor(x / 2) + Math.floor(z / 2)) % 2 ? '#3fb6a8' : '#f4a93b').convertSRGBToLinear();
       // Jardín de la casa: césped y el borde de arena de la piscina
       const fc = fueraDe(x, -z, CASA);
       if (fc < 3) {
@@ -958,6 +969,16 @@
     prepararNino(gNino);
     construirParque(playa.scene);
     construirCasa(playa.scene);
+    construirParqueBolas();
+    construirInterior();
+    parque.toboganes.forEach((t) => {
+      if (t.aro) return;
+      const aro = new THREE.Mesh(new THREE.RingGeometry(0.4, 0.6, 32), new THREE.MeshBasicMaterial({ color: '#ffd42a', side: THREE.DoubleSide, transparent: true, opacity: 0.85 }));
+      aro.rotation.x = -Math.PI / 2;
+      aro.position.set(t.entrada.x, t.entrada.y + 0.03, t.entrada.z);
+      scene.add(aro);
+      t.aro = aro;
+    });
     construirPesca();
 
     estado.pos.set(0, suelo(0, -4), -4);
@@ -1169,6 +1190,7 @@
       if (c.soloNino && !esNino) continue;
       if (c.alto && alturaPies > c.alto) continue;  // saltando por encima
       if (c.techo !== undefined && pos.y > c.techo) continue;  // por encima (por ejemplo, en la cubierta)
+      if (c.piso !== undefined && pos.y < c.piso) continue;  // por debajo (por ejemplo, bajo el puente colgante)
       const cx = clamp(pos.x, c.x0, c.x1), cz = clamp(pos.z, c.z0, c.z1);
       const dx = pos.x - cx, dz = pos.z - cz;
       const d = Math.hypot(dx, dz);
@@ -1193,8 +1215,14 @@
     }
   }
   function chocar(pos, radio, alturaPies = 0, esNino = false) {
-    pos.x = clamp(pos.x, -LIMITE_X, LIMITE_X);
-    pos.z = clamp(pos.z, LIMITE_Z0, LIMITE_Z1);
+    if (pos.z > 300) {
+      // Dentro de casa (el interior está lejos, sobre el mar): no salir del jardín
+      pos.x = clamp(pos.x, INT.x - 28, INT.x + 28);
+      pos.z = clamp(pos.z, INT.z - 28, INT.z + 28);
+    } else {
+      pos.x = clamp(pos.x, -LIMITE_X, LIMITE_X);
+      pos.z = clamp(pos.z, LIMITE_Z0, LIMITE_Z1);
+    }
     for (const c of colisiones) {
       const dx = pos.x - c.x, dz = pos.z - c.z;
       const d = Math.hypot(dx, dz), min = c.r + radio;
@@ -1274,8 +1302,10 @@
       }
     }
     chocarCajas(p, r, p.y - h, false, v);
-    p.x = clamp(p.x, -LIMITE_X, LIMITE_X);
-    p.z = clamp(p.z, LIMITE_Z0, LIMITE_Z1);
+    if (p.z < 300) {
+      p.x = clamp(p.x, -LIMITE_X, LIMITE_X);
+      p.z = clamp(p.z, LIMITE_Z0, LIMITE_Z1);
+    }
     balon.obj.position.copy(p);
     const vh = Math.hypot(v.x, v.z);
     if (vh > 0.01) {
@@ -1411,7 +1441,7 @@
       }
       animarNino(vel === 0 ? 'idle' : correr ? 'run' : 'walk');
     }
-    if (E.modo !== 'tobogan' && E.modo !== 'descansar' && E.modo !== 'volando') {
+    if (E.modo !== 'tobogan' && E.modo !== 'descansar' && E.modo !== 'volando' && E.modo !== 'atraccion') {
       chocar(E.pos, 0.3, E.pos.y - suelo(E.pos.x, E.pos.z, E.pos.y), true);
       // No pisar al perro
       const dp = distXZ(E.pos, estado.pos);
@@ -1420,7 +1450,7 @@
         E.pos.z = estado.pos.z + (E.pos.z - estado.pos.z) / dp * 0.75;
       }
     }
-    if (!(controlado && E.modo === 'libre') && E.modo !== 'tobogan' && E.modo !== 'descansar' && E.modo !== 'volando') {
+    if (!(controlado && E.modo === 'libre') && E.modo !== 'tobogan' && E.modo !== 'descansar' && E.modo !== 'volando' && E.modo !== 'atraccion') {
       // Pegado al suelo, o flotando si está donde cubre
       const hS = suelo(E.pos.x, E.pos.z, E.pos.y), aguaS = aguaEn(E.pos.x, E.pos.z);
       E.nadando = aguaS - hS > 0.95;
@@ -1434,6 +1464,7 @@
     }
     if (E.modo === 'celebrar' && nino.actual && !nino.actual.isRunning()) E.modo = 'libre';
     if (E.modo === 'celebrar' && E.t > 2) E.modo = 'libre';
+    if (E.modo === 'atraccion') actualizarAtraccion(dt);
 
     colocarGrupoNino();
     for (const [h, q] of nino.reposo) h.quaternion.copy(q);
@@ -1721,6 +1752,7 @@
 
   function cambiarJugador() {
     if (!listo || ninoE.modo === 'pescar' || ninoE.modo === 'tobogan' || ninoE.modo === 'volando') return;
+    if (ninoE.modo === 'atraccion') terminarAtraccion();
     if (ninoE.modo === 'descansar' || estado.descansando) levantarse();
     jugador = jugador === 'perro' ? 'nino' : 'perro';
     btnCambiar.textContent = jugador === 'perro' ? 'Manuel' : 'Drako';
@@ -1736,7 +1768,9 @@
   function saltarNino() {
     const E = ninoE;
     if (E.modo !== 'libre' || !E.enSuelo || E.nadando) return;
-    E.vy = 5.4;
+    const cama = camaElasticaEn(E.pos.x, E.pos.z, E.pos.y);
+    E.vy = cama ? 10 : 5.4;
+    if (cama) cama.hundido = 0.3;
     E.enSuelo = false;
     E.vel = Math.max(E.vel, Math.hypot(joy.x, joy.y) > 0.2 || teclas.size ? 2.4 : 0);
   }
@@ -1745,7 +1779,13 @@
   function accionNino() {
     const E = ninoE;
     if (E.modo === 'descansar') return { texto: 'Levantarse', hacer: levantarse };
+    if (E.modo === 'atraccion') {
+      if (!E.atr || E.atr.tipo === 'escalar') return null;
+      return { texto: E.atr.tipo === 'dormir' ? 'Despertar' : E.atr.sentado ? 'Levantarse' : 'Parar', hacer: terminarAtraccion };
+    }
     if (E.modo !== 'libre') return null;
+    const pa = E.enSuelo && !E.nadando ? puntoCerca() : null;
+    if (pa) return { texto: pa.texto, hacer: pa.hacer };
     if (cercaDePesca()) return { texto: 'Pescar', hacer: empezarPesca };
     const t = toboganCerca();
     if (t) return { texto: 'Subir', hacer: () => subirTobogan(t) };
@@ -1821,7 +1861,15 @@
       E.nadando = false;
       E.vy -= 20 * dt;
       E.pos.y += E.vy * dt;
-      if (E.pos.y <= h || (E.enSuelo && E.vy <= 0 && E.pos.y - h < 0.3)) {
+      const camaE = E.vy < -1 && E.pos.y <= h + 0.05 ? camaElasticaEn(E.pos.x, E.pos.z, h) : null;
+      if (camaE) {
+        // ¡Boing! La cama elástica devuelve el salto
+        E.pos.y = h;
+        E.vy = Math.min(9, Math.max(6.5, -E.vy * 0.85));
+        E.enSuelo = false;
+        camaE.hundido = 0.3;
+        probar('cama', 'Camas elásticas');
+      } else if (E.pos.y <= h || (E.enSuelo && E.vy <= 0 && E.pos.y - h < 0.3)) {
         // Si el escalón es alto (salir de una piscina), sube rápido pero sin teletransportarse
         E.pos.y = h - E.pos.y > 0.4 ? damp(E.pos.y, h, 14, dt) : h;
         E.vy = 0;
@@ -1850,6 +1898,11 @@
     if (E.modo === 'tobogan') { zona = 'agua'; texto = '¡Bajando por el tobogán!'; }
     else if (E.modo === 'volando') { zona = 'agua'; texto = '¡Volando!'; }
     else if (E.modo === 'pescar') { zona = 'muelle'; texto = 'Pescando en el muelle'; }
+    else if (estaDentro(E.pos)) {
+      const tipo = E.modo === 'atraccion' && E.atr ? E.atr.tipo : '';
+      texto = { comer: 'Comiendo en la cocina', tele: 'Viendo la tele', dormir: 'Durmiendo', jugar: 'Jugando en su habitación' }[tipo] ||
+        (E.pos.x < INT.x - 2.5 ? 'En la cocina' : E.pos.x < INT.x + 3 ? 'En el salón' : 'En su habitación');
+    } else if (fueraDe(E.pos.x, -E.pos.z, PARQUE_BOLAS) === 0) texto = 'En el parque de bolas';
     else if (fueraDe(E.pos.x, -E.pos.z, PARQUE) === 0) {
       const p = piscinaEn(E.pos.x, E.pos.z);
       zona = p ? 'agua' : 'arena';
@@ -2401,8 +2454,9 @@
       E.impulso.set(tT.x, 0, tT.z).setLength(Math.min(tb.v, 7));
       nino.acciones.skill.setLoop(THREE.LoopOnce, 1);
       const kmh = Math.round(tb.vmax * 3.6);
-      avisar(`¡Splash! Has bajado a ${kmh} km/h`, 2200);
+      avisar(t.id.startsWith('bolas') ? `¡Wiii! Has bajado a ${kmh} km/h` : `¡Splash! Has bajado a ${kmh} km/h`, 2200);
       sumarNino(t.id);
+      if (t.alTerminar) t.alTerminar();
       if (jugador !== 'nino') cambiarJugador();
     }
   }
@@ -2536,6 +2590,23 @@
       objetivo: () => (ninoE.pos.y > barco.cubierta - 0.3 ? parque.toboganes.find((t) => t.id === 'barco').entrada : new V3(-74.6, Y0, -50)) },
     { id: 'descanso', titulo: 'Vuelve a casa y descansa con Drako', total: 1, cuenta: 0,
       objetivo: () => casa.mesa },
+    { id: 'bolas', titulo: 'Prueba 10 atracciones del parque de bolas', total: 10, cuenta: 0,
+      objetivo: () => {
+        const E = ninoE;
+        if (fueraDe(E.pos.x, -E.pos.z, PARQUE_BOLAS) > 0) return new V3(84, Y2, -43);
+        const a = bolas.atracciones.find((k) => !bolas.probadas.has(k.id));
+        return a ? a.pos : null;
+      } },
+    { id: 'entrar', titulo: 'Entra en casa por la puerta', total: 1, cuenta: 0,
+      objetivo: () => dentro.puertaFuera },
+    { id: 'comer', titulo: 'Siéntate a la mesa: papá y mamá te dan de comer', total: 1, cuenta: 0,
+      objetivo: () => (estaDentro(ninoE.pos) ? new V3(INT.x - 4.0, INT.y, INT.z - 0.3) : dentro.puertaFuera) },
+    { id: 'tele', titulo: 'Ve la tele en el sofá del salón', total: 1, cuenta: 0,
+      objetivo: () => (estaDentro(ninoE.pos) ? new V3(INT.x + 0.25, INT.y, INT.z - 0.6) : dentro.puertaFuera) },
+    { id: 'jugar', titulo: 'Juega con tus juguetes en tu habitación', total: 1, cuenta: 0,
+      objetivo: () => (estaDentro(ninoE.pos) ? new V3(INT.x + 5.0, INT.y, INT.z + 3.0) : dentro.puertaFuera) },
+    { id: 'dormir', titulo: 'Échate a dormir en tu cama', total: 1, cuenta: 0,
+      objetivo: () => (estaDentro(ninoE.pos) ? new V3(INT.x + 6.0, INT.y, INT.z - 4.6) : dentro.puertaFuera) },
   ];
   const misionPor = (id) => MISIONES_NINO.find((m) => m.id === id);
   const hechaNino = (id) => { const m = misionPor(id); return m && m.cuenta >= m.total; };
@@ -3162,6 +3233,8 @@
   // Hacia dónde va Drako solo cuando juegas con Manuel
   function objetivoPerroIA() {
     const E = ninoE;
+    // Si uno está dentro de casa y el otro fuera, Drako espera
+    if (estaDentro(E.pos) !== estaDentro(estado.pos)) return { p: estado.pos, parar: 1 };
     if (balon.estado === 'perro') return { p: E.pos, parar: 1.0 };
     const d = distXZ(estado.pos, E.pos);
     if (drakoIA.llamado > 0) {
@@ -3529,7 +3602,7 @@
   function actualizarCasa(dt) {
     const E = ninoE;
     const quien = jugador === 'nino' ? E.pos : estado.pos;
-    const enCasa = fueraDe(quien.x, -quien.z, CASA) < 4;
+    const enCasa = fueraDe(quien.x, -quien.z, CASA) < 4 || estaDentro(quien);
     if (!estado.descansando && E.modo !== 'descansar') musica.proximo = enCasa ? 'casa' : 'playa';
     drakoIA.llamado = Math.max(0, drakoIA.llamado - dt);
     if (E.modo === 'descansar') {
@@ -3578,6 +3651,16 @@
       g.rotation.set(1.45, E.rumbo, 0, 'YXZ');
       return;
     }
+    if (E.modo === 'atraccion' && E.atr) {
+      const a = E.atr;
+      g.rotation.set(a.rx || 0, a.ry, a.rz || 0, 'YXZ');
+      if (a.sentado) {
+        // La cadera, justo encima del asiento (girando alrededor de ella en el columpio)
+        vCad.set(0, alturaCadera(), 0).applyEuler(g.rotation);
+        g.position.set(a.pos.x - vCad.x, (a.asientoY ?? a.pos.y) + 0.05 - vCad.y, a.pos.z - vCad.z);
+      } else g.position.copy(a.pos);
+      return;
+    }
     if (E.modo === 'descansar') {
       g.position.set(casa.banco.x, Y1 + 0.53 - (nino.alturaCadera || 0.62), casa.banco.z);
       g.rotation.set(0, E.rumbo, 0, 'YXZ');
@@ -3599,13 +3682,21 @@
       rotarMundo(H.RightUpLeg, ejeLateral, 0.3 * Math.sin(a * 2.5));
       rotarMundo(H.LeftUpLeg, ejeLateral, -0.3 * Math.sin(a * 2.5));
       rotarMundo(H.Head, ejeLateral, -0.55);  // la cabeza mira hacia delante
-    } else if (E.modo === 'descansar') {
+    } else if (E.modo === 'descansar' || (E.modo === 'atraccion' && E.atr && E.atr.sentado)) {
       // Sentado: muslos hacia delante sobre el banco y las piernas colgando
       rotarMundo(H.RightUpLeg, ejeLateral, -1.45);
       rotarMundo(H.LeftUpLeg, ejeLateral, -1.45);
       rotarMundo(H.RightLeg, ejeLateral, 1.35);
       rotarMundo(H.LeftLeg, ejeLateral, 1.35);
       rotarMundo(H.Spine, ejeLateral, 0.12 + Math.sin(reloj.elapsedTime * 1.3) * 0.02);  // respira despacito
+    } else if (E.modo === 'atraccion' && E.atr && E.atr.tipo === 'dormir') {
+      // Dormido: brazos pegados al cuerpo y la cabeza en la almohada
+      rotarMundo(H.Spine, ejeLateral, Math.sin(reloj.elapsedTime * 1.1) * 0.03);
+    } else if (E.modo === 'atraccion' && E.atr && E.atr.tipo === 'escalar') {
+      // Trepando: brazos arriba alternados
+      const f = Math.sin(E.atr.t * 6);
+      rotarMundo(H.RightArm, ejeLateral, -2.4 + f * 0.4);
+      rotarMundo(H.LeftArm, ejeLateral, -2.4 - f * 0.4);
     } else if (E.modo === 'volando') {
       // En el aire: piernas recogidas
       rotarMundo(H.RightUpLeg, ejeLateral, -1.0);
@@ -3827,6 +3918,1109 @@
     }
   }
 
+  // =====================================================================
+  // ---------- Atracciones: Manuel se sube, se sienta o se tumba ----------
+  // =====================================================================
+  // Cada punto de interacción tiene una posición, un radio y lo que se hace al pulsar el botón
+  const puntosAccion = [];
+  function puntoCerca() {
+    const E = ninoE;
+    let mejor = null, dMejor = Infinity;
+    for (const pa of puntosAccion) {
+      if (pa.visible && !pa.visible()) continue;
+      const d = distXZ(E.pos, pa.pos);
+      if (d < pa.radio && Math.abs(E.pos.y - pa.pos.y) < (pa.alto || 1.2) && d < dMejor) { mejor = pa; dMejor = d; }
+    }
+    return mejor;
+  }
+  function alturaCadera() {
+    if (!nino.alturaCadera) {
+      nino.huesos.Hips.getWorldPosition(vCad);
+      nino.alturaCadera = vCad.y - nino.grupo.position.y;
+    }
+    return nino.alturaCadera;
+  }
+  // Empieza una atracción: a = { tipo, pos, ry, rx, sentado, tumbado, salida, texto, anim, actualizar(dt, a), alSalir() }
+  function empezarAtraccion(a) {
+    const E = ninoE;
+    alturaCadera();
+    if (balon.estado === 'mano') soltarBalon(new V3(0, 0.5, 0));
+    E.modo = 'atraccion';
+    E.atr = { t: 0, rx: 0, rz: 0, ...a };
+    E.vel = 0;
+    E.vy = 0;
+    E.nadando = false;
+    animarNino(a.anim || 'idle', false, 0.2);
+  }
+  function terminarAtraccion() {
+    const E = ninoE;
+    if (E.modo !== 'atraccion') return;
+    const a = E.atr;
+    E.modo = 'libre';
+    if (a.salida) E.pos.copy(a.salida);
+    E.enSuelo = false;
+    E.vy = 0;
+    if (a.alSalir) a.alSalir();
+    E.atr = null;
+    animarNino('idle');
+  }
+  // Altura del grupo para que la cadera quede sobre un asiento a la altura y
+  const sobreAsiento = (y) => y + 0.05 - alturaCadera();
+
+  function actualizarAtraccion(dt) {
+    const E = ninoE, a = E.atr;
+    a.t += dt;
+    if (a.actualizar) a.actualizar(dt, a);
+    E.pos.copy(a.pos);
+    E.rumbo = a.ry;
+    const mueve = jugador === 'nino' && Math.hypot(joy.x, joy.y) > 0.4 ||
+      ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].some((k) => teclas.has(k));
+    if (mueve && a.t > 0.6) terminarAtraccion();
+  }
+
+  // =====================================================================
+  // ---------- Parque de bolas gigante ----------
+  // =====================================================================
+  const PARQUE_BOLAS = [68, 100, 44, 76];
+  const Y2 = 6.5;
+  const bolas = { probadas: new Set(), pelotas: null, datos: [], atracciones: [], camas: [], sacos: [], tiovivo: null, columpios: [], balancin: null, canon: null, puente: null, disparos: [] };
+  const COLORES_BOLAS = ['#ff5a5f', '#ffd42a', '#2aa7b8', '#7cd35a', '#b99be6', '#ff9f43'];
+  const TOTAL_ATRACCIONES = 11;
+  function probar(id, nombre) {
+    if (bolas.probadas.has(id)) return;
+    bolas.probadas.add(id);
+    avisar(`${nombre} · ${bolas.probadas.size} de ${TOTAL_ATRACCIONES} atracciones`, 1800);
+    sumarNino('bolas');
+  }
+  const matBlando = (c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.7 });
+
+  function construirParqueBolas() {
+    const [x0, x1, z0, z1] = [68, 100, -76, -44];
+    // Valla de colores con la entrada al sur
+    const colores = COLORES_BOLAS.map(matBlando);
+    const tramosValla = [[x0, z0, x1, z0], [x0, z0, x0, z1], [x1, z0, x1, z1], [x0, z1, 81.5, z1], [86.5, z1, x1, z1]];
+    tramosValla.forEach(([ax, az, bx, bz], i) => {
+      const largo = Math.hypot(bx - ax, bz - az), n = Math.floor(largo / 0.9);
+      for (let k = 0; k <= n; k++) {
+        const t = n ? k / n : 0;
+        const poste = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 1.2, 8), colores[(k + i) % colores.length]);
+        poste.position.set(ax + (bx - ax) * t, Y2 + 0.6, az + (bz - az) * t);
+        scene.add(poste);
+      }
+      caja(Math.max(Math.abs(bx - ax), 0.2), 0.12, Math.max(Math.abs(bz - az), 0.2), colores[i % colores.length], (ax + bx) / 2, Y2 + 1.1, (az + bz) / 2);
+    });
+    // Arco de entrada con cartel
+    [81.3, 86.7].forEach((x, i) => {
+      const col = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 3.6, 16), colores[i + 1]);
+      col.position.set(x, Y2 + 1.8, z1);
+      scene.add(col);
+      colisiones.push({ x, z: z1, r: 0.4 });
+    });
+    const letrero = cartel('PARQUE DE BOLAS', 6.2, 1.1);
+    letrero.position.set(84, Y2 + 3.6, z1 + 0.1);
+    scene.add(letrero);
+
+    // 1) Piscina de bolas gigante (x 70..84, z -74..-62), con un murete blando
+    const pozo = { x0: 70, x1: 84, z0: -74, z1: -62 };
+    bolas.pozo = pozo;
+    // Murete blando alrededor, con un hueco para entrar andando por el sur (x 76..78); también se puede saltar
+    [[pozo.x0 - 0.25, pozo.x1 + 0.25, pozo.z0], [pozo.x0 - 0.25, 76, pozo.z1], [78, pozo.x1 + 0.25, pozo.z1]].forEach(([a, b, z], i) => {
+      caja(b - a, 0.55, 0.25, colores[i], (a + b) / 2, Y2, z).userData.caja.alto = 0.35;
+    });
+    [pozo.x0, pozo.x1].forEach((x, i) => { caja(0.25, 0.55, pozo.z1 - pozo.z0, colores[i + 2], x, Y2, (pozo.z0 + pozo.z1) / 2).userData.caja.alto = 0.35; });
+    const N = 2600;
+    const pelotas = new THREE.InstancedMesh(new THREE.SphereGeometry(0.14, 10, 8), new THREE.MeshStandardMaterial({ roughness: 0.35 }), N);
+    const c = new THREE.Color();
+    for (let i = 0; i < N; i++) {
+      const b = { x: pozo.x0 + 0.2 + azar() * (pozo.x1 - pozo.x0 - 0.4), z: pozo.z0 + 0.2 + azar() * (pozo.z1 - pozo.z0 - 0.4), y: Y2 + 0.14 + azar() * 0.62, dx: 0, dz: 0, dy: 0 };
+      bolas.datos.push(b);
+      pelotas.setColorAt(i, c.set(COLORES_BOLAS[i % COLORES_BOLAS.length]).convertSRGBToLinear());
+    }
+    pelotas.instanceColor.needsUpdate = true;
+    pelotas.castShadow = false;
+    pelotas.frustumCulled = false;
+    scene.add(pelotas);
+    bolas.pelotas = pelotas;
+    bolas.atracciones.push({ id: 'pozo', nombre: 'Piscina de bolas', pos: new V3(77, Y2, -63) });
+
+    // 2-4) Torre A con muro de escalada, tobogán de tubo a las bolas y puente colgante a la torre B
+    const tA = new V3(88, Y2, -70), tB = new V3(96, Y2, -70), altoT = 4;
+    [tA, tB].forEach((t, i) => {
+      caja(3, altoT, 3, colores[i + 3], t.x, Y2, t.z).userData.caja.techo = Y2 + altoT - 0.2;
+      const tejadito = new THREE.Mesh(new THREE.ConeGeometry(2.3, 1.4, 4), colores[i]);
+      tejadito.rotation.y = Math.PI / 4;
+      tejadito.position.set(t.x, Y2 + altoT + 2.4, t.z);
+      scene.add(tejadito);
+      [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) => {
+        const palo = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 1.7, 8), matBlanco);
+        palo.position.set(t.x + sx * 1.35, Y2 + altoT + 0.85, t.z + sz * 1.35);
+        scene.add(palo);
+      });
+      plataformas.push({ x0: t.x - 1.5, x1: t.x + 1.5, z0: t.z - 1.5, z1: t.z + 1.5, y: () => Y2 + altoT });
+    });
+    // Muro de escalada (cara sur de la torre A) con presas de colores
+    const muro = new THREE.Mesh(new THREE.BoxGeometry(2.6, altoT, 0.15), matBlando('#8a6bb8'));
+    muro.position.set(tA.x, Y2 + altoT / 2, tA.z + 1.58);
+    scene.add(muro);
+    for (let k = 0; k < 18; k++) {
+      const presa = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 6), colores[k % colores.length]);
+      presa.position.set(tA.x - 1.1 + azar() * 2.2, Y2 + 0.3 + azar() * (altoT - 0.5), tA.z + 1.7);
+      scene.add(presa);
+    }
+    bolas.atracciones.push({ id: 'escalada', nombre: 'Muro de escalada', pos: new V3(tA.x, Y2, tA.z + 2.3) });
+    puntosAccion.push({ pos: new V3(tA.x, Y2, tA.z + 2.1), radio: 1.2, texto: 'Escalar', hacer: () => {
+      empezarAtraccion({ tipo: 'escalar', pos: new V3(tA.x, Y2, tA.z + 1.95), ry: Math.PI, anim: 'walk',
+        actualizar: (dt, a) => {
+          a.pos.y = Math.min(Y2 + altoT, Y2 + a.t * 1.3);
+          if (a.pos.y >= Y2 + altoT - 0.01) {
+            a.salida = new V3(tA.x, Y2 + altoT + 0.05, tA.z + 0.6);
+            probar('escalada', 'Muro de escalada');
+            terminarAtraccion();
+            ninoDice('¡Estoy arriba!', 1.6);
+          }
+        } });
+    } });
+    // Tobogán de tubo desde lo alto de la torre A hasta la piscina de bolas
+    const tubo = crearTobogan([[tA.x - 1.1, Y2 + altoT + 0.15, tA.z], [tA.x - 2.6, Y2 + altoT - 0.6, tA.z + 0.6], [tA.x - 4.2, Y2 + 2.6, tA.z - 0.8],
+      [tA.x - 5.4, Y2 + 1.8, tA.z + 0.8], [tA.x - 7.2, Y2 + 1.2, tA.z + 1.6]], 0.6, '#ff5a5f', '#ffd42a');
+    parque.toboganes.push({ id: 'bolas_tubo', nombre: 'tobogán de tubo', ...tubo, entrada: new V3(tA.x - 0.6, Y2 + altoT, tA.z), sinFundido: true,
+      alTerminar: () => probar('tubo', 'Tobogán de tubo') });
+    bolas.atracciones.push({ id: 'tubo', nombre: 'Tobogán de tubo', pos: new V3(tA.x - 0.6, Y2 + altoT, tA.z) });
+    // Puente colgante entre las dos torres, que se balancea
+    const tablasP = [];
+    for (let x = tA.x + 1.5; x < tB.x - 1.5; x += 0.45) {
+      const tabla = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.06, 1.1), matMadera);
+      tabla.position.set(x + 0.2, Y2 + altoT, tA.z);
+      scene.add(tabla);
+      tablasP.push(tabla);
+    }
+    bolas.puente = { tablas: tablasP, x0: tA.x + 1.5, x1: tB.x - 1.5 };
+    const combaPuente = (x) => {
+      const t = (x - bolas.puente.x0) / (bolas.puente.x1 - bolas.puente.x0);
+      return Y2 + altoT - Math.sin(Math.PI * Math.min(Math.max(t, 0), 1)) * (0.35 + 0.08 * Math.sin(reloj.elapsedTime * 3));
+    };
+    bolas.puente.comba = combaPuente;
+    plataformas.push({ x0: tA.x + 1.5, x1: tB.x - 1.5, z0: tA.z - 0.55, z1: tA.z + 0.55, y: (x) => combaPuente(x) });
+    [-0.6, 0.6].forEach((dz) => {
+      const cuerda = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, tB.x - tA.x - 3, 6), matBlanco);
+      cuerda.rotation.z = Math.PI / 2;
+      cuerda.position.set((tA.x + tB.x) / 2, Y2 + altoT + 0.8, tA.z + dz);
+      scene.add(cuerda);
+      cajas.push({ x0: tA.x + 1.5, x1: tB.x - 1.5, z0: tA.z + dz - 0.04, z1: tA.z + dz + 0.04, activa: true, techo: Y2 + altoT + 1.2, piso: Y2 + altoT - 1.2 });
+    });
+    bolas.atracciones.push({ id: 'puente', nombre: 'Puente colgante', pos: new V3((tA.x + tB.x) / 2, Y2 + altoT, tA.z) });
+    // Rampa-escalera para subir a la torre B desde el suelo
+    const escalones = 10;
+    for (let k = 0; k < escalones; k++) {
+      caja(1.4, (k + 1) * altoT / escalones, 0.45, colores[k % colores.length], tB.x, Y2, tB.z + 1.5 + 0.45 * (escalones - k) - 0.2, false);
+    }
+    plataformas.push({ x0: tB.x - 0.7, x1: tB.x + 0.7, z0: tB.z + 1.5, z1: tB.z + 1.5 + 0.45 * escalones,
+      y: (x, z) => Y2 + altoT * (1 - (z - tB.z - 1.5) / (0.45 * escalones)) });
+    // 5) Tobogán ondulado desde la torre B hacia el oeste
+    const ondas = crearTobogan([[tB.x + 1.1, Y2 + altoT + 0.15, tB.z], [tB.x + 2.2, Y2 + 3.2, tB.z], [tB.x + 2.8, Y2 + 2.6, tB.z + 1.6],
+      [tB.x + 2.8, Y2 + 2.2, tB.z + 3.4], [tB.x + 2.8, Y2 + 1.2, tB.z + 5.2], [tB.x + 2.8, Y2 + 1.0, tB.z + 7.0], [tB.x + 2.8, Y2 + 0.35, tB.z + 8.8]],
+    0.7, '#7cd35a', '#fffbe6');
+    parque.toboganes.push({ id: 'bolas_ondas', nombre: 'tobogán ondulado', ...ondas, entrada: new V3(tB.x + 0.6, Y2 + altoT, tB.z), sinFundido: true,
+      alTerminar: () => probar('ondas', 'Tobogán ondulado') });
+    bolas.atracciones.push({ id: 'ondas', nombre: 'Tobogán ondulado', pos: new V3(tB.x + 0.6, Y2 + altoT, tB.z) });
+
+    // 6) Camas elásticas
+    [[73.5, -52], [77, -52], [80.5, -52]].forEach(([x, z], i) => {
+      const marco = new THREE.Mesh(new THREE.TorusGeometry(1.2, 0.12, 8, 28), colores[i]);
+      marco.rotation.x = Math.PI / 2;
+      marco.position.set(x, Y2 + 0.45, z);
+      const lona = new THREE.Mesh(new THREE.CircleGeometry(1.15, 28), new THREE.MeshStandardMaterial({ color: '#23313a', roughness: 0.6 }));
+      lona.rotation.x = -Math.PI / 2;
+      lona.position.set(x, Y2 + 0.42, z);
+      scene.add(marco, lona);
+      const cama = { x, z, r: 1.15, y: Y2 + 0.42, lona, hundido: 0 };
+      bolas.camas.push(cama);
+      plataformas.push({ x0: x - 1.15, x1: x + 1.15, z0: z - 1.15, z1: z + 1.15, y: (px, pz) => Math.hypot(px - x, pz - z) < 1.15 ? cama.y - cama.hundido : -99 });
+    });
+    bolas.atracciones.push({ id: 'cama', nombre: 'Camas elásticas', pos: new V3(77, Y2, -52) });
+
+    // 7) Columpios
+    const marcoC = new THREE.Mesh(new THREE.BoxGeometry(4.4, 0.15, 0.15), colores[4]);
+    marcoC.position.set(90, Y2 + 3, -52);
+    scene.add(marcoC);
+    [87.9, 92.1].forEach((x) => {
+      [-0.9, 0.9].forEach((dz) => {
+        const pata = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 3.2, 8), colores[4]);
+        pata.position.set(x, Y2 + 1.5, -52 + dz * 0.6);
+        pata.rotation.x = dz * 0.3;
+        scene.add(pata);
+      });
+      colisiones.push({ x, z: -52, r: 0.3 });
+    });
+    [89, 91].forEach((x, i) => {
+      const piv = new THREE.Group();
+      piv.position.set(x, Y2 + 3, -52);
+      [-0.25, 0.25].forEach((dx) => {
+        const cadena = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 2.4, 6), matBlanco);
+        cadena.position.set(dx, -1.2, 0);
+        piv.add(cadena);
+      });
+      const asiento = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.06, 0.35), colores[i]);
+      asiento.position.set(0, -2.4, 0);
+      piv.add(asiento);
+      scene.add(piv);
+      bolas.columpios.push(piv);
+      puntosAccion.push({ pos: new V3(x, Y2, -52), radio: 0.9, texto: 'Columpiarse', hacer: () => {
+        empezarAtraccion({ tipo: 'columpio', pos: new V3(x, Y2, -52), ry: 0, sentado: true, salida: new V3(x, Y2, -50.6),
+          actualizar: (dt, a) => {
+            const ang = Math.sin(a.t * 2.2) * Math.min(0.7, a.t * 0.25);
+            piv.rotation.x = ang;
+            a.rx = ang;
+            // posición del asiento en el arco del columpio
+            a.pos.set(x, Y2 + 3 - 2.4 * Math.cos(ang), -52 - 2.4 * Math.sin(ang));
+            a.asientoY = a.pos.y;
+            if (a.t > 2) probar('columpio', 'Columpios');
+          },
+          alSalir: () => { piv.rotation.x = 0; } });
+      } });
+    });
+    bolas.atracciones.push({ id: 'columpio', nombre: 'Columpios', pos: new V3(89, Y2, -51) });
+
+    // 8) Tiovivo
+    const tio = new THREE.Group();
+    tio.position.set(96, Y2, -56);
+    const disco = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 2.6, 0.25, 32), colores[1]);
+    disco.position.y = 0.12;
+    const eje = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 3, 12), matBlanco);
+    eje.position.y = 1.5;
+    const techo = new THREE.Mesh(new THREE.ConeGeometry(2.9, 1, 16), colores[0]);
+    techo.position.y = 3.3;
+    tio.add(disco, eje, techo);
+    const caballitos = [];
+    for (let k = 0; k < 4; k++) {
+      const a = k / 4 * Math.PI * 2;
+      const cab = new THREE.Group();
+      const cuerpo = new THREE.Mesh(new THREE.SphereGeometry(0.35, 12, 10), colores[(k + 2) % colores.length]);
+      cuerpo.scale.set(0.6, 0.6, 1.3);
+      const cabeza = new THREE.Mesh(new THREE.SphereGeometry(0.2, 10, 8), cuerpo.material);
+      cabeza.position.set(0, 0.3, 0.45);
+      const barra = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 2.6, 6), matBlanco);
+      barra.position.y = 0.6;
+      cab.add(cuerpo, cabeza, barra);
+      cab.position.set(Math.cos(a) * 1.8, 0.9, Math.sin(a) * 1.8);
+      cab.rotation.y = -a;
+      tio.add(cab);
+      caballitos.push(cab);
+    }
+    scene.add(tio);
+    colisiones.push({ x: 96, z: -56, r: 2.6 });
+    bolas.tiovivo = { grupo: tio, caballitos, giro: 0 };
+    puntosAccion.push({ pos: new V3(96, Y2, -53), radio: 1.4, texto: 'Montar', hacer: () => {
+      empezarAtraccion({ tipo: 'tiovivo', pos: new V3(), ry: 0, sentado: true, salida: new V3(96, Y2, -52.8),
+        actualizar: (dt, a) => {
+          const ang = bolas.tiovivo.giro;
+          const x = 96 + Math.cos(ang) * 1.8, z = -56 + Math.sin(ang) * 1.8;
+          a.pos.set(x, Y2, z);
+          a.asientoY = Y2 + 1.15 + Math.sin(ang * 3) * 0.12;
+          a.ry = -ang + Math.PI;  // mirando en el sentido del giro
+          if (a.t > 3) probar('tiovivo', 'Tiovivo');
+        } });
+    } });
+    bolas.atracciones.push({ id: 'tiovivo', nombre: 'Tiovivo', pos: new V3(96, Y2, -53) });
+
+    // 9) Balancín (Manuel en un lado y Drako en el otro)
+    const bal = new THREE.Group();
+    bal.position.set(72.5, Y2 + 0.5, -47.5);
+    const viga = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.12, 0.35), colores[2]);
+    bal.add(viga);
+    scene.add(bal);
+    const apoyo = new THREE.Mesh(new THREE.ConeGeometry(0.35, 0.5, 4), colores[5]);
+    apoyo.position.set(72.5, Y2 + 0.25, -47.5);
+    scene.add(apoyo);
+    bolas.balancin = bal;
+    puntosAccion.push({ pos: new V3(70.8, Y2, -47.5), radio: 1.2, texto: 'Balancín', hacer: () => {
+      drakoIA.enBalancin = true;
+      empezarAtraccion({ tipo: 'balancin', pos: new V3(70.7, Y2, -47.5), ry: Math.PI / 2, sentado: true, salida: new V3(70.7, Y2, -46.2),
+        actualizar: (dt, a) => {
+          const ang = Math.sin(a.t * 2) * 0.28;
+          bal.rotation.z = ang;
+          a.asientoY = Y2 + 0.56 - Math.sin(ang) * 1.8;
+          estado.pos.set(74.3, Y2 + 0.5 + Math.sin(ang) * 1.8 - 0.35, -47.5);
+          estado.rumbo = -Math.PI / 2;
+          if (a.t > 3) probar('balancin', 'Balancín');
+        },
+        alSalir: () => { bal.rotation.z = 0; drakoIA.enBalancin = false; estado.pos.set(74.3, Y2, -46.3); } });
+    } });
+    bolas.atracciones.push({ id: 'balancin', nombre: 'Balancín', pos: new V3(70.8, Y2, -47.5) });
+
+    // 10) Cañón de bolas (dispara hacia la piscina de bolas)
+    const canon = new THREE.Group();
+    const tuboC = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 1.6, 16), colores[0]);
+    tuboC.rotation.x = -1.0;
+    tuboC.position.y = 0.9;
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.7, 0.5, 16), colores[3]);
+    base.position.y = 0.25;
+    canon.add(tuboC, base);
+    canon.position.set(84, Y2, -58);
+    canon.rotation.y = Math.PI * 1.2;
+    scene.add(canon);
+    colisiones.push({ x: 84, z: -58, r: 0.7 });
+    bolas.canon = canon;
+    puntosAccion.push({ pos: new V3(84.8, Y2, -57), radio: 1.3, texto: 'Disparar', hacer: () => {
+      const dir = new V3(Math.sin(canon.rotation.y), 0, Math.cos(canon.rotation.y));
+      for (let k = 0; k < 10; k++) {
+        const m = new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 8), matBlando(COLORES_BOLAS[k % COLORES_BOLAS.length]));
+        m.position.set(84 + dir.x * 0.8, Y2 + 1.5, -58 + dir.z * 0.8);
+        scene.add(m);
+        bolas.disparos.push({ m, v: new V3(dir.x * (6 + azar() * 2) + (azar() - 0.5), 5 + azar() * 2, dir.z * (6 + azar() * 2) + (azar() - 0.5)), t: 0 });
+      }
+      ninoDice('¡Pum!', 1);
+      probar('canon', 'Cañón de bolas');
+    } });
+    bolas.atracciones.push({ id: 'canon', nombre: 'Cañón de bolas', pos: new V3(84.8, Y2, -57) });
+
+    // 11) Sacos blandos colgados que se balancean al empujarlos
+    const barraS = new THREE.Mesh(new THREE.BoxGeometry(6, 0.15, 0.15), colores[5]);
+    barraS.position.set(92, Y2 + 2.8, -46.5);
+    scene.add(barraS);
+    [89.5, 94.5].forEach((x) => {
+      const pata = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 2.8, 8), colores[5]);
+      pata.position.set(x, Y2 + 1.4, -46.5);
+      scene.add(pata);
+    });
+    [90.5, 92, 93.5].forEach((x, i) => {
+      const piv = new THREE.Group();
+      piv.position.set(x, Y2 + 2.8, -46.5);
+      const saco = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 1.3, 14), colores[i]);
+      saco.position.y = -1.5;
+      piv.add(saco);
+      scene.add(piv);
+      bolas.sacos.push({ piv, x, z: -46.5, vel: 0, ang: 0 });
+    });
+    bolas.atracciones.push({ id: 'sacos', nombre: 'Sacos blandos', pos: new V3(92, Y2, -47.8) });
+  }
+
+  // ¿Hay una cama elástica debajo?
+  function camaElasticaEn(x, z, y) {
+    return bolas.camas.find((c) => Math.hypot(x - c.x, z - c.z) < c.r && Math.abs(y - c.y) < 0.4) || null;
+  }
+
+  function actualizarParqueBolas(dt) {
+    if (!bolas.pelotas) return;
+    const E = ninoE, tiempo = reloj.elapsedTime;
+    // Las bolas se apartan al paso de Manuel y de Drako
+    const pozo = bolas.pozo;
+    const cerca = [E.pos, estado.pos].filter((p) => p.x > pozo.x0 - 1 && p.x < pozo.x1 + 1 && p.z > pozo.z0 - 1 && p.z < pozo.z1 + 1);
+    // Sin nadie dentro, en un par de segundos las bolas se quedan quietas y no hace falta moverlas
+    bolas.reposo = cerca.length ? 0 : (bolas.reposo || 0) + dt;
+    for (let i = 0; i < bolas.datos.length && bolas.reposo < 2.5; i++) {
+      const b = bolas.datos[i];
+      let empujeX = 0, empujeZ = 0, sube = 0;
+      for (const p of cerca) {
+        const dx = b.x + b.dx - p.x, dz = b.z + b.dz - p.z, d = Math.hypot(dx, dz);
+        if (d < 0.75 && d > 0.001) {
+          const f = (0.75 - d) / 0.75;
+          empujeX += dx / d * f * 0.5;
+          empujeZ += dz / d * f * 0.5;
+          sube += f * 0.25;
+        }
+      }
+      b.dx += (empujeX - b.dx * 0.8) * Math.min(1, dt * 8);
+      b.dz += (empujeZ - b.dz * 0.8) * Math.min(1, dt * 8);
+      b.dy += (sube - b.dy) * Math.min(1, dt * 6);
+      tmpM.makeTranslation(b.x + b.dx, b.y + b.dy, b.z + b.dz);
+      bolas.pelotas.setMatrixAt(i, tmpM);
+    }
+    if (bolas.reposo < 2.5) bolas.pelotas.instanceMatrix.needsUpdate = true;
+    // El tiovivo gira siempre
+    bolas.tiovivo.giro += dt * 0.7;
+    bolas.tiovivo.grupo.rotation.y = -bolas.tiovivo.giro;
+    bolas.tiovivo.caballitos.forEach((c, k) => { c.position.y = 0.9 + Math.sin(bolas.tiovivo.giro * 3 + k) * 0.12; });
+    // Puente
+    bolas.puente.tablas.forEach((t) => { t.position.y = bolas.puente.comba(t.position.x); });
+    // Camas elásticas: la lona se hunde un poco al botar
+    bolas.camas.forEach((c) => {
+      c.hundido = damp(c.hundido, 0, 6, dt);
+      c.lona.position.y = c.y - c.hundido;
+    });
+    // Sacos: se balancean si Manuel o Drako los empujan
+    bolas.sacos.forEach((s) => {
+      for (const p of [E.pos, estado.pos]) {
+        if (Math.hypot(p.x - (s.x + Math.sin(s.ang) * 1.5 * 0), p.z - s.z) < 0.7 && Math.abs(p.y - Y2) < 1) {
+          s.vel += (p === E.pos ? Math.cos(E.rumbo) : Math.cos(estado.rumbo)) * dt * 6;
+          if (p === E.pos && jugador === 'nino') probar('sacos', 'Sacos blandos');
+        }
+      }
+      s.vel += -s.ang * 9 * dt;
+      s.vel *= Math.exp(-0.8 * dt);
+      s.ang += s.vel * dt;
+      s.piv.rotation.x = s.ang;
+    });
+    // Bolas disparadas por el cañón
+    bolas.disparos = bolas.disparos.filter((d) => {
+      d.t += dt;
+      d.v.y -= 9.8 * dt;
+      d.m.position.addScaledVector(d.v, dt);
+      const suelo0 = Y2 + 0.5;
+      if (d.m.position.y < suelo0) { d.m.position.y = suelo0; d.v.multiplyScalar(0.3); d.v.y = Math.abs(d.v.y); }
+      if (d.t > 4) { scene.remove(d.m); return false; }
+      return true;
+    });
+    if (jugador !== 'nino' || E.modo !== 'libre') return;
+    // Probar atracciones por estar en ellas
+    if (E.pos.x > pozo.x0 && E.pos.x < pozo.x1 && E.pos.z > pozo.z0 && E.pos.z < pozo.z1) probar('pozo', 'Piscina de bolas');
+    if (E.pos.x > bolas.puente.x0 + 1 && E.pos.x < bolas.puente.x1 - 1 && Math.abs(E.pos.z + 70) < 0.6 && E.pos.y > Y2 + 3) probar('puente', 'Puente colgante');
+  }
+
+  // =====================================================================
+  // ---------- Dentro de la casa ----------
+  // =====================================================================
+  // El interior está en otro sitio del mapa (lejos, sobre el mar y tapado por la niebla): al cruzar la puerta, Manuel y Drako "viajan" allí
+  const INT = new V3(0, 3, 420);
+  const dentro = { puertaFuera: new V3(45.3, Y1, -61.1), puertaDentro: new V3(INT.x, INT.y, INT.z + 5.2), tele: null, lienzoTele: null,
+    ctxTele: null, tren: null, bloques: [], papa: null, mama: null, plato: null, comida: null, noche: 0, paredes: [] };
+  const estaDentro = (p) => p.z > 300;
+
+  function texturaCocina() {
+    // Azulejo blanco con dos cenefas azules, como en la foto
+    const l = document.createElement('canvas');
+    l.width = 256;
+    l.height = 256;
+    const c = l.getContext('2d');
+    c.fillStyle = '#f6f7f8';
+    c.fillRect(0, 0, 256, 256);
+    c.strokeStyle = '#dfe3e6';
+    c.lineWidth = 2;
+    for (let i = 0; i <= 256; i += 32) {
+      c.beginPath(); c.moveTo(i, 0); c.lineTo(i, 256); c.stroke();
+      c.beginPath(); c.moveTo(0, i); c.lineTo(256, i); c.stroke();
+    }
+    [256 - 100, 256 - 190].forEach((y) => {
+      c.fillStyle = '#e9edf3';
+      c.fillRect(0, y, 256, 14);
+      c.strokeStyle = '#3b4f86';
+      c.lineWidth = 3;
+      for (let x = 0; x < 256; x += 16) {
+        c.strokeRect(x + 3, y + 3, 10, 8);
+      }
+      c.fillStyle = '#3b4f86';
+      c.fillRect(0, y, 256, 2);
+      c.fillRect(0, y + 12, 256, 2);
+    });
+    const t = new THREE.CanvasTexture(l);
+    t.wrapS = THREE.RepeatWrapping;
+    t.encoding = THREE.sRGBEncoding;
+    return t;
+  }
+  function texturaBarro() {
+    // Losas de barro en diagonal con junta oscura
+    const l = document.createElement('canvas');
+    l.width = l.height = 256;
+    const c = l.getContext('2d');
+    c.fillStyle = '#5b3a2a';
+    c.fillRect(0, 0, 256, 256);
+    c.save();
+    c.translate(128, 128);
+    c.rotate(Math.PI / 4);
+    for (let i = -6; i < 6; i++) {
+      for (let j = -6; j < 6; j++) {
+        const tono = 170 + Math.floor(Math.random() * 25);
+        c.fillStyle = `rgb(${tono + 20}, ${tono - 60}, ${tono - 105})`;
+        c.fillRect(i * 46 + 2, j * 46 + 2, 42, 42);
+      }
+    }
+    c.restore();
+    const t = new THREE.CanvasTexture(l);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.encoding = THREE.sRGBEncoding;
+    return t;
+  }
+  function texturaCamino() {
+    // Camino de mesa marinero: fondo beige con estrellas y conchas azules
+    const l = document.createElement('canvas');
+    l.width = 128;
+    l.height = 256;
+    const c = l.getContext('2d');
+    c.fillStyle = '#e6e1d6';
+    c.fillRect(0, 0, 128, 256);
+    for (let k = 0; k < 40; k++) {
+      c.fillStyle = k % 3 ? '#6f86b8' : '#9aa7b5';
+      const x = Math.random() * 128, y = Math.random() * 256, r = 4 + Math.random() * 6;
+      c.beginPath();
+      for (let p = 0; p < 10; p++) {
+        const a = p / 10 * Math.PI * 2, rr = p % 2 ? r * 0.45 : r;
+        c.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+      }
+      c.fill();
+    }
+    const t = new THREE.CanvasTexture(l);
+    t.encoding = THREE.sRGBEncoding;
+    return t;
+  }
+  function texturaMadera() {
+    const l = document.createElement('canvas');
+    l.width = l.height = 128;
+    const c = l.getContext('2d');
+    for (let i = 0; i < 8; i++) {
+      const tono = 150 + Math.floor(Math.random() * 30);
+      c.fillStyle = `rgb(${tono + 30}, ${tono}, ${tono - 45})`;
+      c.fillRect(0, i * 16, 128, 15);
+    }
+    const t = new THREE.CanvasTexture(l);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.encoding = THREE.sRGBEncoding;
+    return t;
+  }
+
+  // Persona de dibujo (papá y mamá), hecha con formas sencillas
+  function crearPersona(o) {
+    const g = new THREE.Group();
+    const piel = matBlando(o.piel), ropa = matBlando(o.camisa), pantalon = matBlando(o.pantalon);
+    const altoPierna = o.alto * 0.45, altoTorso = o.alto * 0.32;
+    [-1, 1].forEach((l) => {
+      const pierna = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.08, altoPierna, 10), pantalon);
+      pierna.position.set(l * 0.11, altoPierna / 2, 0);
+      const zapato = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.08, 0.26), matBlando('#2b2b2b'));
+      zapato.position.set(l * 0.11, 0.04, 0.05);
+      g.add(pierna, zapato);
+    });
+    const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.18, altoTorso, 14), ropa);
+    torso.position.y = altoPierna + altoTorso / 2;
+    g.add(torso);
+    if (o.chaqueta) {
+      [-1, 1].forEach((l) => {
+        const faldon = new THREE.Mesh(new THREE.BoxGeometry(0.2, altoTorso * 1.02, 0.43), matBlando(o.chaqueta));
+        faldon.position.set(l * 0.13, altoPierna + altoTorso / 2, -0.02);
+        g.add(faldon);
+      });
+    }
+    const brazos = [];
+    [-1, 1].forEach((l) => {
+      const hombro = new THREE.Group();
+      hombro.position.set(l * 0.27, altoPierna + altoTorso - 0.05, 0);
+      const brazo = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.05, altoTorso * 1.1, 8), o.chaqueta ? matBlando(o.chaqueta) : ropa);
+      brazo.position.y = -altoTorso * 0.55;
+      const mano = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 6), piel);
+      mano.position.y = -altoTorso * 1.12;
+      hombro.add(brazo, mano);
+      hombro.rotation.z = l * 0.12;
+      g.add(hombro);
+      brazos.push(hombro);
+    });
+    const cabeza = new THREE.Group();
+    cabeza.position.y = altoPierna + altoTorso + 0.2;
+    const cara = new THREE.Mesh(new THREE.SphereGeometry(0.17, 18, 14), piel);
+    cara.scale.set(0.95, 1.12, 0.95);
+    cabeza.add(cara);
+    [-1, 1].forEach((l) => {
+      const ojo = new THREE.Mesh(new THREE.SphereGeometry(0.022, 8, 6), matBlando('#2a1a12'));
+      ojo.position.set(l * 0.06, 0.03, 0.155);
+      cabeza.add(ojo);
+    });
+    const sonrisa = new THREE.Mesh(new THREE.TorusGeometry(0.05, 0.012, 6, 12, Math.PI), matBlando('#b04a4a'));
+    sonrisa.rotation.z = Math.PI;
+    sonrisa.position.set(0, -0.06, 0.155);
+    cabeza.add(sonrisa);
+    o.pelo(cabeza);
+    g.add(cabeza);
+    g.traverse((m) => { if (m.isMesh) m.castShadow = true; });
+    return { grupo: g, brazos, cabeza };
+  }
+  function peloPapa(cabeza) {
+    const oscuro = matBlando('#1e1612');
+    // Pelo rizado: muchas bolitas encima de la cabeza
+    for (let k = 0; k < 40; k++) {
+      const a = azar() * Math.PI * 2, b = azar() * 1.1;
+      const bola = new THREE.Mesh(new THREE.SphereGeometry(0.05 + azar() * 0.02, 8, 6), oscuro);
+      bola.position.set(Math.cos(a) * Math.sin(b) * 0.17, 0.06 + Math.cos(b) * 0.16, Math.sin(a) * Math.sin(b) * 0.17 - 0.02);
+      if (bola.position.z > 0.1 && bola.position.y < 0.14) continue;  // que no tape la cara
+      cabeza.add(bola);
+    }
+    // Barba
+    const barba = new THREE.Mesh(new THREE.SphereGeometry(0.16, 16, 10, 0, Math.PI * 2, Math.PI * 0.5, Math.PI * 0.5), oscuro);
+    barba.scale.set(1, 1.05, 1);
+    barba.position.set(0, -0.02, 0.02);
+    cabeza.add(barba);
+    const bigote = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.025, 0.03), oscuro);
+    bigote.position.set(0, -0.035, 0.165);
+    cabeza.add(bigote);
+  }
+  function peloMama(cabeza) {
+    const miel = matBlando('#b8844f');
+    const casco = new THREE.Mesh(new THREE.SphereGeometry(0.185, 18, 12, 0, Math.PI * 2, 0, Math.PI * 0.55), miel);
+    casco.position.y = 0.03;
+    cabeza.add(casco);
+    // Melena ondulada hasta los hombros
+    for (let k = 0; k < 14; k++) {
+      const a = Math.PI * 0.15 + k / 13 * Math.PI * 0.7 + Math.PI;
+      const mechon = new THREE.Mesh(new THREE.SphereGeometry(0.075, 10, 8), miel);
+      mechon.scale.set(1, 2.2, 1);
+      mechon.position.set(Math.cos(a) * 0.17, -0.1 + Math.sin(k * 1.7) * 0.02, Math.sin(a) * 0.17 * -1 - 0.02);
+      cabeza.add(mechon);
+    }
+    // Pendientes rosas de flecos
+    [-1, 1].forEach((l) => {
+      const flecos = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.14, 8), matBlando('#ff5fa2'));
+      flecos.position.set(l * 0.175, -0.12, 0.02);
+      cabeza.add(flecos);
+    });
+  }
+
+  function construirInterior() {
+    const Yi = INT.y, cx = INT.x, cz = INT.z;
+    const blanco = new THREE.MeshStandardMaterial({ color: '#f7f6f2', roughness: 0.9 });
+    const azulejo = texturaCocina();
+    // Base: jardín alrededor, para que parezca que la casa está en tierra
+    const jardin = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.MeshStandardMaterial({ color: '#5f9444', roughness: 1 }));
+    jardin.rotation.x = -Math.PI / 2;
+    jardin.position.set(cx, Yi - 0.05, cz);
+    jardin.receiveShadow = true;
+    scene.add(jardin);
+    plataformas.push({ x0: cx - 30, x1: cx + 30, z0: cz - 30, z1: cz + 30, y: () => Yi });
+    // Suelos: barro en la cocina, madera en el salón y la habitación
+    const barro = texturaBarro();
+    barro.repeat.set(3, 3);
+    const sueloCocina = new THREE.Mesh(new THREE.PlaneGeometry(5.5, 12), new THREE.MeshStandardMaterial({ map: barro, roughness: 0.8 }));
+    sueloCocina.rotation.x = -Math.PI / 2;
+    sueloCocina.position.set(cx - 5.25, Yi + 0.01, cz);
+    const madera = texturaMadera();
+    madera.repeat.set(4, 5);
+    const sueloResto = new THREE.Mesh(new THREE.PlaneGeometry(10.5, 12), new THREE.MeshStandardMaterial({ map: madera, roughness: 0.7 }));
+    sueloResto.rotation.x = -Math.PI / 2;
+    sueloResto.position.set(cx + 2.75, Yi + 0.01, cz);
+    sueloCocina.receiveShadow = sueloResto.receiveShadow = true;
+    scene.add(sueloCocina, sueloResto);
+    // Paredes (2,7 m) con puertas; en la cocina, con azulejo y cenefa azul
+    const altoP = 2.7;
+    const matCocina = new THREE.MeshStandardMaterial({ map: azulejo, roughness: 0.4 });
+    const pared = (x0, z0, x1, z1, mat = blanco) => {
+      const w = Math.max(Math.abs(x1 - x0), 0.2), d = Math.max(Math.abs(z1 - z0), 0.2);
+      // Cada pared con su material, para hacerla transparente cuando tapa a Manuel o a Drako
+      const m = caja(w, altoP, d, mat.clone(), (x0 + x1) / 2, Yi, (z0 + z1) / 2);
+      m.material.transparent = true;
+      m.userData.bbox = new THREE.Box3().setFromObject(m);
+      dentro.paredes.push(m);
+      return m;
+    };
+    // Exterior: norte, oeste, este y sur (con puerta en el centro)
+    pared(cx - 8, cz - 6, cx - 2.5, cz - 6, matCocina);
+    pared(cx - 2.5, cz - 6, cx + 8, cz - 6);
+    pared(cx - 8, cz - 6, cx - 8, cz + 6, matCocina);
+    pared(cx + 8, cz - 6, cx + 8, cz + 6);
+    pared(cx - 8, cz + 6, cx - 0.8, cz + 6, matCocina);
+    pared(cx + 0.8, cz + 6, cx + 8, cz + 6);
+    // Tabiques con hueco de paso
+    pared(cx - 2.5, cz - 6, cx - 2.5, cz - 1.1);
+    pared(cx - 2.5, cz + 1.1, cx - 2.5, cz + 6);
+    pared(cx + 3, cz - 6, cx + 3, cz - 1.1);
+    pared(cx + 3, cz + 1.1, cx + 3, cz + 6);
+    // Puerta de salida (marco)
+    const marco = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.25, 0.3), matMadera);
+    marco.position.set(cx, Yi + 2.2, cz + 6);
+    scene.add(marco);
+    puntosAccion.push({ pos: new V3(cx, Yi, cz + 5.3), radio: 1.2, texto: 'Salir', hacer: () => salirDeCasa() });
+
+    // ---------- Cocina (como la de la foto) ----------
+    const blancoMueble = new THREE.MeshStandardMaterial({ color: '#fbfbf8', roughness: 0.5 });
+    const encimera = new THREE.MeshStandardMaterial({ color: '#f2f2ee', roughness: 0.3 });
+    caja(4.6, 0.86, 0.62, blancoMueble, cx - 5.6, Yi, cz - 5.6);   // muebles bajos del fondo
+    caja(4.7, 0.05, 0.66, encimera, cx - 5.6, Yi + 0.86, cz - 5.6, false);
+    caja(0.62, 0.86, 1.8, blancoMueble, cx - 3.6, Yi, cz - 4.4);   // la "península" de la encimera
+    caja(0.66, 0.05, 1.84, encimera, cx - 3.6, Yi + 0.86, cz - 4.4, false);
+    caja(3.4, 0.75, 0.38, blancoMueble, cx - 6.0, Yi + 1.55, cz - 5.78, false);  // armarios altos
+    for (let k = 0; k < 4; k++) {
+      const puerta = new THREE.Mesh(new THREE.PlaneGeometry(0.76, 0.66), new THREE.MeshStandardMaterial({ color: '#f4f4f0', roughness: 0.5 }));
+      puerta.position.set(cx - 7.3 + k * 0.86, Yi + 1.92, cz - 5.58);
+      scene.add(puerta);
+    }
+    const fregadero = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.02, 0.4), new THREE.MeshStandardMaterial({ color: '#c9ccd0', metalness: 0.6, roughness: 0.3 }));
+    fregadero.position.set(cx - 5.4, Yi + 0.89, cz - 5.6);
+    const grifo = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.3, 8), fregadero.material);
+    grifo.position.set(cx - 5.4, Yi + 1.03, cz - 5.82);
+    const micro = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.3, 0.35), blancoMueble);
+    micro.position.set(cx - 7.3, Yi + 1.04, cz - 5.6);
+    const puertaMicro = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 0.2), new THREE.MeshStandardMaterial({ color: '#2b2f33' }));
+    puertaMicro.position.set(cx - 7.36, Yi + 1.04, cz - 5.42);
+    const horno = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 0.55), new THREE.MeshStandardMaterial({ color: '#1f2226', roughness: 0.2 }));
+    horno.position.set(cx - 4.3, Yi + 0.42, cz - 5.28);
+    scene.add(fregadero, grifo, micro, puertaMicro, horno);
+    // Nevera plateada y estantes de esquina con tazas
+    caja(0.72, 1.9, 0.7, new THREE.MeshStandardMaterial({ color: '#c8cbcf', metalness: 0.5, roughness: 0.35 }), cx - 2.95, Yi, cz - 5.55);
+    for (let k = 0; k < 3; k++) {
+      const estante = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.04, 1.1), blancoMueble);
+      estante.position.set(cx - 2.78, Yi + 0.8 + k * 0.55, cz - 2.2);
+      scene.add(estante);
+      for (let t = 0; t < 3; t++) {
+        const taza = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.04, 0.09, 10), matBlando(t % 2 ? '#dfe7f5' : '#ffffff'));
+        taza.position.set(cx - 2.78, Yi + 0.87 + k * 0.55, cz - 2.55 + t * 0.35);
+        scene.add(taza);
+      }
+    }
+    // Cocina de pie junto a la pared izquierda
+    caja(0.6, 0.85, 0.6, new THREE.MeshStandardMaterial({ color: '#d7d9dc', metalness: 0.4, roughness: 0.4 }), cx - 7.55, Yi, cz - 0.8);
+    // Mesa blanca con cristal, camino marinero y cuenco
+    const mesa = new THREE.Group();
+    const tablero = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.06, 1.7), blancoMueble);
+    tablero.position.y = 0.76;
+    const cristal = new THREE.Mesh(new THREE.BoxGeometry(1.04, 0.015, 1.74), new THREE.MeshStandardMaterial({ color: '#d9f0ee', transparent: true, opacity: 0.35, roughness: 0.05 }));
+    cristal.position.y = 0.8;
+    const camino = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 1.2), new THREE.MeshStandardMaterial({ map: texturaCamino(), roughness: 0.9 }));
+    camino.rotation.x = -Math.PI / 2;
+    camino.position.y = 0.795;
+    const cuenco = new THREE.Mesh(new THREE.SphereGeometry(0.15, 16, 10, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#dcdfe3', metalness: 0.6, roughness: 0.3, side: THREE.DoubleSide }));
+    cuenco.position.y = 0.95;
+    cuenco.rotation.x = Math.PI;
+    const bolaDeco = new THREE.Mesh(new THREE.SphereGeometry(0.07, 12, 10), matBlando('#e8dcc6'));
+    bolaDeco.position.y = 0.88;
+    mesa.add(tablero, cristal, camino, cuenco, bolaDeco);
+    [[-0.42, -0.75], [0.42, -0.75], [-0.42, 0.75], [0.42, 0.75]].forEach(([x, z]) => {
+      const pata = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.05, 0.76, 10), blancoMueble);
+      pata.position.set(x, 0.38, z);
+      mesa.add(pata);
+    });
+    mesa.position.set(cx - 5.2, Yi, cz + 0.2);
+    mesa.traverse((m) => { if (m.isMesh) m.castShadow = true; });
+    scene.add(mesa);
+    cajas.push({ x0: cx - 5.7, x1: cx - 4.7, z0: cz - 0.65, z1: cz + 1.05, activa: true });
+    // Sillas blancas de respaldo de travesaños
+    const sillas = [[cx - 5.95, cz - 0.3, Math.PI / 2], [cx - 5.95, cz + 0.7, Math.PI / 2], [cx - 4.45, cz - 0.3, -Math.PI / 2], [cx - 4.45, cz + 0.7, -Math.PI / 2]];
+    sillas.forEach(([x, z, ry]) => {
+      const s = new THREE.Group();
+      const asiento = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.05, 0.42), blancoMueble);
+      asiento.position.y = 0.46;
+      s.add(asiento);
+      for (let k = 0; k < 3; k++) {
+        const trav = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.05, 0.03), blancoMueble);
+        trav.position.set(0, 0.62 + k * 0.17, -0.2);
+        s.add(trav);
+      }
+      [[-0.18, -0.18, 1.0], [0.18, -0.18, 1.0], [-0.18, 0.18, 0.46], [0.18, 0.18, 0.46]].forEach(([px, pz, alto]) => {
+        const p = new THREE.Mesh(new THREE.BoxGeometry(0.04, alto, 0.04), blancoMueble);
+        p.position.set(px, alto / 2, pz);
+        s.add(p);
+      });
+      s.position.set(x, Yi, z);
+      s.rotation.y = ry;
+      scene.add(s);
+    });
+    // Sitio de Manuel para comer: la silla del lado del salón, mirando a la mesa
+    dentro.sillaManuel = { pos: new V3(cx - 4.45, Yi, cz - 0.3), ry: -Math.PI / 2 };
+    dentro.platoPos = new V3(cx - 4.95, Yi + 0.82, cz - 0.3);
+    puntosAccion.push({ pos: new V3(cx - 4.0, Yi, cz - 0.3), radio: 1.1, texto: 'Comer', hacer: () => empezarComida() });
+
+    // Papá y mamá
+    dentro.mama = crearPersona({ alto: 1.62, piel: '#e8b894', camisa: '#fbfbf8', pantalon: '#3a3f4a', pelo: peloMama });
+    dentro.mama.grupo.position.set(cx - 6.2, Yi, cz - 4.7);
+    dentro.mama.casa = dentro.mama.grupo.position.clone();
+    dentro.papa = crearPersona({ alto: 1.78, piel: '#d9a57e', camisa: '#f3f1ec', chaqueta: '#8a5a36', pantalon: '#2f3440', pelo: peloPapa });
+    dentro.papa.grupo.position.set(cx - 3.4, Yi, cz + 2.2);
+    scene.add(dentro.mama.grupo, dentro.papa.grupo);
+    colisiones.push({ x: cx - 6.2, z: cz - 4.7, r: 0.35 }, { x: cx - 3.4, z: cz + 2.2, r: 0.35 });
+    dentro.mama.globo = crearGlobo();
+    dentro.papa.globo = crearGlobo();
+
+    // ---------- Salón: sofá y tele ----------
+    const alfombra = new THREE.Mesh(new THREE.PlaneGeometry(2.8, 2), matBlando('#c9a86a'));
+    alfombra.rotation.x = -Math.PI / 2;
+    alfombra.position.set(cx + 0.25, Yi + 0.02, cz - 1.8);
+    scene.add(alfombra);
+    const sofaMat = matBlando('#2f6f8f');
+    caja(2.4, 0.45, 0.9, sofaMat, cx + 0.25, Yi, cz + 0.2);
+    caja(2.4, 0.5, 0.25, sofaMat, cx + 0.25, Yi + 0.45, cz + 0.55, false);
+    [-1, 1].forEach((l) => caja(0.25, 0.3, 0.9, sofaMat, cx + 0.25 + l * 1.2, Yi + 0.45, cz + 0.2, false));
+    [-0.6, 0.6].forEach((dx) => {
+      const cojin = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.35, 0.12), matBlando(dx < 0 ? '#ffd42a' : '#ff9f43'));
+      cojin.position.set(cx + 0.25 + dx, Yi + 0.7, cz + 0.4);
+      cojin.rotation.x = -0.2;
+      scene.add(cojin);
+    });
+    caja(1.8, 0.5, 0.45, matMadera, cx + 0.25, Yi, cz - 5.55);
+    dentro.lienzoTele = document.createElement('canvas');
+    dentro.lienzoTele.width = 256;
+    dentro.lienzoTele.height = 144;
+    dentro.ctxTele = dentro.lienzoTele.getContext('2d');
+    dentro.texTele = new THREE.CanvasTexture(dentro.lienzoTele);
+    dentro.texTele.encoding = THREE.sRGBEncoding;
+    const marcoTele = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.9, 0.08), matBlando('#1b1d20'));
+    marcoTele.position.set(cx + 0.25, Yi + 1.05, cz - 5.55);
+    const pantalla = new THREE.Mesh(new THREE.PlaneGeometry(1.38, 0.78), new THREE.MeshBasicMaterial({ map: dentro.texTele, toneMapped: false }));
+    pantalla.position.set(cx + 0.25, Yi + 1.05, cz - 5.505);
+    scene.add(marcoTele, pantalla);
+    puntosAccion.push({ pos: new V3(cx + 0.25, Yi, cz - 0.6), radio: 1.2, texto: 'Ver la tele', hacer: () => {
+      empezarAtraccion({ tipo: 'tele', pos: new V3(cx + 0.25, Yi, cz + 0.15), ry: Math.PI, sentado: true, asientoY: Yi + 0.45,
+        salida: new V3(cx + 0.25, Yi, cz - 0.7),
+        actualizar: (dt, a) => {
+          if (a.t > 4 && !a.contado) { a.contado = true; sumarNino('tele'); ninoDice('¡Me encantan estos dibujos!', 2); }
+        },
+        alSalir: () => { estado.descansando = false; } });
+      estado.pos.set(cx + 0.9, Yi, cz - 0.7);
+      estado.rumbo = Math.PI;
+      estado.descansando = true;
+    } });
+    const lampara = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.3, 0.35, 12), new THREE.MeshStandardMaterial({ color: '#fff4d6', emissive: '#ffe7a8', emissiveIntensity: 0.4 }));
+    lampara.position.set(cx + 2.4, Yi + 1.5, cz + 0.4);
+    const pie = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.35, 8), matBlando('#1b1d20'));
+    pie.position.set(cx + 2.4, Yi + 0.67, cz + 0.4);
+    scene.add(lampara, pie);
+    maceta(cx - 2.0, cz + 5.3, 0.5);
+
+    // ---------- Habitación de Manuel ----------
+    const cama = new THREE.Group();
+    const armazon = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.35, 1.9), matMadera);
+    armazon.position.y = 0.18;
+    const colchon = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.15, 1.85), matBlando('#fbfbf8'));
+    colchon.position.y = 0.42;
+    const edredon = new THREE.Mesh(new THREE.BoxGeometry(0.98, 0.08, 1.3), matBlando('#3f7fd1'));
+    edredon.position.set(0, 0.52, 0.28);
+    const almohada = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.12, 0.3), matBlando('#ffffff'));
+    almohada.position.set(0, 0.56, -0.7);
+    const cabecero = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.8, 0.08), matMadera);
+    cabecero.position.set(0, 0.55, -0.95);
+    cama.add(armazon, colchon, edredon, almohada, cabecero);
+    cama.position.set(cx + 6.9, Yi, cz - 4.9);
+    cama.traverse((m) => { if (m.isMesh) m.castShadow = true; });
+    scene.add(cama);
+    cajas.push({ x0: cx + 6.4, x1: cx + 7.4, z0: cz - 5.9, z1: cz - 3.95, activa: true });
+    puntosAccion.push({ pos: new V3(cx + 6.0, Yi, cz - 4.6), radio: 1.1, texto: 'Dormir', hacer: () => {
+      empezarAtraccion({ tipo: 'dormir', pos: new V3(cx + 6.9, Yi + 0.62, cz - 4.0), ry: 0, rx: -1.5, salida: new V3(cx + 5.9, Yi, cz - 4.4),
+        actualizar: (dt, a) => {
+          dentro.noche = Math.min(1, dentro.noche + dt * 0.8);
+          if (a.t > 3 && !a.contado) { a.contado = true; sumarNino('dormir'); }
+          if (a.t > 1.5 && Math.floor(a.t / 3) !== Math.floor((a.t - dt) / 3)) ninoDice('Zzz…', 2);
+        },
+        alSalir: () => { ninoDice('¡Buenos días!', 2); } });
+    } });
+    // Juguetes: caja, osito, bloques, pelota y un tren que da vueltas
+    caja(0.9, 0.5, 0.5, matBlando('#ff5a5f'), cx + 3.8, Yi, cz - 5.5, true);
+    const osito = new THREE.Group();
+    const marron = matBlando('#a8733f');
+    const cuerpoOso = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 10), marron);
+    cuerpoOso.position.y = 0.16;
+    const cabezaOso = new THREE.Mesh(new THREE.SphereGeometry(0.11, 12, 10), marron);
+    cabezaOso.position.y = 0.38;
+    osito.add(cuerpoOso, cabezaOso);
+    [-1, 1].forEach((l) => {
+      const oreja = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 6), marron);
+      oreja.position.set(l * 0.08, 0.47, 0);
+      osito.add(oreja);
+    });
+    osito.position.set(cx + 7.4, Yi, cz + 4.9);
+    scene.add(osito);
+    for (let k = 0; k < 6; k++) {
+      const bloque = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.2), matBlando(COLORES_BOLAS[k % COLORES_BOLAS.length]));
+      bloque.castShadow = true;
+      scene.add(bloque);
+      dentro.bloques.push({ m: bloque, base: new V3(cx + 4.4 + (k % 3) * 0.22 - (k > 2 ? -0.11 : 0), Yi + 0.1 + Math.floor(k / 3) * 0.2, cz + 3.8), cae: 0 });
+    }
+    const via = new THREE.Mesh(new THREE.TorusGeometry(0.75, 0.03, 6, 40), matBlando('#6b4526'));
+    via.rotation.x = Math.PI / 2;
+    via.position.set(cx + 5.6, Yi + 0.03, cz + 1.8);
+    scene.add(via);
+    const tren = new THREE.Group();
+    const loco = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.14, 0.28), matBlando('#e8412c'));
+    loco.position.y = 0.1;
+    const chimenea = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.1, 8), matBlando('#1b1d20'));
+    chimenea.position.set(0, 0.22, 0.08);
+    tren.add(loco, chimenea);
+    scene.add(tren);
+    dentro.tren = { g: tren, ang: 0, centro: new V3(cx + 5.6, Yi, cz + 1.8) };
+    puntosAccion.push({ pos: new V3(cx + 5.0, Yi, cz + 3.0), radio: 1.3, texto: 'Jugar', hacer: () => {
+      dentro.bloques.forEach((b, k) => { b.cae = 1 + k * 0.1; });
+      empezarAtraccion({ tipo: 'jugar', pos: new V3(cx + 5.0, Yi, cz + 3.0), ry: Math.PI * 0.2, anim: 'skill', salida: new V3(cx + 5.0, Yi, cz + 3.0),
+        actualizar: (dt, a) => {
+          if (a.t > 3 && !a.contado) { a.contado = true; sumarNino('jugar'); ninoDice('¡Qué divertido!', 2); animarNino('pickup', true); }
+        } });
+    } });
+    const alfombraH = new THREE.Mesh(new THREE.CircleGeometry(1.2, 32), matBlando('#b99be6'));
+    alfombraH.rotation.x = -Math.PI / 2;
+    alfombraH.position.set(cx + 5.4, Yi + 0.02, cz + 2.6);
+    scene.add(alfombraH);
+
+    // Puerta de la casa por fuera
+    puntosAccion.push({ pos: dentro.puertaFuera, radio: 1.5, texto: 'Entrar', hacer: () => entrarEnCasa() });
+    // Aro amarillo delante de la puerta, como en los toboganes
+    const aroPuerta = new THREE.Mesh(new THREE.RingGeometry(0.45, 0.65, 32), new THREE.MeshBasicMaterial({ color: '#ffd42a', side: THREE.DoubleSide, transparent: true, opacity: 0.8 }));
+    aroPuerta.rotation.x = -Math.PI / 2;
+    aroPuerta.position.set(dentro.puertaFuera.x, suelo(dentro.puertaFuera.x, dentro.puertaFuera.z) + 0.04, dentro.puertaFuera.z + 0.3);
+    scene.add(aroPuerta);
+  }
+
+  // Bocadillos de papá y mamá
+  function crearGlobo() {
+    const el = document.createElement('div');
+    el.className = 'bocadillo';
+    el.hidden = true;
+    document.body.appendChild(el);
+    return { el, hasta: 0 };
+  }
+  function diga(p, texto, s = 2.4) {
+    p.globo.el.textContent = texto;
+    p.globo.el.hidden = false;
+    p.globo.hasta = reloj.elapsedTime + s;
+  }
+
+  function entrarEnCasa() {
+    fundido(() => {
+      ninoE.pos.copy(dentro.puertaDentro).add(new V3(0, 0, -1.5));
+      ninoE.rumbo = Math.PI;
+      ninoE.vy = 0;
+      estado.pos.set(INT.x + 1, INT.y, INT.z + 4.2);
+      estado.descansando = false;
+      if (balon.estado === 'libre') balon.pos.set(ninoE.pos.x - 1.5, INT.y + 0.5, ninoE.pos.z);
+      cam.pitch = Math.max(cam.pitch, 0.9);
+      cam.yaw = 0;  // la cámara, detrás de Manuel
+      cam.objetivo.copy(ninoE.pos);
+      musica.proximo = 'casa';
+      sumarNino('entrar');
+      setTimeout(() => { diga(dentro.mama, '¡Hola, cariño!'); diga(dentro.papa, '¡Hola, campeón! ¿Tienes hambre?', 3); }, 600);
+    });
+  }
+  function salirDeCasa() {
+    fundido(() => {
+      ninoE.pos.copy(dentro.puertaFuera).add(new V3(0, 0, 1.5));
+      ninoE.rumbo = 0;
+      ninoE.vy = 0;
+      cam.pitch = 0.36;
+      cam.dist = 6.5;
+      cam.yaw = Math.PI;
+      cam.objetivo.copy(ninoE.pos);
+      estado.pos.set(dentro.puertaFuera.x + 1.2, Y1, dentro.puertaFuera.z + 1);
+      estado.descansando = false;
+      dentro.noche = 0;
+      if (balon.estado === 'libre' && estaDentro(balon.pos)) balon.pos.set(dentro.puertaFuera.x - 1.5, Y1 + 0.5, dentro.puertaFuera.z + 1);
+    });
+  }
+
+  function empezarComida() {
+    const s = dentro.sillaManuel;
+    // Drako se tumba junto a la mesa, esperando a que caiga algo
+    estado.pos.set(s.pos.x + 0.9, INT.y, s.pos.z + 1.1);
+    estado.rumbo = -Math.PI * 0.75;
+    estado.descansando = true;
+    empezarAtraccion({ tipo: 'comer', pos: s.pos.clone(), ry: s.ry, sentado: true, asientoY: INT.y + 0.48, salida: new V3(s.pos.x + 0.6, INT.y, s.pos.z),
+      actualizar: (dt, a) => {
+        const m = dentro.mama;
+        // Mamá trae el plato, lo deja y vuelve
+        if (a.t < 1.6) m.grupo.position.lerpVectors(m.casa, new V3(dentro.platoPos.x - 0.6, INT.y, dentro.platoPos.z - 0.6), a.t / 1.6);
+        if (a.t >= 1.6 && !dentro.comida) {
+          const platos = ['macarrones', 'tortilla', 'pescado'];
+          const tipo = platos[Math.floor(azar() * platos.length)];
+          dentro.comida = crearPlato(tipo);
+          dentro.comida.position.copy(dentro.platoPos);
+          scene.add(dentro.comida);
+          diga(m, `¡A comer! Hoy hay ${tipo}`, 2.6);
+          setTimeout(() => diga(dentro.papa, '¡Que aproveche, Manuel!', 2.4), 1200);
+        }
+        if (a.t > 2.2 && a.t < 4) m.grupo.position.lerpVectors(new V3(dentro.platoPos.x - 0.6, INT.y, dentro.platoPos.z - 0.6), m.casa, (a.t - 2.2) / 1.8);
+        if (dentro.comida && a.t > 3) {
+          dentro.comida.userData.resto = Math.max(0.05, 1 - (a.t - 3) / 5);
+          dentro.comida.children.forEach((c, k) => { if (k > 0) c.scale.setScalar(dentro.comida.userData.resto); });
+          if (Math.floor(a.t) !== Math.floor(a.t - dt) && a.t < 8) ninoDice('Ñam, ñam…', 0.8);
+        }
+        if (a.t > 8 && !a.contado) {
+          a.contado = true;
+          ninoDice('¡Qué rico!', 2.2);
+          diga(dentro.papa, '¡Muy bien, te lo has comido todo!', 2.6);
+          sumarNino('comer');
+        }
+      },
+      alSalir: () => {
+        estado.descansando = false;
+        if (dentro.comida) { scene.remove(dentro.comida); dentro.comida = null; }
+        dentro.mama.grupo.position.copy(dentro.mama.casa);
+      } });
+  }
+  function crearPlato(tipo) {
+    const g = new THREE.Group();
+    const plato = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.12, 0.025, 20), matBlando('#ffffff'));
+    g.add(plato);
+    if (tipo === 'macarrones') {
+      for (let k = 0; k < 14; k++) {
+        const mac = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.06, 8), matBlando('#f0a53a'));
+        mac.position.set((azar() - 0.5) * 0.18, 0.03 + azar() * 0.03, (azar() - 0.5) * 0.18);
+        mac.rotation.set(azar() * 3, azar() * 3, 0);
+        g.add(mac);
+      }
+    } else if (tipo === 'tortilla') {
+      const t = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.05, 20), matBlando('#f2c75c'));
+      t.position.y = 0.04;
+      g.add(t);
+    } else {
+      const pez = crearPez(ESPECIES[1], 20);
+      pez.position.y = 0.05;
+      pez.scale.multiplyScalar(0.5);
+      g.add(pez);
+    }
+    return g;
+  }
+
+  let tTele = 0;
+  function dibujarTele(dt) {
+    tTele += dt;
+    const c = dentro.ctxTele, w = 256, h = 144;
+    // Dibujos animados: cielo, sol, olas y un pez que salta
+    c.fillStyle = '#7fd3f2'; c.fillRect(0, 0, w, h);
+    c.fillStyle = '#ffd42a'; c.beginPath(); c.arc(210, 30, 18 + Math.sin(tTele * 3) * 2, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#1f8fc2';
+    c.beginPath(); c.moveTo(0, h);
+    for (let x = 0; x <= w; x += 8) c.lineTo(x, 100 + Math.sin(x * 0.06 + tTele * 3) * 6);
+    c.lineTo(w, h); c.fill();
+    const px = (tTele * 60) % (w + 40) - 20, py = 95 - Math.abs(Math.sin(tTele * 2.5)) * 55;
+    c.fillStyle = '#ff9f43'; c.beginPath(); c.ellipse(px, py, 16, 9, Math.sin(tTele * 2.5) * 0.5, 0, Math.PI * 2); c.fill();
+    c.beginPath(); c.moveTo(px - 14, py); c.lineTo(px - 26, py - 8); c.lineTo(px - 26, py + 8); c.fill();
+    c.fillStyle = '#1b1d20'; c.beginPath(); c.arc(px + 8, py - 2, 2, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#ffffff'; c.font = 'bold 14px sans-serif'; c.fillText('DIBUJOS', 10, 20);
+    dentro.texTele.needsUpdate = true;
+  }
+
+  const fundidoNoche = document.createElement('div');
+  fundidoNoche.className = 'noche';
+  document.body.appendChild(fundidoNoche);
+  const rayoPared = new THREE.Ray(), vPared = new V3(), cortePared = new V3();
+  function actualizarInterior(dt) {
+    if (!dentro.tren) return;
+    const E = ninoE;
+    const quien = jugador === 'nino' ? E.pos : estado.pos;
+    const cerca = estaDentro(quien);
+    if (cerca) {
+      dibujarTele(dt);
+      // Las paredes que quedan entre la cámara y el personaje se vuelven casi transparentes
+      vPared.set(quien.x, quien.y + 0.8, quien.z).sub(camera.position);
+      const largo = vPared.length();
+      rayoPared.set(camera.position, vPared.normalize());
+      dentro.paredes.forEach((m) => {
+        const tapa = rayoPared.intersectBox(m.userData.bbox, cortePared) && camera.position.distanceTo(cortePared) < largo;
+        m.material.opacity = damp(m.material.opacity, tapa ? 0.15 : 1, 8, dt);
+        m.material.depthWrite = m.material.opacity > 0.9;
+        m.castShadow = m.material.opacity > 0.5;
+      });
+    }
+    // Tren de juguete dando vueltas
+    dentro.tren.ang += dt * 1.2;
+    const t = dentro.tren;
+    t.g.position.set(t.centro.x + Math.cos(t.ang) * 0.75, t.centro.y + 0.02, t.centro.z + Math.sin(t.ang) * 0.75);
+    t.g.rotation.y = -t.ang;
+    // Bloques: se caen al jugar y se vuelven a apilar
+    dentro.bloques.forEach((b, k) => {
+      b.cae = Math.max(0, b.cae - dt * 0.35);
+      const s = Math.sin(Math.min(b.cae, 1) * Math.PI);
+      b.m.position.set(b.base.x + s * (k % 2 ? 0.4 : -0.4), b.base.y + s * 0.5, b.base.z + s * 0.3);
+      b.m.rotation.set(s * 2, s * 3, 0);
+    });
+    // Papá y mamá: respiran, miran a Manuel y mueven los brazos al hablar
+    [dentro.papa, dentro.mama].forEach((p, k) => {
+      const g = p.grupo;
+      g.position.y = INT.y + Math.sin(reloj.elapsedTime * 2 + k) * 0.01;
+      const objetivo = Math.atan2(E.pos.x - g.position.x, E.pos.z - g.position.z);
+      g.rotation.y = angulo(g.rotation.y, objetivo, 1 - Math.exp(-3 * dt));
+      const hablando = !p.globo.el.hidden;
+      p.brazos.forEach((b, l) => { b.rotation.x = hablando ? Math.sin(reloj.elapsedTime * 6 + l * 2) * 0.5 - 0.4 : 0; });
+      if (!p.globo.el.hidden) {
+        if (reloj.elapsedTime > p.globo.hasta) p.globo.el.hidden = true;
+        else ponerEnPantalla(p.globo.el, p.cabeza, 0.35);
+      }
+    });
+    // Noche al dormir
+    if (!(E.modo === 'atraccion' && E.atr && E.atr.tipo === 'dormir')) dentro.noche = Math.max(0, dentro.noche - dt * 1.5);
+    fundidoNoche.style.opacity = String(dentro.noche * 0.65);
+  }
+
+
   // ---------- Bucle principal ----------
   const reloj = new THREE.Clock();
   let autopiloto = false;
@@ -3842,10 +5036,11 @@
       jugarCon: (q) => { if (jugador !== q) cambiarJugador(); },
       drako: () => ({ pos: estado.pos.toArray().map((v) => +v.toFixed(1)), llamado: +drakoIA.llamado.toFixed(1), descansando: !!estado.descansando }),
       musica: () => ({ on: musica.on, sonando: musica.sonando, modo: musica.modo }),
-      moverNino: (x, z, rumbo = 0) => { ninoE.pos.set(x, suelo(x, z) + 0.05, z); ninoE.rumbo = rumbo; ninoE.vy = 0; },
+      moverNino: (x, z, rumbo = 0) => { if (ninoE.modo === 'atraccion') terminarAtraccion(); ninoE.modo = 'libre'; ninoE.pos.set(x, suelo(x, z) + 0.05, z); ninoE.rumbo = rumbo; ninoE.vy = 0; },
       camara: (yaw, pitch, dist) => { cam.yaw = yaw; if (pitch !== undefined) cam.pitch = pitch; if (dist) cam.dist = dist; },
       nino: () => ({ modo: ninoE.modo, pos: ninoE.pos.toArray().map((v) => +v.toFixed(2)), nadando: ninoE.nadando,
         enSuelo: ninoE.enSuelo, accion: textoAccion, mision: misionNino() && misionNino().id,
+        atr: ninoE.atr && ninoE.atr.tipo, probadas: [...bolas.probadas].join(','),
         cuentas: MISIONES_NINO.map((m) => `${m.id}:${m.cuenta}/${m.total}`).join(' '), puerta: parque.puertaAbierta,
         pesca: pesca.fase, especie: pesca.especie && pesca.especie.id, dist: +pesca.dist.toFixed(1), tension: Math.round(pesca.tension) }),
       completarNino: (id) => { const m = misionPor(id); sumarNino(id, m.total - m.cuenta); if (id === 'entrada' && !parque.puertaAbierta) abrirPuerta(); },
@@ -3867,6 +5062,12 @@
 
   function actualizarPerro(dt) {
     if (estado.descansando) return perroTumbado(dt);
+    if (drakoIA.enBalancin) {
+      // Sentado al otro lado del balancín (la posición la mueve el balancín)
+      perro.position.copy(estado.pos);
+      perro.rotation.y = estado.rumbo;
+      return;
+    }
     let ix = jugador === 'perro' ? joy.x : 0, iy = jugador === 'perro' ? joy.y : 0;
     if (jugador === 'nino') {
       const o = objetivoPerroIA();
@@ -3996,6 +5197,11 @@
     cam.objetivo.x = damp(cam.objetivo.x, foco.x, 6, dt);
     cam.objetivo.z = damp(cam.objetivo.z, foco.z, 6, dt);
     cam.objetivo.y = damp(cam.objetivo.y, foco.y + alto, 4, dt);
+    if (estaDentro(foco)) {
+      // Dentro de casa, la cámara mira desde arriba para ver por encima de las paredes
+      cam.pitch = Math.max(cam.pitch, 0.7);
+      cam.dist = Math.min(cam.dist, 8);
+    }
     const cp = Math.cos(cam.pitch);
     camera.position.set(
       cam.objetivo.x + Math.sin(cam.yaw) * cp * cam.dist,
@@ -4045,6 +5251,8 @@
         actualizarParque(dt);
         actualizarPesca(dt);
         actualizarCasa(dt);
+        actualizarParqueBolas(dt);
+        actualizarInterior(dt);
       }
       actualizarSalpicaduras(dt);
       actualizarBotonAccion();

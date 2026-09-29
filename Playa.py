@@ -30,6 +30,10 @@ CASA = (30.0, 62.0, 44.0, 76.0)
 CASA_ALTO = 6.5
 PISCINA_CASA = [(38.0, 52.0, 5.5, 3.5), (43.5, 50.0, 3.5, 3.0)]  # centro x, centro y, radio x, radio y
 
+# Parque de bolas: una tercera explanada en las dunas, al este de la casa
+PARQUE_BOLAS = (68.0, 100.0, 44.0, 76.0)
+BOLAS_ALTO = 6.5
+
 def hondo_casa(x, y):
     """Mayor que 0 dentro de la piscina de la casa (1 en el centro)."""
     return max(1.0 - math.hypot((x - cx) / rx, (y - cy) / ry) for cx, cy, rx, ry in PISCINA_CASA)
@@ -56,6 +60,8 @@ def altura(x, y):
     # Explanada de la casa y su piscina, que va cubriendo poco a poco como una playa
     m = 1.0 - smoothstep(0.0, 8.0, fuera_de(x, y, CASA))
     h += (CASA_ALTO - h) * m
+    m = 1.0 - smoothstep(0.0, 8.0, fuera_de(x, y, PARQUE_BOLAS))
+    h += (BOLAS_ALTO - h) * m
     k = hondo_casa(x, y)
     if k > 0.0:
         h = CASA_ALTO - 1.4 * smoothstep(0.0, 0.55, k)
