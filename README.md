@@ -4,7 +4,7 @@ Un perro beagle hecho con Blender (Python) y una playa de agua cristalina para p
 
 - `Perro.py`: crea el perro, renderiza `perro.png` y exporta `perro.glb`.
 - `Playa.py`: crea la playa (arena, dunas, agua, palmeras, rocas, sombrilla), renderiza `playa.png` y exporta `playa.glb`.
-- `Nino.py`: prepara el modelo 3D de Manuel: le quita el balón de la mano, crea un balón aparte y reduce las texturas. Exporta `nino.glb`.
+- `Nino.py`: prepara el modelo 3D de Manuel: le quita el balón de la mano, baja el brazo derecho y rehace sus animaciones en espejo del izquierdo, añade las animaciones `kick` (chutar) y `pickup` (agacharse), crea un balón aparte y reduce las texturas. Exporta `nino.glb`.
 - `web/index.html`: juego en el navegador (three.js). Manuel juega al balón con el perro y hay seis tareas: traer el balón, recoger conchas, encontrar el hueso, rescatar el balón del mar, saltar desde el muelle y nadar hasta la boya.
 
 ## Renderizar

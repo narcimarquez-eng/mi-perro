@@ -609,7 +609,7 @@
   const perro = new THREE.Group();
   const partes = {};
   const nino = { grupo: new THREE.Group(), huesos: {}, acciones: {}, actual: null };
-  const balon = { obj: null, r: 0.13, pos: new V3(), vel: new V3(), estado: 'mano', quieto: 0, enAgua: false, manoPos: null, manoQuat: null };
+  const balon = { obj: null, r: 0.13, pos: new V3(), vel: new V3(), estado: 'mano', quieto: 0, enAgua: false };
   let listo = false;
 
   const loader = new THREE.GLTFLoader();
@@ -723,8 +723,9 @@
       }
       if (o.isBone) nino.huesos[o.name] = o;
     });
-    // Tamaño de un niño de unos 6 años (1,20 m) con los pies en el suelo
-    const caja = new THREE.Box3().setFromObject(modelo);
+    // Tamaño de un niño de unos 6 años (1,20 m) con los pies en el suelo (medido sin el balón)
+    const cuerpoNino = modelo.getObjectByProperty('isSkinnedMesh', true);
+    const caja = new THREE.Box3().setFromObject(cuerpoNino);
     const escala = 1.2 / (caja.max.y - caja.min.y);
     modelo.scale.setScalar(escala);
     modelo.position.y = -caja.min.y * escala;
@@ -737,10 +738,10 @@
     nino.mixer = new THREE.AnimationMixer(modelo);
     gltf.animations.forEach((clip) => { nino.acciones[clip.name] = nino.mixer.clipAction(clip); });
 
+    // El balón viene como objeto aparte: lo sacamos a la escena y lo colocamos cada fotograma
     balon.obj = modelo.getObjectByName('Balon');
-    balon.manoPos = balon.obj.position.clone();
-    balon.manoQuat = balon.obj.quaternion.clone();
     modelo.updateMatrixWorld(true);
+    scene.attach(balon.obj);
     balon.r = new THREE.Box3().setFromObject(balon.obj).getSize(new V3()).y / 2;
   }
 
@@ -957,12 +958,19 @@
     balon.estado = 'perro';
   }
   function balonANino() {
-    const o = balon.obj;
-    nino.huesos.RightHand.add(o);
-    o.position.copy(balon.manoPos);
-    o.quaternion.copy(balon.manoQuat);
-    o.scale.setScalar(1);
+    if (balon.obj.parent !== scene) scene.attach(balon.obj);
     balon.estado = 'mano';
+  }
+  // Con el brazo abajo, el balón va sujeto en la mano derecha, junto a la pierna
+  const ladoNino = new V3();
+  function balonEnLaMano() {
+    nino.huesos.RightHand.getWorldPosition(vB);
+    ladoNino.set(-Math.cos(ninoE.rumbo), 0, Math.sin(ninoE.rumbo));  // lado derecho de Manuel
+    vB.y -= balon.r * 0.75;
+    vB.addScaledVector(ladoNino, balon.r * 0.35);
+    vB.x += Math.sin(ninoE.rumbo) * balon.r * 0.3;
+    vB.z += Math.cos(ninoE.rumbo) * balon.r * 0.3;
+    balon.obj.position.copy(vB);
   }
   const ejeRodar = new V3(), qRodar = new THREE.Quaternion();
   function actualizarBalon(dt) {
@@ -1066,7 +1074,7 @@
     // Al mar siempre de patada (llega más lejos); si no, una de patada y otra con las manos
     if (alMar || ninoE.alterna % 2) {
       ninoE.modo = 'patada';
-      animarNino('idle');
+      animarNino('kick', true, 0.15);
     } else {
       ninoE.modo = 'lanzar';
       animarNino('shoot', true, 0.2);
@@ -1074,44 +1082,7 @@
     ninoDice(alMar ? '¡Al agua!' : ['¡Allá va!', '¡Corre!', '¡Tráemela!'][ninoE.alterna % 3]);
   }
 
-  const qTmp = new THREE.Quaternion(), qTmp2 = new THREE.Quaternion(), qTmp3 = new THREE.Quaternion();
   const vA = new V3(), vB = new V3(), vC = new V3();
-  // Gira un hueso en coordenadas del mundo (útil porque no sabemos cómo están orientados sus ejes)
-  function rotarMundo(hueso, eje, ang) {
-    qTmp.setFromAxisAngle(eje, ang);
-    hueso.getWorldQuaternion(qTmp2);
-    hueso.parent.getWorldQuaternion(qTmp3).invert();
-    hueso.quaternion.copy(qTmp3.multiply(qTmp.multiply(qTmp2)));
-    hueso.updateMatrixWorld(true);
-  }
-  // Orienta un hueso para que su hijo quede en la dirección indicada
-  function apuntar(hueso, hijo, dir) {
-    hueso.getWorldPosition(vA);
-    hijo.getWorldPosition(vB);
-    vB.sub(vA).normalize();
-    qTmp.setFromUnitVectors(vB, vC.copy(dir).normalize());
-    hueso.getWorldQuaternion(qTmp2);
-    hueso.parent.getWorldQuaternion(qTmp3).invert();
-    hueso.quaternion.copy(qTmp3.multiply(qTmp.multiply(qTmp2)));
-    hueso.updateMatrixWorld(true);
-  }
-  const espejo = new V3(), qGrupo = new THREE.Quaternion();
-  // Sin balón, el brazo derecho imita al izquierdo (en el modelo original sujetaba el balón en alto)
-  function brazoDerechoComoIzquierdo() {
-    const H = nino.huesos;
-    nino.grupo.getWorldQuaternion(qGrupo);
-    const reflejar = (a, b) => {
-      a.getWorldPosition(vA);
-      b.getWorldPosition(espejo);
-      espejo.sub(vA).applyQuaternion(qTmp.copy(qGrupo).invert());
-      espejo.x = -espejo.x;
-      return espejo.applyQuaternion(qGrupo).clone();
-    };
-    const d1 = reflejar(H.LeftArm, H.LeftForeArm);
-    const d2 = reflejar(H.LeftForeArm, H.LeftHand);
-    apuntar(H.RightArm, H.RightForeArm, d1);
-    apuntar(H.RightForeArm, H.RightHand, d2);
-  }
 
   function actualizarNino(dt) {
     const E = ninoE;
@@ -1136,10 +1107,7 @@
         if (balon.quieto > (juegaSolo ? 5 : 2) && lejosPerro && suelo(balon.pos.x, balon.pos.z) > -0.45) {
           objetivo = balon.pos;
           correr = distXZ(E.pos, balon.pos) > 6;
-          if (distXZ(E.pos, balon.pos) < 0.6) {
-            balonANino();
-            E.espera = 0;
-          }
+          if (distXZ(E.pos, balon.pos) < 0.6) empezarRecoger();
         } else {
           objetivo = estado.pos;
         }
@@ -1191,38 +1159,40 @@
     nino.grupo.updateMatrixWorld(true);
 
     const H = nino.huesos;
-    if (balon.estado !== 'mano' && E.modo !== 'lanzar') brazoDerechoComoIzquierdo();
+    if (balon.estado === 'mano' && E.modo !== 'lanzar') balonEnLaMano();
 
     if (E.modo === 'patada') {
+      // Animación "kick" de Nino.py: el pie llega al balón en el fotograma 10 (0,42 s)
       const t = E.t;
       const f = E.dirTiro;
-      const eje = vA.set(-f.z, 0, f.x);
-      // 1) deja el balón delante del pie derecho
-      if (t < 0.3 && balon.estado === 'mano') {
-        const pie = new V3(E.pos.x + f.x * 0.45 - f.z * 0.12, 0, E.pos.z + f.z * 0.45 + f.x * 0.12);
-        pie.y = suelo(pie.x, pie.z) + balon.r + 0.25;
-        balon.obj.getWorldPosition(balon.pos);
-        scene.attach(balon.obj);
-        balon.pos.copy(pie);
+      if (balon.estado === 'mano') {
+        // deja caer el balón delante del pie derecho
+        balon.pos.set(E.pos.x + f.x * 0.42 - f.z * 0.1, 0, E.pos.z + f.z * 0.42 + f.x * 0.1);
+        balon.pos.y = suelo(balon.pos.x, balon.pos.z) + balon.r + 0.15;
         balon.vel.set(0, -1, 0);
         balon.estado = 'libre';
         balon.reservado = true;
       }
-      // 2) pierna atrás, 3) patada, 4) vuelta
-      let angPierna = 0, angRodilla = 0;
-      if (t > 0.3 && t < 0.62) { const s = smoothstep(0.3, 0.62, t); angPierna = -0.7 * s; angRodilla = -1.0 * s; }
-      else if (t >= 0.62 && t < 0.78) { const s = smoothstep(0.62, 0.78, t); angPierna = -0.7 + 1.8 * s; angRodilla = -1.0 * (1 - s); }
-      else if (t >= 0.78 && t < 1.15) { angPierna = 1.1 * (1 - smoothstep(0.78, 1.15, t)); }
-      if (angPierna) rotarMundo(H.RightUpLeg, eje, angPierna);
-      if (angRodilla) rotarMundo(H.RightLeg, eje, angRodilla);
-      if (t >= 0.7 && balon.reservado) {
+      if (t >= 0.42 && balon.reservado) {
         balon.reservado = false;
         const fuerza = E.alMar ? 12 : 8.5;
         balon.vel.set(f.x * fuerza, E.alMar ? 5.5 : 3.8, f.z * fuerza);
         balon.mojado = false;
         if (E.alMar) misionActual().lanzado = true;
       }
-      if (t > 1.3) { E.modo = 'libre'; E.espera = 0; }
+      if (t > 1.15) { E.modo = 'libre'; E.espera = 0; }
+    }
+
+    if (E.modo === 'recoger') {
+      // Animación "pickup": las manos llegan abajo hacia el fotograma 10 (0,42 s)
+      if (E.t > 0.45 && balon.estado !== 'mano') {
+        const delPerro = balon.estado === 'perro';
+        const delMar = balon.mojado;
+        balonANino();
+        balon.mojado = false;
+        if (delPerro) entregaDelPerro(delMar);
+      }
+      if (E.t > 1.15 && E.modo === 'recoger') { E.modo = 'libre'; E.espera = 0; }
     }
 
     if (E.modo === 'lanzar') {
@@ -1250,6 +1220,12 @@
       if (reloj.elapsedTime > bocadilloNinoHasta) bocadilloNino.hidden = true;
       else ponerEnPantalla(bocadilloNino, H.Head, 0.45);
     }
+  }
+
+  function empezarRecoger() {
+    ninoE.modo = 'recoger';
+    ninoE.t = 0;
+    animarNino('pickup', true, 0.15);
   }
 
   function ninoCelebra(texto) {
@@ -1343,6 +1319,22 @@
     return true;
   }
 
+  // Manuel ya tiene el balón que le ha traído el perro
+  function entregaDelPerro(delMar) {
+    const m = misionActual();
+    if (m && m.id === 'balon') {
+      sumar('balon');
+      if (m.cuenta < m.total) { avisar(`¡Balón ${m.cuenta} de ${m.total}!`, 1400); ninoCelebra('¡Muy bien!'); }
+    } else if (m && m.id === 'rescate' && m.lanzado && delMar) {
+      sumar('rescate');
+    } else if (m && m.id === 'rescate' && m.lanzado) {
+      m.lanzado = false;  // no llegó al agua: Manuel lo intenta otra vez
+      ninoDice('¡Otra vez!');
+    } else {
+      ninoCelebra('¡Gracias!');
+    }
+  }
+
   function actualizarMisiones(dt) {
     const m = misionActual();
     // El perro coge el balón
@@ -1352,21 +1344,8 @@
     }
     // El perro entrega el balón a Manuel
     if (balon.estado === 'perro' && distXZ(estado.pos, ninoE.pos) < 1.5 && ninoE.modo === 'libre') {
-      const delMar = balon.mojado;
-      balonANino();
-      balon.mojado = false;
-      ninoE.espera = 0;
-      if (m && m.id === 'balon') {
-        sumar('balon');
-        if (m.cuenta < m.total) { avisar(`¡Balón ${m.cuenta} de ${m.total}!`, 1400); ninoCelebra('¡Muy bien!'); }
-      } else if (m && m.id === 'rescate' && m.lanzado && delMar) {
-        sumar('rescate');
-      } else if (m && m.id === 'rescate' && m.lanzado) {
-        m.lanzado = false;  // no llegó al agua: Manuel lo intenta otra vez
-        ninoDice('¡Otra vez!');
-      } else {
-        ninoCelebra('¡Gracias!');
-      }
+      ninoE.rumbo = Math.atan2(estado.pos.x - ninoE.pos.x, estado.pos.z - ninoE.pos.z);
+      empezarRecoger();  // Manuel se agacha y coge el balón de la boca del perro
     }
     // Conchas
     conchas.forEach((c) => {
