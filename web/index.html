@@ -313,6 +313,18 @@
     white-space: nowrap;
   }
   .brujula[hidden] { display: none; }
+  .brujula.carrera { padding: 8px 18px; font-size: 18px; }
+  .cuenta-atras {
+    position: fixed;
+    top: 38%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font: 900 110px "Baloo 2", "Nunito", system-ui, sans-serif;
+    color: #fffdf6;
+    text-shadow: 0 6px 0 #e2321f, 0 10px 24px rgba(0, 0, 0, 0.35);
+    pointer-events: none;
+  }
+  .cuenta-atras[hidden] { display: none; }
   .brujula .flecha {
     display: grid;
     place-items: center;
@@ -504,6 +516,7 @@
   const plataformas = [];  // superficies elevadas: cubierta y pasarela del barco pirata
   function suelo(x, z, yActual) {
     if (x > 500) return lechoArrecife(x, z);  // el arrecife, mar adentro
+    if (x < -500) return 0.02;                // el circuito de karts, tierra adentro
     let h = altura(x, -z);
     if (sobreMuelle(x, z) && (yActual === undefined || yActual > MUELLE.y - 0.45)) h = Math.max(h, MUELLE.y);
     for (const pl of plataformas) {
@@ -995,8 +1008,9 @@
   // Papá y mamá (hechos en Blender con Padres.py); si faltan, se usan los muñecos sencillos
   const cargarOpcional = (n) => cargar(n).catch(() => null);
   Promise.all([cargar('playa.glb'), cargar('perro.glb'), cargar('nino.glb'), cargarOpcional('papa.glb'), cargarOpcional('mama.glb'),
-    cargarOpcional('arrecife.glb')])
-    .then(([playa, gPerro, gNino, gPapa, gMama, gArrecife]) => {
+    cargarOpcional('arrecife.glb'), cargarOpcional('coches.glb'),
+    cargarOpcional('amigo1.glb'), cargarOpcional('amigo2.glb'), cargarOpcional('amigo3.glb'), cargarOpcional('amigo4.glb')])
+    .then(([playa, gPerro, gNino, gPapa, gMama, gArrecife, gCoches, ...gAmigos]) => {
     prepararPlaya(playa);
     prepararPerro(gPerro);
     prepararNino(gNino);
@@ -1005,6 +1019,8 @@
     construirParqueBolas();
     construirInterior(gPapa, gMama);
     construirArrecife(gArrecife);
+    construirCoche(gCoches);
+    if (gCoches) construirCircuito(gAmigos);
     parque.toboganes.forEach((t) => {
       if (t.aro) return;
       const aro = new THREE.Mesh(new THREE.RingGeometry(0.4, 0.6, 32), new THREE.MeshBasicMaterial({ color: '#ffd42a', side: THREE.DoubleSide, transparent: true, opacity: 0.85 }));
@@ -1255,6 +1271,9 @@
       pos.z = clamp(pos.z, INT.z - 28, INT.z + 28);
     } else if (pos.x > 500) {
       // En el arrecife (Manuel bucea con sus propios límites)
+    } else if (pos.x < -500) {
+      pos.x = clamp(pos.x, CIRC.x - 150, CIRC.x + 150);
+      pos.z = clamp(pos.z, CIRC.z - 110, CIRC.z + 160);
     } else {
       pos.x = clamp(pos.x, -LIMITE_X, LIMITE_X);
       pos.z = clamp(pos.z, LIMITE_Z0, LIMITE_Z1);
@@ -1789,6 +1808,8 @@
 
   function cambiarJugador() {
     if (!listo || ninoE.modo === 'pescar' || ninoE.modo === 'tobogan' || ninoE.modo === 'volando' || ninoE.modo === 'bucear') return;
+    if (ninoE.modo === 'atraccion' && ninoE.atr && ninoE.atr.vehiculo) return;
+    if (enCircuito(ninoE.pos)) return;
     if (ninoE.modo === 'atraccion') terminarAtraccion();
     if (ninoE.modo === 'descansar' || estado.descansando) levantarse();
     jugador = jugador === 'perro' ? 'nino' : 'perro';
@@ -1805,6 +1826,7 @@
   function saltarNino() {
     const E = ninoE;
     if (E.modo === 'bucear') { E.aSuperficie = !E.aSuperficie; return; }
+    if (E.modo === 'atraccion' && E.atr && E.atr.saltar) { E.atr.saltar(); return; }
     if (E.modo !== 'libre' || !E.enSuelo || E.nadando) return;
     const cama = camaElasticaEn(E.pos.x, E.pos.z, E.pos.y);
     E.vy = cama ? 10 : 5.4;
@@ -1822,10 +1844,12 @@
         { texto: 'Burbujas', hacer: () => { soltarBurbujas(14); ninoDice('¡Blub, blub!', 1.2); } };
     }
     if (E.modo === 'atraccion') {
+      if (E.atr && E.atr.accion) return E.atr.accion();
       if (!E.atr || E.atr.tipo === 'escalar') return null;
       return { texto: E.atr.tipo === 'dormir' ? 'Despertar' : E.atr.sentado ? 'Levantarse' : 'Parar', hacer: terminarAtraccion };
     }
     if (E.modo !== 'libre') return null;
+    if (amigosCerca()) return { texto: '¡A correr!', hacer: aCorrer };
     const pa = E.enSuelo && !E.nadando ? puntoCerca() : null;
     if (pa) return { texto: pa.texto, hacer: pa.hacer };
     if (cercaDePesca()) return { texto: 'Pescar', hacer: empezarPesca };
@@ -1941,6 +1965,8 @@
     const E = ninoE;
     let zona = 'arena', texto;
     if (E.modo === 'bucear') { zona = 'agua'; texto = `Buceando · ${Math.max(0, Math.round(-E.pos.y))} m`; }
+    else if (E.modo === 'atraccion' && E.atr && E.atr.tipo === 'coche') texto = `Conduciendo · ${Math.round(Math.abs(E.atr.vehiculo.vel) * 3.6)} km/h`;
+    else if (enCircuito(E.pos)) texto = circuito.fase === 'carrera' || circuito.fase === 'cuenta' ? `Carrera · ${Math.round(Math.abs(circuito.karts[4].vel) * 3.6)} km/h` : 'En el circuito de karts';
     else if (E.modo === 'tobogan') { zona = 'agua'; texto = '¡Bajando por el tobogán!'; }
     else if (E.modo === 'volando') { zona = 'agua'; texto = '¡Volando!'; }
     else if (E.modo === 'pescar') { zona = 'muelle'; texto = 'Pescando en el muelle'; }
@@ -2659,11 +2685,16 @@
         const z = ZONAS_ARRECIFE.find((k) => !arrecife.descubiertas.has(k.id));
         return z ? z.pos : BARCA_MAR;
       } },
+    { id: 'coche', titulo: 'Sube al coche de carreras y conduce hasta el circuito de karts', total: 1, cuenta: 0,
+      objetivo: () => (coches.conduciendo || !coches.coche ? PUERTA_CIRCUITO : new V3(coches.coche.x, coches.coche.y, coches.coche.z)) },
+    { id: 'carrera', titulo: 'Corre con tus amigos y queda entre los 3 primeros', total: 1, cuenta: 0,
+      objetivo: () => (!enCircuito(ninoE.pos) ? PUERTA_CIRCUITO : circuito.fase === 'paddock' && circuito.amigos[0] ? circuito.amigos[0].grupo.position : null) },
   ];
   const misionPor = (id) => MISIONES_NINO.find((m) => m.id === id);
   const hechaNino = (id) => { const m = misionPor(id); return m && m.cuenta >= m.total; };
   let buceando = false;  // bajo el agua, la tarea que se ve es la del arrecife
-  const misionNino = () => (buceando && !hechaNino('arrecife') ? misionPor('arrecife') : MISIONES_NINO.find((m) => m.cuenta < m.total) || null);
+  const misionNino = () => (buceando && !hechaNino('arrecife') ? misionPor('arrecife') :
+    enCircuito(ninoE.pos) && !hechaNino('carrera') ? misionPor('carrera') : MISIONES_NINO.find((m) => m.cuenta < m.total) || null);
   function masCercanoA(lista, desde) {
     let mejor = null, d = Infinity;
     for (const p of lista) {
@@ -3744,6 +3775,13 @@
       rotarMundo(H.LeftUpLeg, ejeLateral, -0.3 * Math.sin(a * 2.5));
       rotarMundo(H.Head, ejeLateral, -0.55);  // la cabeza mira hacia delante
     } else if (E.modo === 'descansar' || (E.modo === 'atraccion' && E.atr && E.atr.sentado)) {
+      if (E.atr && E.atr.volante) {
+        // Manos al volante del kart
+        rotarMundo(H.RightArm, ejeLateral, -1.0);
+        rotarMundo(H.LeftArm, ejeLateral, -1.0);
+        rotarMundo(H.RightForeArm, ejeLateral, -0.5);
+        rotarMundo(H.LeftForeArm, ejeLateral, -0.5);
+      }
       // Sentado: muslos hacia delante sobre el banco y las piernas colgando
       rotarMundo(H.RightUpLeg, ejeLateral, -1.45);
       rotarMundo(H.LeftUpLeg, ejeLateral, -1.45);
@@ -4044,7 +4082,7 @@
     E.rumbo = a.ry;
     const mueve = jugador === 'nino' && Math.hypot(joy.x, joy.y) > 0.4 ||
       ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].some((k) => teclas.has(k));
-    if (mueve && a.t > 0.6) terminarAtraccion();
+    if (!a.fijo && mueve && a.t > 0.6) terminarAtraccion();
   }
 
   // =====================================================================
@@ -6142,6 +6180,971 @@
   }
 
 
+  // =====================================================================
+  // ---------- El coche de carreras de Manuel y el circuito de karts ----------
+  // =====================================================================
+  // Piezas de Coches.py (coches.glb) y los cuatro amigos de Amigos.py (amigo1..4.glb)
+  const CIRC = new V3(-700, 0, 0);            // el circuito está lejos, tierra adentro
+  const enCircuito = (p) => p.x < -500;
+  const PUERTA_CIRCUITO = new V3(-97, 0, -8);  // arco en la playa que lleva al circuito
+  const APARCAMIENTO = new V3(10, 0, -9);      // donde está aparcado el coche al empezar
+  const coches = { piezas: {}, coche: null, ruedas: [], conduciendo: false, casco: null };
+  const circuito = {
+    listo: false, grupo: new THREE.Group(), fase: 'fuera', amigos: [], karts: [], N: 800, L: 0,
+    px: null, pz: null, tx: null, tz: null, alto: null, turbos: [], cajas: [], hud: null, cuenta: 0, podio: null,
+  };
+  const VUELTAS = 3;
+  const ANCHO_PISTA = 12;
+  const NOMBRES_AMIGOS = ['Lucía', 'Hugo', 'Martina', 'Leo'];
+  const COLORES_KART = ['#ff4f8b', '#29b35a', '#ffb400', '#2a7ae0'];
+
+  // ---------- Vehículos: física sencilla de coche y de kart ----------
+  function nuevoVehiculo(malla, ruedas, o) {
+    return { malla, ruedas, x: 0, z: 0, y: 0, vy: 0, rumbo: 0, vel: 0, giro: 0, turbo: 0, enSuelo: true, ...o };
+  }
+  // Entrada del jugador: [giro (-1..1, derecha positivo), acelerador (-1..1)]
+  function mandosVehiculo(autoAcelera) {
+    let ix = jugador === 'nino' ? joy.x : 0, iy = jugador === 'nino' ? joy.y : 0;
+    if (teclas.has('KeyW') || teclas.has('ArrowUp')) iy += 1;
+    if (teclas.has('KeyS') || teclas.has('ArrowDown')) iy -= 1;
+    if (teclas.has('KeyD') || teclas.has('ArrowRight')) ix += 1;
+    if (teclas.has('KeyA') || teclas.has('ArrowLeft')) ix -= 1;
+    ix = clamp(ix, -1, 1);
+    iy = clamp(iy, -1, 1);
+    // En el kart acelera solo (como en los juegos de karts); hacia atrás frena
+    if (autoAcelera) iy = iy < -0.4 ? -1 : 1;
+    return [ix, iy];
+  }
+  function moverVehiculo(v, dt, giro, acel, suelo0, velMax) {
+    const vmax = velMax * (v.turbo > 0 ? 1.45 : 1);
+    v.turbo = Math.max(0, v.turbo - dt);
+    if (acel > 0) v.vel += acel * v.aceleracion * dt * (v.vel < vmax ? 1 : 0);
+    else if (acel < 0) v.vel += acel * v.frenada * dt;
+    v.vel -= v.vel * v.rozamiento * dt;
+    if (v.vel > vmax) v.vel = damp(v.vel, vmax, 2, dt);
+    v.vel = Math.max(v.vel, -v.aceleracion * 0.6);
+    if (v.turbo > 0) v.vel = Math.max(v.vel, vmax * 0.95);
+    // Gira más cuanto más rápido va (hasta un límite); marcha atrás, al revés
+    v.giro = damp(v.giro, giro, 8, dt);
+    const agarre = Math.min(1, Math.abs(v.vel) / 4) * Math.sign(v.vel || 1);
+    v.rumbo -= v.giro * v.volante * agarre * dt;
+    v.x += Math.sin(v.rumbo) * v.vel * dt;
+    v.z += Math.cos(v.rumbo) * v.vel * dt;
+    // Altura: pegado al suelo, o volando si el suelo se aleja (saltos)
+    const g = suelo0(v.x, v.z);
+    v.vy -= (v.gravedad || 18) * dt;
+    v.y += v.vy * dt;
+    if (v.y <= g) {
+      if (!v.enSuelo && v.vy < -4) v.aterriza = 0.25;
+      v.vy = Math.max(0, (g - (v.gAntes ?? g)) / Math.max(dt, 1e-3));
+      v.y = g;
+      v.enSuelo = true;
+    } else v.enSuelo = v.y - g < 0.05;
+    v.gAntes = g;
+  }
+  function colocarVehiculo(v, dt, ejes) {
+    const m = v.malla;
+    m.position.set(v.x, v.y, v.z);
+    // se inclina un poco con la pendiente (delante y detrás)
+    const f = ejes.largo / 2;
+    const suelo0 = v.inclinaFn || v.sueloFn;
+    const hDel = suelo0(v.x + Math.sin(v.rumbo) * f, v.z + Math.cos(v.rumbo) * f);
+    const hTras = suelo0(v.x - Math.sin(v.rumbo) * f, v.z - Math.cos(v.rumbo) * f);
+    const cabeceo = v.enSuelo ? -Math.atan2(hDel - hTras, ejes.largo) : damp(m.rotation.x, -v.vy * 0.03, 3, dt);
+    m.rotation.set(damp(m.rotation.x, cabeceo, 10, dt), v.rumbo, damp(m.rotation.z, -v.giro * Math.min(1, Math.abs(v.vel) / 10) * 0.05, 6, dt), 'YXZ');
+    // ruedas: giran con la velocidad y las de delante con el volante
+    v.ruedas.forEach((r, i) => {
+      r.rotation.x += v.vel * dt / ejes.radio;
+      r.parent.rotation.y = i < 2 ? -v.giro * 0.45 : 0;
+    });
+  }
+  // Cada rueda cuelga de un "eje" que gira con el volante; la rueda gira sobre sí misma
+  function ponerRuedas(malla, pieza, pos) {
+    return pos.map(([x, y, z]) => {
+      const eje = new THREE.Group();
+      eje.position.set(x, y, z);
+      const r = new THREE.Mesh(pieza.geometry, pieza.material);
+      r.castShadow = true;
+      eje.add(r);
+      malla.add(eje);
+      return r;
+    });
+  }
+
+  // ---------- El coche en la playa ----------
+  function construirCoche(g) {
+    if (!g) return;
+    g.scene.traverse((o) => { if (o.isMesh) coches.piezas[o.name] = o; });
+    const P = coches.piezas;
+    const cuerpo = new THREE.Group();
+    const car = new THREE.Mesh(P.Coche.geometry, P.Coche.material);
+    car.castShadow = car.receiveShadow = true;
+    cuerpo.add(car);
+    const ruedas = ponerRuedas(cuerpo, P.CocheRueda, [[0.87, 0.34, 1.45], [-0.87, 0.34, 1.45], [0.87, 0.34, -1.35], [-0.87, 0.34, -1.35]]);
+    scene.add(cuerpo);
+    const v = nuevoVehiculo(cuerpo, ruedas, { aceleracion: 7, frenada: 12, rozamiento: 0.35, volante: 1.6, sueloFn: (x, z) => suelo(x, z) });
+    v.x = APARCAMIENTO.x;
+    v.z = APARCAMIENTO.z;
+    v.y = suelo(v.x, v.z);
+    v.rumbo = Math.PI / 2;
+    coches.coche = v;
+    colocarVehiculo(v, 0.016, { largo: 2.8, radio: 0.34 });
+    // Puntos para subir (junto a la puerta del conductor) y la puerta del circuito en la playa
+    puntosAccion.push({ pos: new V3(), radio: 2.6, alto: 2.5, texto: 'Conducir', hacer: subirAlCoche,
+      visible: () => { const c = coches.coche; puntosAccion.cocheP.set(c.x, c.y, c.z); return !coches.conduciendo; } });
+    puntosAccion.cocheP = puntosAccion[puntosAccion.length - 1].pos;
+    // Arco de la puerta del circuito en la playa
+    const yP = suelo(PUERTA_CIRCUITO.x, PUERTA_CIRCUITO.z);
+    PUERTA_CIRCUITO.y = yP;
+    const matArco = new THREE.MeshStandardMaterial({ color: '#e2321f', roughness: 0.5 });
+    [-3.5, 3.5].forEach((dz) => {
+      const pilar = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.4, 5, 16), matArco);
+      pilar.position.set(PUERTA_CIRCUITO.x, yP + 2.5, PUERTA_CIRCUITO.z + dz);
+      pilar.castShadow = true;
+      scene.add(pilar);
+      colisiones.push({ x: PUERTA_CIRCUITO.x, z: PUERTA_CIRCUITO.z + dz, r: 0.45 });
+    });
+    const letrero = cartel('CIRCUITO DE KARTS', 8, 1.3);
+    letrero.position.set(PUERTA_CIRCUITO.x, yP + 5.2, PUERTA_CIRCUITO.z);
+    letrero.rotation.y = Math.PI / 2;
+    scene.add(letrero);
+    const cuadros = new THREE.Mesh(new THREE.PlaneGeometry(8, 0.5), new THREE.MeshBasicMaterial({ map: texturaCuadros(16, 1), side: THREE.DoubleSide }));
+    cuadros.position.set(PUERTA_CIRCUITO.x, yP + 4.3, PUERTA_CIRCUITO.z);
+    cuadros.rotation.y = Math.PI / 2;
+    scene.add(cuadros);
+    puntosAccion.push({ pos: PUERTA_CIRCUITO, radio: 4, alto: 3, texto: 'Ir al circuito', hacer: irAlCircuito });
+    // Casco de Manuel (se lo pone para el kart)
+    coches.casco = P.CascoManuel ? crearCascoManuel(P.CascoManuel) : null;
+  }
+
+  function texturaCuadros(nx, ny) {
+    const l = document.createElement('canvas');
+    l.width = nx * 16;
+    l.height = ny * 16;
+    const c = l.getContext('2d');
+    for (let i = 0; i < nx; i++) for (let j = 0; j < ny * 2; j++) {
+      c.fillStyle = (i + j) % 2 ? '#111' : '#fff';
+      c.fillRect(i * 16, j * 8, 16, 8);
+    }
+    const t = new THREE.CanvasTexture(l);
+    t.magFilter = THREE.NearestFilter;
+    return t;
+  }
+
+  function crearCascoManuel(pieza) {
+    const H = nino.huesos;
+    if (!H.Head) return null;
+    const g = nino.grupo;
+    const antesP = g.position.clone(), antesR = g.rotation.clone(), antesV = g.visible;
+    g.position.set(0, 0, 0);
+    g.rotation.set(0, 0, 0);
+    for (const [h, q] of nino.reposo) h.quaternion.copy(q);
+    g.updateMatrixWorld(true);
+    const cab = H.Head.getWorldPosition(new V3());
+    const tope = H.HeadTop_End ? H.HeadTop_End.getWorldPosition(new V3()) : cab.clone().add(new V3(0, 0.22, 0));
+    const alto = tope.y - cab.y;
+    const casco = new THREE.Mesh(pieza.geometry, pieza.material);
+    casco.position.set(cab.x, cab.y + alto * 0.52, cab.z + alto * 0.02);
+    casco.scale.set(alto * 0.86, alto * 0.9, alto * 0.88);
+    casco.updateMatrixWorld(true);
+    const local = H.Head.matrixWorld.clone().invert().multiply(casco.matrixWorld);
+    local.decompose(casco.position, casco.quaternion, casco.scale);
+    H.Head.add(casco);
+    casco.visible = false;
+    g.position.copy(antesP);
+    g.rotation.copy(antesR);
+    g.visible = antesV;
+    return casco;
+  }
+
+  function subirAlCoche() {
+    const c = coches.coche;
+    coches.conduciendo = true;
+    c.vel = 0;
+    nino.grupo.visible = false;
+    empezarAtraccion({ tipo: 'coche', pos: new V3(c.x, c.y, c.z), ry: c.rumbo, fijo: true, vehiculo: c,
+      actualizar: (dt, a) => {
+        const [ix, iy] = mandosVehiculo(false);
+        const xA = c.x, zA = c.z;
+        moverVehiculo(c, dt, ix, iy, c.sueloFn, 15);
+        // no entra en el agua ni atraviesa cosas
+        if (profundidad(c.x, c.z) > 0.3) { c.x = xA; c.z = zA; c.vel *= -0.2; }
+        const p = new V3(c.x, c.y, c.z);
+        chocar(p, 1.3, 0.3, false);
+        if (Math.hypot(p.x - c.x, p.z - c.z) > 0.001) { c.vel *= 0.6; c.x = p.x; c.z = p.z; }
+        colocarVehiculo(c, dt, { largo: 2.8, radio: 0.34 });
+        a.pos.set(c.x, c.y + 0.4, c.z);
+        a.ry = c.rumbo;
+        if (!coches.avisado && Math.abs(c.vel) > 3) { coches.avisado = true; ninoDice('¡Brum, brum!', 1.5); }
+      },
+      accion: () => (distXZ(ninoE.pos, PUERTA_CIRCUITO) < 7 ? { texto: 'Ir al circuito', hacer: irAlCircuito } :
+        Math.abs(c.vel) < 1.5 ? { texto: 'Bajar', hacer: bajarDelCoche } : { texto: '¡Pi, pi!', hacer: () => { pitar(); } }),
+      alSalir: () => {
+        coches.conduciendo = false;
+        nino.grupo.visible = true;
+      } });
+    ninoE.atr.salida = null;
+    avisar('¡A conducir! Busca el arco del circuito, al final de la playa', 2600);
+  }
+  function bajarDelCoche() {
+    const c = coches.coche;
+    const lado = new V3(-Math.cos(c.rumbo), 0, Math.sin(c.rumbo));  // a la izquierda del coche
+    ninoE.atr.salida = new V3(c.x + lado.x * 1.8, 0, c.z + lado.z * 1.8);
+    ninoE.atr.salida.y = suelo(ninoE.atr.salida.x, ninoE.atr.salida.z);
+    terminarAtraccion();
+  }
+  function pitar() {
+    ninoDice('¡Pi, pi!', 0.8);
+    try {
+      const ac = new (window.AudioContext || window.webkitAudioContext)();
+      [0, 0.22].forEach((t0) => {
+        const o = ac.createOscillator(), gn = ac.createGain();
+        o.type = 'square';
+        o.frequency.value = 440;
+        gn.gain.setValueAtTime(0.08, ac.currentTime + t0);
+        gn.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + t0 + 0.18);
+        o.connect(gn).connect(ac.destination);
+        o.start(ac.currentTime + t0);
+        o.stop(ac.currentTime + t0 + 0.2);
+      });
+      setTimeout(() => ac.close(), 800);
+    } catch (e) { /* sin sonido */ }
+  }
+
+  // =====================================================================
+  // ---------- El circuito ----------
+  // =====================================================================
+  const PUNTOS_PISTA = [[0, 0], [45, 0], [75, 8], [88, 32], [78, 56], [52, 62], [34, 48], [20, 30], [0, 32], [-22, 52],
+    [-50, 58], [-72, 42], [-78, 16], [-62, -4], [-32, -8]];
+  const PADDOCK = new V3(CIRC.x + 12, 0, CIRC.z - 30);   // puerta del circuito, donde esperan los niños
+
+  // Punto de la pista más cercano (busca cerca del último conocido)
+  function indicePista(x, z, desde) {
+    const N = circuito.N;
+    let mejor = desde ?? 0, d = Infinity;
+    const busca = desde === undefined ? N : 60;
+    for (let k = -busca; k <= busca; k++) {
+      const i = ((desde ?? 0) + k + N * 4) % N;
+      const dd = (circuito.px[i] - x) ** 2 + (circuito.pz[i] - z) ** 2;
+      if (dd < d) { d = dd; mejor = i; }
+    }
+    return mejor;
+  }
+  // Altura de la pista (la rampa de salto) y del suelo del circuito
+  function sueloCircuito(x, z, v) {
+    const i = indicePista(x, z, v ? v.indice : undefined);
+    if (v) v.indice = i;
+    const dx = x - circuito.px[i], dz = z - circuito.pz[i];
+    const lateral = dx * circuito.tz[i] - dz * circuito.tx[i];
+    if (v) v.lateral = lateral;
+    return Math.abs(lateral) < ANCHO_PISTA / 2 + 0.5 ? circuito.alto[i] : 0.02;
+  }
+
+  function construirCircuito(amigosG) {
+    const G = circuito.grupo;
+    G.visible = false;
+    scene.add(G);
+    // Trazado: curva cerrada y puntos repartidos a la misma distancia
+    const curva = new THREE.CatmullRomCurve3(PUNTOS_PISTA.map(([x, z]) => new V3(CIRC.x + x, 0, CIRC.z + z)), true, 'catmullrom', 0.5);
+    const N = circuito.N;
+    const pts = curva.getSpacedPoints(N);
+    circuito.L = curva.getLength();
+    circuito.ds = circuito.L / N;
+    circuito.px = new Float32Array(N);
+    circuito.pz = new Float32Array(N);
+    circuito.tx = new Float32Array(N);
+    circuito.tz = new Float32Array(N);
+    circuito.alto = new Float32Array(N);
+    circuito.curva = new Float32Array(N);
+    for (let i = 0; i < N; i++) {
+      circuito.px[i] = pts[i].x;
+      circuito.pz[i] = pts[i].z;
+    }
+    for (let i = 0; i < N; i++) {
+      const a = (i + 1) % N, b = (i - 1 + N) % N;
+      const tx = circuito.px[a] - circuito.px[b], tz = circuito.pz[a] - circuito.pz[b];
+      const l = Math.hypot(tx, tz);
+      circuito.tx[i] = tx / l;
+      circuito.tz[i] = tz / l;
+    }
+    for (let i = 0; i < N; i++) {
+      const a = (i + 8) % N;
+      circuito.curva[i] = Math.abs(Math.atan2(circuito.tx[i] * circuito.tz[a] - circuito.tz[i] * circuito.tx[a], circuito.tx[i] * circuito.tx[a] + circuito.tz[i] * circuito.tz[a]));
+    }
+    const cercano = (x, z) => indicePista(CIRC.x + x, CIRC.z + z);
+    // Rampa de salto en la última recta
+    const iRampa = cercano(-47, -6);
+    const largoRampa = Math.round(9 / circuito.ds);
+    for (let k = 0; k < largoRampa; k++) circuito.alto[(iRampa + k) % N] = 1.5 * (k / largoRampa) + 0.02;
+    circuito.iRampa = iRampa;
+    for (let i = 0; i < N; i++) if (!circuito.alto[i]) circuito.alto[i] = 0.02;
+
+    // Hierba
+    const lienzoH = document.createElement('canvas');
+    lienzoH.width = lienzoH.height = 128;
+    const cH = lienzoH.getContext('2d');
+    for (let i = 0; i < 8; i++) {
+      cH.fillStyle = i % 2 ? '#5fb043' : '#6cc04c';
+      cH.fillRect(0, i * 16, 128, 16);
+    }
+    const texH = new THREE.CanvasTexture(lienzoH);
+    texH.wrapS = texH.wrapT = THREE.RepeatWrapping;
+    texH.repeat.set(40, 40);
+    texH.encoding = THREE.sRGBEncoding;
+    const hierba = new THREE.Mesh(new THREE.PlaneGeometry(420, 420), new THREE.MeshStandardMaterial({ map: texH, roughness: 1 }));
+    hierba.rotation.x = -Math.PI / 2;
+    hierba.position.set(CIRC.x + 5, -0.01, CIRC.z + 25);
+    hierba.receiveShadow = true;
+    G.add(hierba);
+
+    // Asfalto con líneas blancas en los bordes
+    const lienzoA = document.createElement('canvas');
+    lienzoA.width = 256;
+    lienzoA.height = 256;
+    const cA = lienzoA.getContext('2d');
+    cA.fillStyle = '#4a4e57';
+    cA.fillRect(0, 0, 256, 256);
+    for (let k = 0; k < 900; k++) {
+      cA.fillStyle = Math.random() < 0.5 ? '#555a64' : '#40444c';
+      cA.fillRect(Math.random() * 256, Math.random() * 256, 2, 2);
+    }
+    cA.fillStyle = '#f4f4f0';
+    cA.fillRect(8, 0, 8, 256);
+    cA.fillRect(240, 0, 8, 256);
+    for (let y = 0; y < 256; y += 64) cA.fillRect(126, y, 4, 32);
+    const texA = new THREE.CanvasTexture(lienzoA);
+    texA.wrapS = texA.wrapT = THREE.RepeatWrapping;
+    texA.encoding = THREE.sRGBEncoding;
+    texA.anisotropy = 4;
+    const cinta = (ancho, desplaza, altura, mat, colores) => {
+      const pos = [], uv = [], col = [], ind = [];
+      for (let i = 0; i <= N; i++) {
+        const k = i % N;
+        const nx = circuito.tz[k], nz = -circuito.tx[k];
+        const y = circuito.alto[k] + altura;
+        for (const lado of [-1, 1]) {
+          const d = desplaza + lado * ancho / 2;
+          pos.push(circuito.px[k] + nx * d, y, circuito.pz[k] + nz * d);
+          uv.push(lado < 0 ? 0 : 1, i * circuito.ds / 12);
+          if (colores) col.push(...colores(i));
+        }
+        if (i < N) {
+          const a = i * 2;
+          ind.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
+        }
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+      if (colores) g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+      g.setIndex(ind);
+      g.computeVertexNormals();
+      const m = new THREE.Mesh(g, mat);
+      m.receiveShadow = true;
+      G.add(m);
+      return m;
+    };
+    cinta(ANCHO_PISTA, 0, 0.02, new THREE.MeshStandardMaterial({ map: texA, roughness: 0.85, side: THREE.DoubleSide }));
+    // Pianos rojos y blancos a los dos lados
+    const rojo = new THREE.Color('#e2321f').convertSRGBToLinear(), blanco = new THREE.Color('#f5f5f0').convertSRGBToLinear();
+    const matPiano = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6, side: THREE.DoubleSide });
+    const pianoCol = (i) => { const c = Math.floor(i * circuito.ds / 2) % 2 ? rojo : blanco; return [c.r, c.g, c.b]; };
+    cinta(1.2, ANCHO_PISTA / 2 + 0.6, 0.03, matPiano, pianoCol);
+    cinta(1.2, -ANCHO_PISTA / 2 - 0.6, 0.03, matPiano, pianoCol);
+    // Rampa (un plano inclinado con flechas)
+    const matRampa = new THREE.MeshStandardMaterial({ color: '#ffb400', roughness: 0.5 });
+    for (let k = 0; k < largoRampa; k += 1) {
+      const i = (iRampa + k) % N;
+      const tabla = new THREE.Mesh(new THREE.BoxGeometry(ANCHO_PISTA * 0.7, 0.12, circuito.ds * 1.05), k % 2 ? matRampa : new THREE.MeshStandardMaterial({ color: '#222', roughness: 0.6 }));
+      tabla.position.set(circuito.px[i], circuito.alto[i], circuito.pz[i]);
+      tabla.rotation.set(-Math.atan2(1.5, 9), Math.atan2(circuito.tx[i], circuito.tz[i]), 0, 'YXZ');
+      G.add(tabla);
+    }
+    const fin = (iRampa + largoRampa) % N;
+    const pared = new THREE.Mesh(new THREE.BoxGeometry(ANCHO_PISTA * 0.7, 1.55, 0.3), matRampa);
+    pared.position.set(circuito.px[fin], 0.78, circuito.pz[fin]);
+    pared.rotation.y = Math.atan2(circuito.tx[fin], circuito.tz[fin]);
+    G.add(pared);
+
+    // Línea de salida (cuadros) y arco con el semáforo
+    const iSal = 0;
+    const salida = new THREE.Mesh(new THREE.PlaneGeometry(ANCHO_PISTA, 1.6), new THREE.MeshBasicMaterial({ map: texturaCuadros(12, 2) }));
+    salida.rotation.set(-Math.PI / 2, Math.atan2(circuito.tx[iSal], circuito.tz[iSal]), 0, 'YXZ');  // a lo ancho de la pista
+    salida.position.set(circuito.px[iSal], 0.05, circuito.pz[iSal]);
+    G.add(salida);
+    const arco = (i, texto, color) => {
+      const nx = circuito.tz[i], nz = -circuito.tx[i];
+      const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.4 });
+      [-1, 1].forEach((l) => {
+        const p = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.45, 6, 16), mat);
+        p.position.set(circuito.px[i] + nx * l * (ANCHO_PISTA / 2 + 1.2), 3, circuito.pz[i] + nz * l * (ANCHO_PISTA / 2 + 1.2));
+        p.castShadow = true;
+        G.add(p);
+        colisiones.push({ x: p.position.x, z: p.position.z, r: 0.5 });
+      });
+      const letrero = cartel(texto, ANCHO_PISTA + 3, 1.6);
+      letrero.position.set(circuito.px[i], 6.2, circuito.pz[i]);
+      letrero.rotation.y = Math.atan2(circuito.tx[i], circuito.tz[i]) + Math.PI;
+      G.add(letrero);
+      return letrero;
+    };
+    arco(iSal, 'SALIDA · META', '#e2321f');
+    arco(cercano(80, 45), '¡TURBO!', '#2a7ae0');
+    arco(cercano(-35, 58), 'CIRCUITO DE KARTS', '#29b35a');
+    // Semáforo encima de la salida
+    circuito.luces = [];
+    for (let k = 0; k < 3; k++) {
+      const luz = new THREE.Mesh(new THREE.SphereGeometry(0.35, 16, 12), new THREE.MeshBasicMaterial({ color: '#330000' }));
+      luz.position.set(circuito.px[iSal] + circuito.tz[iSal] * (k - 1) * 0.9, 7.6, circuito.pz[iSal] - circuito.tx[iSal] * (k - 1) * 0.9);
+      G.add(luz);
+      circuito.luces.push(luz);
+    }
+
+    // Turbos (flechas que brillan) y cajas sorpresa
+    const lienzoT = document.createElement('canvas');
+    lienzoT.width = 64;
+    lienzoT.height = 128;
+    const cT = lienzoT.getContext('2d');
+    cT.fillStyle = '#ff8a00';
+    cT.fillRect(0, 0, 64, 128);
+    cT.fillStyle = '#fff36a';
+    for (let y = 0; y < 128; y += 42) {
+      cT.beginPath();
+      cT.moveTo(8, y + 36); cT.lineTo(32, y + 10); cT.lineTo(56, y + 36); cT.lineTo(44, y + 36); cT.lineTo(32, y + 24); cT.lineTo(20, y + 36);
+      cT.fill();
+    }
+    const texT = new THREE.CanvasTexture(lienzoT);
+    texT.wrapT = THREE.RepeatWrapping;
+    texT.encoding = THREE.sRGBEncoding;
+    circuito.texTurbo = texT;
+    [[60, 3, 0], [86, 26, 0], [-12, 42, 0], [-76, 30, 0], [30, 44, 0]].forEach(([x, z]) => {
+      const i = cercano(x, z);
+      const pad = new THREE.Mesh(new THREE.PlaneGeometry(3, 5), new THREE.MeshBasicMaterial({ map: texT, toneMapped: false }));
+      pad.rotation.set(-Math.PI / 2, Math.atan2(circuito.tx[i], circuito.tz[i]) + Math.PI, 0, 'YXZ');  // flechas hacia delante
+      pad.position.set(circuito.px[i], circuito.alto[i] + 0.04, circuito.pz[i]);
+      G.add(pad);
+      circuito.turbos.push({ i, x: pad.position.x, z: pad.position.z });
+    });
+    const lienzoC = document.createElement('canvas');
+    lienzoC.width = lienzoC.height = 128;
+    const cC = lienzoC.getContext('2d');
+    const grad = cC.createLinearGradient(0, 0, 128, 128);
+    ['#ff4f8b', '#ffb400', '#29b35a', '#2a7ae0', '#9a4fe0'].forEach((c, k) => grad.addColorStop(k / 4, c));
+    cC.fillStyle = grad;
+    cC.fillRect(0, 0, 128, 128);
+    cC.fillStyle = '#fff';
+    cC.font = '900 96px sans-serif';
+    cC.textAlign = 'center';
+    cC.textBaseline = 'middle';
+    cC.fillText('?', 64, 70);
+    const texC = new THREE.CanvasTexture(lienzoC);
+    texC.encoding = THREE.sRGBEncoding;
+    const matCaja = new THREE.MeshStandardMaterial({ map: texC, transparent: true, opacity: 0.85, emissive: '#ffffff', emissiveMap: texC, emissiveIntensity: 0.4 });
+    [[84, 18], [-62, 54], [8, 31]].forEach(([x, z]) => {
+      const i = cercano(x, z);
+      [-3.5, 0, 3.5].forEach((d) => {
+        const c = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), matCaja);
+        c.position.set(circuito.px[i] + circuito.tz[i] * d, 1, circuito.pz[i] - circuito.tx[i] * d);
+        G.add(c);
+        circuito.cajas.push({ m: c, oculta: 0 });
+      });
+    });
+
+    // Neumáticos en el exterior de las curvas, árboles, gradas con público y globos
+    const toro = new THREE.TorusGeometry(0.42, 0.18, 8, 14);
+    toro.rotateX(Math.PI / 2);
+    const neum = new THREE.InstancedMesh(toro, new THREE.MeshStandardMaterial({ roughness: 0.8 }), 900);
+    let nn = 0;
+    const mm = new THREE.Matrix4(), cc = new THREE.Color();
+    for (let i = 0; i < N && nn < 890; i += 2) {
+      if (circuito.curva[i] < 0.06) continue;
+      const giroSigno = Math.sign(circuito.tx[i] * circuito.tz[(i + 8) % N] - circuito.tz[i] * circuito.tx[(i + 8) % N]);
+      const d = -giroSigno * (ANCHO_PISTA / 2 + 3.2);
+      for (let h = 0; h < 2; h++) {
+        mm.makeTranslation(circuito.px[i] + circuito.tz[i] * d, 0.18 + h * 0.36, circuito.pz[i] - circuito.tx[i] * d);
+        neum.setMatrixAt(nn, mm);
+        neum.setColorAt(nn, cc.set(Math.floor(i / 6) % 3 === 0 ? COLORES_KART[Math.floor(i / 18) % 4] : '#1c1c1c'));
+        nn++;
+      }
+      colisiones.push({ x: circuito.px[i] + circuito.tz[i] * d, z: circuito.pz[i] - circuito.tx[i] * d, r: 0.6, circuito: true });
+    }
+    neum.count = nn;
+    neum.castShadow = true;
+    G.add(neum);
+    circuito.neumaticos = colisiones.filter((c) => c.circuito);
+    const arboles = new THREE.InstancedMesh(new THREE.SphereGeometry(1.8, 12, 10), new THREE.MeshStandardMaterial({ color: '#3f9a3a', roughness: 0.9 }), 140);
+    const troncos = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.25, 0.35, 2.4, 8), new THREE.MeshStandardMaterial({ color: '#7a5230' }), 140);
+    let na = 0;
+    for (let k = 0; k < 2000 && na < 140; k++) {
+      const x = CIRC.x + (Math.random() - 0.5) * 300, z = CIRC.z + 25 + (Math.random() - 0.5) * 260;
+      const i = indicePista(x, z);
+      if (Math.hypot(x - circuito.px[i], z - circuito.pz[i]) < ANCHO_PISTA + 8 || Math.hypot(x - PADDOCK.x, z - PADDOCK.z) < 18) continue;
+      const s = 0.8 + Math.random() * 0.8;
+      mm.compose(new V3(x, 2.4 * s + 1, z), new THREE.Quaternion(), new V3(s, s * 1.1, s));
+      arboles.setMatrixAt(na, mm);
+      mm.compose(new V3(x, 1.2 * s, z), new THREE.Quaternion(), new V3(s, s, s));
+      troncos.setMatrixAt(na, mm);
+      na++;
+    }
+    arboles.count = troncos.count = na;
+    arboles.castShadow = troncos.castShadow = true;
+    G.add(arboles, troncos);
+    // Grada junto a la recta de salida con público de colores
+    const gx = CIRC.x + 22, gz = CIRC.z + 13;
+    for (let k = 0; k < 4; k++) {
+      const esc = new THREE.Mesh(new THREE.BoxGeometry(26, 0.6, 1.4), new THREE.MeshStandardMaterial({ color: '#cfd6dc' }));
+      esc.position.set(gx, 0.3 + k * 0.6, gz + k * 1.4);
+      esc.castShadow = esc.receiveShadow = true;
+      G.add(esc);
+    }
+    const publico = new THREE.InstancedMesh(new THREE.CapsuleGeometry(0.22, 0.4, 4, 8), new THREE.MeshStandardMaterial({ roughness: 0.7 }), 110);
+    for (let k = 0; k < 110; k++) {
+      const fila = k % 4;
+      mm.makeTranslation(gx - 12.5 + (k / 4 | 0) * 0.93, 0.9 + fila * 0.6, gz + fila * 1.4);
+      publico.setMatrixAt(k, mm);
+      publico.setColorAt(k, cc.set(['#ff4f8b', '#29b35a', '#ffb400', '#2a7ae0', '#ffffff', '#e2321f'][k % 6]));
+    }
+    G.add(publico);
+    circuito.publico = publico;
+    circuito.globos = [];
+    for (let k = 0; k < 14; k++) {
+      const gl = new THREE.Mesh(new THREE.SphereGeometry(0.5, 14, 12), new THREE.MeshStandardMaterial({ color: COLORES_KART[k % 4], roughness: 0.3 }));
+      gl.scale.y = 1.2;
+      gl.position.set(gx - 13 + k * 2, 8 + Math.random() * 2, gz + 6);
+      G.add(gl);
+      circuito.globos.push(gl);
+    }
+
+    // ---------- La puerta del circuito (paddock), el podio y los karts ----------
+    const arcoP = cartel('CIRCUITO DE KARTS', 9, 1.4);
+    arcoP.position.set(PADDOCK.x, 5.4, PADDOCK.z - 4);
+    arcoP.rotation.y = Math.PI;  // mira hacia donde llega Manuel
+    G.add(arcoP);
+    [-4.5, 4.5].forEach((dx) => {
+      const p = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.4, 5.4, 16), new THREE.MeshStandardMaterial({ color: '#ffb400' }));
+      p.position.set(PADDOCK.x + dx, 2.7, PADDOCK.z - 4);
+      G.add(p);
+      colisiones.push({ x: p.position.x, z: p.position.z, r: 0.45 });
+    });
+    const volver = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.3, 0.05, 32), new THREE.MeshBasicMaterial({ color: '#ffd42a', transparent: true, opacity: 0.7 }));
+    volver.position.set(PADDOCK.x, 0.05, PADDOCK.z - 7);
+    G.add(volver);
+    puntosAccion.push({ pos: new V3(PADDOCK.x, 0.02, PADDOCK.z - 7), radio: 1.8, texto: 'Volver a la playa', hacer: volverDelCircuito,
+      visible: () => circuito.fase === 'paddock' || circuito.fase === 'fin' });
+    // Podio (1, 2 y 3)
+    circuito.podio = new THREE.Group();
+    [[0, 1.2, '1'], [-2, 0.8, '2'], [2, 0.5, '3']].forEach(([dx, h, n]) => {
+      const b = new THREE.Mesh(new THREE.BoxGeometry(1.9, h, 1.6), new THREE.MeshStandardMaterial({ color: n === '1' ? '#ffd42a' : n === '2' ? '#cfd6dc' : '#d58b4a' }));
+      b.position.set(dx, h / 2, 0);
+      b.castShadow = b.receiveShadow = true;
+      circuito.podio.add(b);
+      const num = cartel(n, 0.7, 0.7);
+      num.position.set(dx, h / 2, 0.81);
+      circuito.podio.add(num);
+    });
+    circuito.podio.position.set(PADDOCK.x - 12, 0, PADDOCK.z + 4);
+    G.add(circuito.podio);
+    // Se puede subir a los cajones del podio
+    [[0, 1.2], [-2, 0.8], [2, 0.5]].forEach(([dx, h]) => {
+      const x = circuito.podio.position.x + dx, z = circuito.podio.position.z;
+      plataformas.push({ x0: x - 0.95, x1: x + 0.95, z0: z - 0.8, z1: z + 0.8, y: () => h });
+    });
+    // Karts: uno por niño y el de Manuel (blanco, con las franjas azul, morado y rojo de su coche)
+    const P = coches.piezas;
+    for (let k = 0; k < 5; k++) {
+      const grupo = new THREE.Group();
+      const mat = P.Kart.material.clone();
+      mat.color.set(k < 4 ? COLORES_KART[k] : '#ffffff');
+      const m = new THREE.Mesh(P.Kart.geometry, mat);
+      m.castShadow = true;
+      grupo.add(m);
+      if (k === 4) {
+        // franjas del coche de Manuel en el morro
+        ['#1f8fe0', '#2b2f8f', '#e2321f'].forEach((c, j) => {
+          const f = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.02, 0.36), new THREE.MeshStandardMaterial({ color: c }));
+          f.position.set(-0.2 + j * 0.17, 0.33, 0.78);
+          f.rotation.x = 0.15;
+          grupo.add(f);
+        });
+      }
+      const ruedas = ponerRuedas(grupo, P.KartRueda, [[0.62, 0.13, 0.62], [-0.62, 0.13, 0.62], [0.62, 0.13, -0.72], [-0.62, 0.13, -0.72]]);
+      G.add(grupo);
+      const v = nuevoVehiculo(grupo, ruedas, { aceleracion: 9, frenada: 16, rozamiento: 0.25, volante: 2.1, gravedad: 11, sueloFn: null });
+      v.sueloFn = (x, z) => sueloCircuito(x, z, v);
+      v.inclinaFn = (x, z) => sueloCircuito(x, z);
+      v.id = k;
+      circuito.karts.push(v);
+    }
+    // Los amigos
+    (amigosG || []).forEach((g, k) => {
+      if (!g) return;
+      const p = prepararPadre(g);
+      let casco = null;
+      p.grupo.traverse((o) => { if (o.isMesh && o.name === 'Casco') casco = o; });
+      if (casco) casco.visible = false;
+      p.casco = casco;
+      p.nombre = NOMBRES_AMIGOS[k];
+      p.globo = crearGlobo();
+      // altura de la cadera (el hueso "raiz" empieza en la pelvis)
+      let raiz = null;
+      p.grupo.traverse((o) => { if (o.isBone && o.name === 'raiz') raiz = o; });
+      p.grupo.updateMatrixWorld(true);
+      p.cadera = raiz ? raiz.getWorldPosition(new V3()).y : 0.6;
+      G.add(p.grupo);
+      circuito.amigos.push(p);
+    });
+    colocarEnPaddock();
+    circuito.listo = true;
+
+    // Marcador de la carrera
+    const hud = document.createElement('div');
+    hud.className = 'brujula carrera';
+    hud.hidden = true;
+    document.body.appendChild(hud);
+    circuito.hud = hud;
+    const grande = document.createElement('div');
+    grande.className = 'cuenta-atras';
+    grande.hidden = true;
+    document.body.appendChild(grande);
+    circuito.grande = grande;
+  }
+
+  function colocarEnPaddock() {
+    // Los niños esperan en la puerta, delante de sus karts, y saludan
+    circuito.amigos.forEach((p, k) => {
+      p.grupo.position.set(PADDOCK.x - 4.5 + k * 3, 0, PADDOCK.z + 2);
+      p.grupo.rotation.set(0, Math.PI, 0);
+      if (p.casco) p.casco.visible = false;
+      animarPadre(p, 'saludar');
+      p.enKart = false;
+    });
+    circuito.karts.forEach((v, k) => {
+      v.x = PADDOCK.x - 4.5 + k * 3;
+      v.z = PADDOCK.z + 5.5;
+      v.y = 0.02;
+      v.rumbo = Math.PI;
+      v.vel = 0;
+      v.malla.position.set(v.x, v.y, v.z);
+      v.malla.rotation.set(0, v.rumbo, 0);
+    });
+  }
+
+  function irAlCircuito() {
+    if (!circuito.listo) return;
+    fundido(() => {
+      if (ninoE.modo === 'atraccion') {
+        ninoE.atr.salida = null;
+        terminarAtraccion();
+      }
+      if (balon.estado === 'mano') { balon.estado = 'libre'; balon.pos.set(PUERTA_CIRCUITO.x + 3, PUERTA_CIRCUITO.y + 0.5, PUERTA_CIRCUITO.z); balon.vel.set(0, 0, 0); }
+      circuito.grupo.visible = true;
+      circuito.fase = 'paddock';
+      colocarEnPaddock();
+      ninoE.modo = 'libre';
+      ninoE.pos.set(PADDOCK.x, 0.02, PADDOCK.z - 6);
+      ninoE.rumbo = 0;
+      ninoE.vy = 0;
+      estado.pos.set(PADDOCK.x - 8, 0.02, PADDOCK.z - 2);
+      estado.descansando = true;
+      cam.yaw = Math.PI;
+      cam.pitch = 0.3;
+      cam.dist = 7;
+      cam.objetivo.copy(ninoE.pos);
+      musica.proximo = 'playa';
+      sumarNino('coche');
+      setTimeout(pintarTarea, 50);
+      setTimeout(() => {
+        circuito.amigos.forEach((p, k) => setTimeout(() => diga(p, ['¡Hola, Manuel!', '¡Te estábamos esperando!', '¿Echamos una carrera?', '¡Ponte el casco!'][k], 2.6), k * 700));
+      }, 500);
+    });
+  }
+  function volverDelCircuito() {
+    fundido(() => {
+      circuito.fase = 'fuera';
+      circuito.grupo.visible = false;
+      circuito.hud.hidden = true;
+      if (coches.casco) coches.casco.visible = false;
+      ninoE.modo = 'libre';
+      ninoE.pos.set(PUERTA_CIRCUITO.x + 5, 0, PUERTA_CIRCUITO.z);
+      ninoE.pos.y = suelo(ninoE.pos.x, ninoE.pos.z);
+      ninoE.rumbo = Math.PI / 2;
+      estado.descansando = false;
+      estado.pos.set(PUERTA_CIRCUITO.x + 6, 0, PUERTA_CIRCUITO.z + 1.5);
+      estado.pos.y = suelo(estado.pos.x, estado.pos.z);
+      cam.yaw = -Math.PI / 2;
+      cam.pitch = 0.36;
+      cam.dist = 6.5;
+      cam.objetivo.copy(ninoE.pos);
+    });
+  }
+
+  // ---------- La carrera ----------
+  function prepararCarrera() {
+    fundido(() => {
+      circuito.fase = 'cuenta';
+      circuito.cuenta = 4.2;
+      circuito.terminados = [];
+      const N = circuito.N;
+      // Parrilla: dos filas detrás de la línea de salida; Manuel sale en tercera posición
+      const orden = [0, 1, 4, 2, 3];  // índice de kart en cada puesto de salida
+      orden.forEach((k, puesto) => {
+        const v = circuito.karts[k];
+        const i = (N - Math.round((6 + puesto * 5) / circuito.ds)) % N;
+        const lado = puesto % 2 ? -2.6 : 2.6;
+        v.x = circuito.px[i] + circuito.tz[i] * lado;
+        v.z = circuito.pz[i] - circuito.tx[i] * lado;
+        v.y = 0.02;
+        v.vy = 0;
+        v.rumbo = Math.atan2(circuito.tx[i], circuito.tz[i]);
+        v.vel = 0;
+        v.turbo = 0;
+        v.indice = i;
+        v.vuelta = 0;             // veces que ha cruzado la línea (la primera empieza la vuelta 1)
+        v.progreso = i;
+        v.mitad = true;
+        v.lado = lado;
+        v.terminado = false;
+        v.ritmo = [1.0, 0.965, 0, 0.93, 0.9][k];  // lo rápidos que son los niños
+      });
+      // Los amigos, con el casco puesto, sentados en sus karts
+      circuito.amigos.forEach((p) => {
+        if (p.casco) p.casco.visible = true;
+        animarPadre(p, 'conducir');
+        p.enKart = true;
+      });
+      if (coches.casco) coches.casco.visible = true;
+      const v = circuito.karts[4];
+      empezarAtraccion({ tipo: 'kart', pos: new V3(v.x, 0.3, v.z), ry: v.rumbo, sentado: true, fijo: true, volante: true, vehiculo: v,
+        asientoY: 0.34,
+        actualizar: (dt, a) => {
+          a.pos.set(v.x - Math.sin(v.rumbo) * 0.25, v.y, v.z - Math.cos(v.rumbo) * 0.25);
+          a.asientoY = v.y + 0.34;
+          a.ry = v.rumbo;
+          a.rx = v.malla.rotation.x;
+        },
+        accion: () => ({ texto: '¡Pi, pi!', hacer: pitar }),
+        saltar: () => { if (v.enSuelo) { v.vy = 4.5; v.enSuelo = false; } } });
+      cam.yaw = v.rumbo + Math.PI;
+      cam.pitch = 0.28;
+      cam.dist = 6;
+      cam.objetivo.copy(ninoE.pos);
+      circuito.hud.hidden = false;
+      circuito.luces.forEach((l) => l.material.color.set('#330000'));
+    });
+  }
+
+  function actualizarKart(v, dt, esJugador) {
+    const N = circuito.N;
+    let giro = 0, acel = 0;
+    if (circuito.fase === 'carrera' && !v.terminado) {
+      if (esJugador) {
+        [giro, acel] = mandosVehiculo(true);
+        if (autopiloto) {
+          const i = (v.indice + 14) % N;
+          const lx = circuito.px[i] - v.x, lz = circuito.pz[i] - v.z;
+          const deseado = Math.atan2(lx, lz);
+          giro = clamp(-angulo(0, deseado - v.rumbo, 1) * 2.5, -1, 1);
+          acel = 1;
+        }
+      } else {
+        // Los niños siguen la pista (cada uno por su carril) y frenan un poco en las curvas
+        const mira = (v.indice + 10) % N;
+        const lado = v.lado * (0.6 + 0.4 * Math.sin(reloj.elapsedTime * 0.3 + v.id));
+        const ox = circuito.px[mira] + circuito.tz[mira] * lado, oz = circuito.pz[mira] - circuito.tx[mira] * lado;
+        const deseado = Math.atan2(ox - v.x, oz - v.z);
+        let d = deseado - v.rumbo;
+        d = Math.atan2(Math.sin(d), Math.cos(d));
+        giro = clamp(-d * 2.2, -1, 1);
+        acel = 1;
+        // ni muy lejos ni muy cerca de Manuel: la carrera está reñida
+        const yo = circuito.karts[4];
+        const ventaja = (v.vuelta * N + v.progreso) - (yo.vuelta * N + yo.progreso);
+        v.velMax = 13.2 * v.ritmo * (1 - Math.min(0.3, circuito.curva[mira] * 1.6)) * (ventaja > 40 ? 0.9 : ventaja < -60 ? 1.08 : 1);
+      }
+    }
+    // En la hierba va más despacio
+    const fuera = Math.abs(v.lateral || 0) > ANCHO_PISTA / 2 + 1.2;
+    const vmax = (esJugador ? 14 : v.velMax || 13) * (fuera ? 0.5 : 1);
+    moverVehiculo(v, dt, giro, acel, v.sueloFn, vmax);
+    // Límite exterior: no se aleja de la pista
+    if (Math.abs(v.lateral || 0) > ANCHO_PISTA / 2 + 9) {
+      const i = v.indice;
+      const s = Math.sign(v.lateral);
+      v.x = circuito.px[i] + circuito.tz[i] * s * (ANCHO_PISTA / 2 + 9);
+      v.z = circuito.pz[i] - circuito.tx[i] * s * (ANCHO_PISTA / 2 + 9);
+      v.vel *= 0.7;
+    }
+    // Choques con los neumáticos
+    for (const c of circuito.neumaticos) {
+      const dx = v.x - c.x, dz = v.z - c.z, d = Math.hypot(dx, dz);
+      if (d < 1.4 && d > 0.001) { v.x = c.x + dx / d * 1.4; v.z = c.z + dz / d * 1.4; v.vel *= 0.85; }
+    }
+    // Turbos y cajas sorpresa
+    for (const t of circuito.turbos) {
+      if (Math.hypot(v.x - t.x, v.z - t.z) < 2.4 && v.turbo <= 0 && v.enSuelo) {
+        v.turbo = 1.3;
+        if (esJugador) { avisar('¡Turbo!', 800); ninoDice('¡Wiii!', 0.8); }
+      }
+    }
+    for (const c of circuito.cajas) {
+      if (c.oculta > 0) continue;
+      if (Math.hypot(v.x - c.m.position.x, v.z - c.m.position.z) < 1.3) {
+        c.oculta = 3;
+        v.turbo = Math.max(v.turbo, 2);
+        if (esJugador) avisar(['¡Turbo doble!', '¡Supervelocidad!', '¡Estrella de turbo!'][Math.floor(Math.random() * 3)], 1000);
+      }
+    }
+    // Vueltas: al pasar por la mitad y luego por la salida
+    const antes = v.progreso, ahora = v.indice;
+    if (ahora < N * 0.25 && antes > N * 0.75 && v.mitad) {
+      v.vuelta++;
+      v.mitad = false;
+      if (esJugador && v.vuelta >= 2 && v.vuelta <= VUELTAS) avisar(v.vuelta === VUELTAS ? '¡Última vuelta!' : `Vuelta ${v.vuelta} de ${VUELTAS}`, 1600);
+      if (v.vuelta > VUELTAS && !v.terminado) terminaKart(v);
+    }
+    if (ahora > N * 0.45 && ahora < N * 0.55) v.mitad = true;
+    v.progreso = ahora;
+    colocarVehiculo(v, dt, { largo: 1.4, radio: 0.13 });
+    if (v.aterriza > 0) v.aterriza -= dt;
+  }
+
+  function terminaKart(v) {
+    v.terminado = true;
+    circuito.terminados.push(v.id);
+    const puesto = circuito.terminados.length;
+    if (v.id === 4) {
+      circuito.fase = 'fin';
+      circuito.puestoManuel = puesto;
+      circuito.finT = 0;
+      const podio = puesto <= 3;
+      avisar(podio ? `¡Has quedado ${puesto}º! ¡Al podio!` : `Has quedado ${puesto}º. ¡Casi! Inténtalo otra vez`, 3200);
+      ninoDice(puesto === 1 ? '¡He ganado!' : podio ? '¡Al podio!' : '¡La próxima gano!', 2.4);
+      if (podio) sumarNino('carrera');
+    }
+  }
+
+  function posiciones() {
+    const N = circuito.N;
+    return circuito.karts.slice().sort((a, b) => {
+      if (a.terminado && b.terminado) return circuito.terminados.indexOf(a.id) - circuito.terminados.indexOf(b.id);
+      if (a.terminado) return -1;
+      if (b.terminado) return 1;
+      return (b.vuelta * N + b.progreso) - (a.vuelta * N + a.progreso);
+    });
+  }
+
+  function ceremonia() {
+    // Todos al paddock; los tres primeros suben al podio
+    fundido(() => {
+      circuito.fase = 'paddock';
+      circuito.hud.hidden = true;
+      colocarEnPaddock();
+      if (ninoE.modo === 'atraccion') { ninoE.atr.salida = null; terminarAtraccion(); }
+      if (coches.casco) coches.casco.visible = false;
+      const orden = posiciones().map((v) => v.id);
+      const sitios = [[0, 1.2], [-2, 0.8], [2, 0.5]];
+      ninoE.pos.set(PADDOCK.x - 8, 0.02, PADDOCK.z + 7);
+      orden.slice(0, 3).forEach((id, k) => {
+        const [dx, h] = sitios[k];
+        const x = circuito.podio.position.x + dx, z = circuito.podio.position.z;
+        if (id === 4) {
+          ninoE.pos.set(x, h, z);
+          ninoE.rumbo = 0;
+          ninoCelebra('¡Viva!');
+        } else {
+          const p = circuito.amigos[id];
+          p.grupo.position.set(x, h, z);
+          p.grupo.rotation.set(0, 0, 0);
+          animarPadre(p, 'celebrar');
+        }
+      });
+      circuito.amigos.forEach((p, k) => { if (!orden.slice(0, 3).includes(k)) animarPadre(p, 'saludar'); });
+      cam.yaw = 0.2;
+      cam.pitch = 0.25;
+      cam.dist = 9;
+      cam.objetivo.copy(ninoE.pos);
+      avisar(circuito.puestoManuel <= 3 ? '¡Enhorabuena, campeón!' : 'Habla con tus amigos para correr otra vez', 2600);
+    });
+  }
+
+  function actualizarCircuito(dt) {
+    if (!circuito.listo || circuito.fase === 'fuera') return;
+    const t = reloj.elapsedTime;
+    circuito.texTurbo.offset.y = (circuito.texTurbo.offset.y + dt * 1.5) % 1;
+    circuito.cajas.forEach((c, k) => {
+      c.oculta = Math.max(0, c.oculta - dt);
+      c.m.visible = c.oculta <= 0;
+      c.m.rotation.set(t * 0.7 + k, t * 1.1 + k, 0);
+      c.m.position.y = 1 + Math.sin(t * 2 + k) * 0.15;
+    });
+    circuito.globos.forEach((g, k) => { g.position.y = 8.5 + Math.sin(t * 0.8 + k) * 0.4; });
+    // Amigos: animación y bocadillos
+    circuito.amigos.forEach((p, k) => {
+      p.mixer.update(dt);
+      if (p.enKart) {
+        const v = circuito.karts[k];
+        p.grupo.position.set(v.x - Math.sin(v.rumbo) * 0.25, v.y + 0.34 - p.cadera, v.z - Math.cos(v.rumbo) * 0.25);
+        p.grupo.rotation.set(v.malla.rotation.x, v.rumbo, 0, 'YXZ');
+      } else if (circuito.fase === 'paddock') {
+        // miran a Manuel
+        const g = p.grupo;
+        g.rotation.y = angulo(g.rotation.y, Math.atan2(ninoE.pos.x - g.position.x, ninoE.pos.z - g.position.z), 1 - Math.exp(-3 * dt));
+      }
+      if (!p.globo.el.hidden) {
+        if (t > p.globo.hasta) p.globo.el.hidden = true;
+        else ponerEnPantalla(p.globo.el, p.cabeza, p.altoGlobo || 0.5);
+      }
+    });
+    if (circuito.fase === 'cuenta') {
+      circuito.cuenta -= dt;
+      const n = Math.ceil(circuito.cuenta - 1);
+      circuito.luces.forEach((l, k) => l.material.color.set(circuito.cuenta <= 1 ? '#29e35a' : k < 3 - n ? '#ff2a1a' : '#330000'));
+      circuito.grande.hidden = circuito.cuenta > 3.99;
+      circuito.grande.textContent = circuito.cuenta > 1 ? String(n) : '¡YA!';
+      if (circuito.cuenta <= 1) circuito.fase = 'carrera';
+      circuito.karts.forEach((v, k) => actualizarKart(v, dt, k === 4));
+    } else if (circuito.fase === 'carrera' || circuito.fase === 'fin') {
+      if (circuito.cuenta > 0) {
+        circuito.cuenta -= dt;
+        circuito.grande.hidden = circuito.cuenta <= 0;
+      }
+      circuito.karts.forEach((v, k) => actualizarKart(v, dt, k === 4));
+      // Choques entre karts
+      const K = circuito.karts;
+      for (let a = 0; a < K.length; a++) for (let b = a + 1; b < K.length; b++) {
+        const dx = K[a].x - K[b].x, dz = K[a].z - K[b].z, d = Math.hypot(dx, dz);
+        if (d < 1.5 && d > 0.001) {
+          const e = (1.5 - d) / 2;
+          K[a].x += dx / d * e; K[a].z += dz / d * e;
+          K[b].x -= dx / d * e; K[b].z -= dz / d * e;
+        }
+      }
+      const orden = posiciones();
+      const yo = circuito.karts[4];
+      const puesto = orden.indexOf(yo) + 1;
+      const txt = circuito.fase === 'fin' ? `Meta · ${circuito.puestoManuel}º de 5` : `Vuelta ${Math.min(VUELTAS, Math.max(1, yo.vuelta))}/${VUELTAS} · ${puesto}º de 5`;
+      if (circuito.hud.textContent !== txt) circuito.hud.textContent = txt;
+      if (circuito.fase === 'fin') {
+        circuito.finT += dt;
+        if (circuito.finT > 4 && !circuito.ceremonia) { circuito.ceremonia = true; ceremonia(); }
+      }
+    }
+  }
+
+  // Acción junto a los amigos en el paddock: ¡a correr!
+  function amigosCerca() {
+    return circuito.fase === 'paddock' && circuito.amigos.some((p) => distXZ(ninoE.pos, p.grupo.position) < 3.5);
+  }
+  function aCorrer() {
+    circuito.ceremonia = false;
+    circuito.amigos.forEach((p, k) => setTimeout(() => diga(p, ['¡Casco puesto!', '¡Vamos!', '¡A por todas!', '¡Suerte, Manuel!'][k], 1.8), k * 250));
+    circuito.amigos.forEach((p) => { if (p.casco) p.casco.visible = true; });
+    if (coches.casco) coches.casco.visible = true;
+    avisar('¡Os ponéis el casco y a los karts!', 1600);
+    setTimeout(prepararCarrera, 1600);
+  }
+
+
   // ---------- Bucle principal ----------
   const reloj = new THREE.Clock();
   let autopiloto = false;
@@ -6151,6 +7154,10 @@
       activarAutopiloto: () => { autopiloto = true; },
       acelerar: (n) => { pasosPorFotograma = n; },
       bucear: () => irAlArrecife(),
+      conducir: () => subirAlCoche(),
+      irCircuito: () => irAlCircuito(),
+      correr: () => aCorrer(),
+      carrera: () => ({ fase: circuito.fase, karts: circuito.karts.map((v) => [+v.x.toFixed(1), +v.z.toFixed(1), v.vuelta, +v.vel.toFixed(1)]), puesto: circuito.puestoManuel }),
       moverBuzo: (lx, lz, y = -4, rumbo = 0) => { ninoE.pos.set(ARRECIFE.x + lx, y, ARRECIFE.z + lz); ninoE.rumbo = rumbo; cam.objetivo.copy(ninoE.pos); },
       estado: () => ({ mision: misionActual() && misionActual().id, cuenta: misionActual() && misionActual().cuenta,
         balon: balon.estado, nino: ninoE.modo, perro: estado.pos.toArray().map((v) => +v.toFixed(1)),
@@ -6321,6 +7328,13 @@
     cam.objetivo.x = damp(cam.objetivo.x, foco.x, 6, dt);
     cam.objetivo.z = damp(cam.objetivo.z, foco.z, 6, dt);
     cam.objetivo.y = damp(cam.objetivo.y, foco.y + alto, 4, dt);
+    if (ninoE.modo === 'atraccion' && ninoE.atr && ninoE.atr.vehiculo && jugador === 'nino') {
+      // Conduciendo: la cámara va detrás, mirando hacia delante
+      const v = ninoE.atr.vehiculo;
+      cam.yaw = angulo(cam.yaw, v.rumbo + Math.PI, 1 - Math.exp(-3 * dt));
+      cam.pitch = damp(cam.pitch, 0.26, 2, dt);
+      cam.dist = damp(cam.dist, ninoE.atr.tipo === 'coche' ? 9 : 6, 2, dt);
+    }
     if (estaDentro(foco)) {
       // Dentro de casa, la cámara mira desde arriba para ver por encima de las paredes
       cam.pitch = Math.max(cam.pitch, 0.7);
@@ -6383,6 +7397,7 @@
         actualizarParqueBolas(dt);
         actualizarInterior(dt);
         actualizarArrecife(dt);
+        actualizarCircuito(dt);
       }
       actualizarSalpicaduras(dt);
       actualizarBotonAccion();

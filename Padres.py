@@ -158,16 +158,17 @@ def crear_persona(nombre, o):
         }
     verts, radios, idx = [], [], {}
 
-    def add(clave, dato):
+    def add(clave, dato, g=1.0):
         idx[clave] = len(verts)
         verts.append(dato[0])
-        radios.append((dato[1][0] * s, dato[1][1] * s))
+        radios.append((dato[1][0] * s * g, dato[1][1] * s * g))
 
     for k, v in puntos.items():
         add(k, v)
     for lado, d in lados.items():
         for k, v in d.items():
-            add(k + lado, v)
+            pierna = k in ("cadera", "rodilla", "tobillo", "pie")
+            add(k + lado, v, o.get("grosor", 1.0) if pierna else 1.0)  # piernas más rellenitas (niños)
     aristas = [(idx["pelvis"], idx["cintura"]), (idx["cintura"], idx["pecho"]), (idx["pecho"], idx["hombros"]),
                (idx["hombros"], idx["cuello"])]
     for l in ("L", "R"):
@@ -205,6 +206,8 @@ def crear_persona(nombre, o):
             m = "zapato"
         elif ax > 0.17 * anchoH * s and c.z > 0.7 * s:  # brazos
             m = "piel" if c.z < o["manga"] * s else "arriba"
+        elif o.get("corto") and c.z < 0.6 * s:
+            m = "piel"  # pantalón corto: piernas al aire
         elif c.z < o["cintura_pantalon"] * s:
             m = "pantalon"
         else:
@@ -251,7 +254,7 @@ def crear_persona(nombre, o):
         bpy.ops.object.transform_apply(scale=True)
         bpy.ops.object.shade_smooth()
         return a
-    cin = aro_en(o["cintura_pantalon"] * s, lambda c: abs(c.x) < 0.2 * s, 0.014 * s, mats["cinturon"], "Cinturon")
+    cin = aro_en(o["cintura_pantalon"] * s, lambda c: abs(c.x) < 0.185 * s, 0.014 * s, mats["cinturon"], "Cinturon")
     if cin:
         extras_torso.append(cin)
     punos = {}
@@ -261,7 +264,11 @@ def crear_persona(nombre, o):
             punos[l] = p
 
     # ---------- CABEZA ----------
-    hz = 1.635 * s  # centro de la cabeza
+    # Los niños tienen la cabeza más grande en proporción (o["cabeza"] > 1)
+    s_cuerpo = s
+    k_cabeza = o.get("cabeza", 1.0)
+    hz = 1.635 * s + 0.11 * s * (k_cabeza - 1)  # centro de la cabeza
+    s = s * k_cabeza
     ra, rb, rc = 0.098 * s, 0.108 * s, 0.123 * s  # semiejes (ancho, fondo, alto)
     cabeza = esfera((0, 0, hz), (ra, rb, rc), mats["piel"], "Cabeza", seg=40)
     # Mandíbula un poco más estrecha
@@ -320,6 +327,7 @@ def crear_persona(nombre, o):
     # Pelo (y barba) de cada uno
     partes += o["pelo"](hz, ra, rb, rc, s, mats, frente)
     cabeza_obj = unir(partes, nombre + "Cabeza")
+    s = s_cuerpo
     torso_obj = unir(extras_torso, nombre + "Extras") if extras_torso else None
 
     # ---------- ESQUELETO ----------
@@ -515,34 +523,6 @@ def pelo_mama(hz, ra, rb, rc, s, mats, frente):
     return partes
 
 
-# ---------- LOS DOS ----------
-papa, mallaPapa = crear_persona("Papa", {
-    "escala": 1.0, "hombros": 1.08, "caderas": 1.0, "cintura": 1.12, "pecho": 1.05, "ceja": 1.4,
-    "manga": 0.9, "cintura_pantalon": 0.93, "chaqueta": True,
-    "materiales": {
-        "piel": material("PielPapa", "#d6a07a", 0.55), "arriba": material("Cuero", "#7a4a2b", 0.38),
-        "camisa": textura_camisa(), "pantalon": material("VaqueroOscuro", "#2c3342", 0.8),
-        "zapato": material("ZapatoMarron", "#3b2618", 0.5), "pelo": material("PeloOscuro", "#1c1410", 0.75),
-        "ceja": material("CejaPapa", "#1c1410", 0.8), "cinturon": material("CinturonPapa", "#2a1a10", 0.4),
-    },
-    "pelo": pelo_papa,
-})
-papa.location.x = -0.45
-mama, mallaMama = crear_persona("Mama", {
-    "escala": 0.93, "hombros": 0.95, "caderas": 1.12, "cintura": 0.92, "pecho": 1.12, "ceja": 1.0,
-    "manga": 0.9, "cintura_pantalon": 0.97,
-    "materiales": {
-        "piel": material("PielMama", "#ecc09e", 0.5), "arriba": material("Blusa", "#f8f6f1", 0.65),
-        "camisa": material("Blusa2", "#f8f6f1", 0.65), "pantalon": material("Vaquero", "#5d7fa8", 0.8),
-        "zapato": material("Zapatilla", "#f3f1ec", 0.5), "pelo": material("PeloMiel", "#b58150", 0.55),
-        "ceja": material("CejaMama", "#6e4a2c", 0.8), "oro": material("Oro", "#d8b25a", 0.3, metal=1.0),
-        "rosa": material("Rosa", "#ff5fa2", 0.6), "cinturon": material("CinturonMama", "#8a5a36", 0.4),
-    },
-    "pelo": pelo_mama,
-})
-mama.location.x = 0.45
-
-
 # ---------- ANIMACIONES ----------
 FPS = 24
 bpy.context.scene.render.fps = FPS
@@ -642,76 +622,112 @@ def saludar(t):
     }
 
 
-for arm in (papa, mama):
-    animar(arm, "reposo", 4.0, reposo)
-    animar(arm, "hablar", 2.0, hablar)
-    animar(arm, "andar", 1.1, andar)
-    animar(arm, "llevar", 1.1, llevar)
-    animar(arm, "saludar", 1.2, saludar)
 
 
-# ---------- VISTA PREVIA ----------
-def pose_foto(arm, nombre, t):
-    acc = bpy.data.actions[nombre]
-    arm.animation_data.action = acc
-    bpy.context.scene.frame_set(int(1 + t * (acc.frame_range[1] - 1)))
+def main():
+    # ---------- LOS DOS ----------
+    papa, mallaPapa = crear_persona("Papa", {
+        "escala": 1.0, "hombros": 1.08, "caderas": 1.0, "cintura": 1.12, "pecho": 1.05, "ceja": 1.4,
+        "manga": 0.9, "cintura_pantalon": 0.93, "chaqueta": True,
+        "materiales": {
+            "piel": material("PielPapa", "#d6a07a", 0.55), "arriba": material("Cuero", "#7a4a2b", 0.38),
+            "camisa": textura_camisa(), "pantalon": material("VaqueroOscuro", "#2c3342", 0.8),
+            "zapato": material("ZapatoMarron", "#3b2618", 0.5), "pelo": material("PeloOscuro", "#1c1410", 0.75),
+            "ceja": material("CejaPapa", "#1c1410", 0.8), "cinturon": material("CinturonPapa", "#2a1a10", 0.4),
+        },
+        "pelo": pelo_papa,
+    })
+    papa.location.x = -0.45
+    mama, mallaMama = crear_persona("Mama", {
+        "escala": 0.93, "hombros": 0.95, "caderas": 1.12, "cintura": 0.92, "pecho": 1.12, "ceja": 1.0,
+        "manga": 0.9, "cintura_pantalon": 0.97,
+        "materiales": {
+            "piel": material("PielMama", "#ecc09e", 0.5), "arriba": material("Blusa", "#f8f6f1", 0.65),
+            "camisa": material("Blusa2", "#f8f6f1", 0.65), "pantalon": material("Vaquero", "#5d7fa8", 0.8),
+            "zapato": material("Zapatilla", "#f3f1ec", 0.5), "pelo": material("PeloMiel", "#b58150", 0.55),
+            "ceja": material("CejaMama", "#6e4a2c", 0.8), "oro": material("Oro", "#d8b25a", 0.3, metal=1.0),
+            "rosa": material("Rosa", "#ff5fa2", 0.6), "cinturon": material("CinturonMama", "#8a5a36", 0.4),
+        },
+        "pelo": pelo_mama,
+    })
+    mama.location.x = 0.45
 
 
-pose_foto(papa, "hablar", 0.3)
-pose_foto(mama, "saludar", 0.25)
-bpy.ops.mesh.primitive_plane_add(size=8, location=(0, 0, 0))
-suelo = bpy.context.object
-suelo.data.materials.append(material("Suelo", "#b86f4a", 0.8))
-if os.environ.get("CERCA") == "1":
-    bpy.ops.object.camera_add(location=(0.0, -1.5, 1.6), rotation=(math.radians(90), 0, 0))
-else:
-    bpy.ops.object.camera_add(location=(0.0, -3.6, 1.1), rotation=(math.radians(88), 0, 0))
-camara = bpy.context.object
-camara.data.lens = 45
-bpy.context.scene.camera = camara
-bpy.ops.object.light_add(type='SUN', location=(2, -3, 5), rotation=(math.radians(40), math.radians(15), math.radians(20)))
-sol = bpy.context.object
-sol.data.energy = 3.5
-bpy.ops.object.light_add(type='AREA', location=(-2, -2.5, 2.5))
-relleno = bpy.context.object
-relleno.data.energy = 250
-relleno.data.size = 3
-relleno.rotation_euler = (math.radians(50), 0, math.radians(-40))
-mundo = bpy.data.worlds.new("Mundo")
-mundo.use_nodes = True
-mundo.node_tree.nodes["Background"].inputs[0].default_value = (0.8, 0.88, 0.95, 1)
-mundo.node_tree.nodes["Background"].inputs[1].default_value = 0.6
-bpy.context.scene.world = mundo
-escena = bpy.context.scene
-escena.render.engine = 'CYCLES'
-escena.cycles.samples = int(os.environ.get("MUESTRAS", "96"))
-escena.cycles.use_denoising = False
-escena.cycles.sample_clamp_indirect = 3.0
-escena.view_settings.view_transform = 'AgX'
-escena.render.resolution_x = 900
-escena.render.resolution_y = 700
-escena.render.filepath = os.path.abspath("padres.png")
-if os.environ.get("SIN_RENDER") != "1":
-    bpy.ops.render.render(write_still=True)
+    for arm in (papa, mama):
+        animar(arm, "reposo", 4.0, reposo)
+        animar(arm, "hablar", 2.0, hablar)
+        animar(arm, "andar", 1.1, andar)
+        animar(arm, "llevar", 1.1, llevar)
+        animar(arm, "saludar", 1.2, saludar)
 
-# ---------- EXPORTAR ----------
-for arm, malla, archivo in ((papa, mallaPapa, "papa.glb"), (mama, mallaMama, "mama.glb")):
-    for a in (papa, mama):
-        a.animation_data.action = None
-        for pista in a.animation_data.nla_tracks:
-            pista.mute = False
-    bpy.context.scene.frame_set(1)
-    arm.location.x = 0
-    bpy.ops.object.select_all(action='DESELECT')
-    arm.select_set(True)
-    malla.select_set(True)
-    bpy.context.view_layer.objects.active = arm
-    bpy.ops.export_scene.gltf(
-        filepath=os.path.abspath(archivo),
-        export_format='GLB',
-        use_selection=True,
-        export_animation_mode='NLA_TRACKS',
-        export_force_sampling=True,
-        export_skins=True,
-    )
-    print("Exportado", archivo)
+
+    # ---------- VISTA PREVIA ----------
+    def pose_foto(arm, nombre, t):
+        acc = bpy.data.actions[nombre]
+        arm.animation_data.action = acc
+        bpy.context.scene.frame_set(int(1 + t * (acc.frame_range[1] - 1)))
+
+
+    pose_foto(papa, "hablar", 0.3)
+    pose_foto(mama, "saludar", 0.25)
+    bpy.ops.mesh.primitive_plane_add(size=8, location=(0, 0, 0))
+    suelo = bpy.context.object
+    suelo.data.materials.append(material("Suelo", "#b86f4a", 0.8))
+    if os.environ.get("CERCA") == "1":
+        bpy.ops.object.camera_add(location=(0.0, -1.5, 1.6), rotation=(math.radians(90), 0, 0))
+    else:
+        bpy.ops.object.camera_add(location=(0.0, -3.6, 1.1), rotation=(math.radians(88), 0, 0))
+    camara = bpy.context.object
+    camara.data.lens = 45
+    bpy.context.scene.camera = camara
+    bpy.ops.object.light_add(type='SUN', location=(2, -3, 5), rotation=(math.radians(40), math.radians(15), math.radians(20)))
+    sol = bpy.context.object
+    sol.data.energy = 3.5
+    bpy.ops.object.light_add(type='AREA', location=(-2, -2.5, 2.5))
+    relleno = bpy.context.object
+    relleno.data.energy = 250
+    relleno.data.size = 3
+    relleno.rotation_euler = (math.radians(50), 0, math.radians(-40))
+    mundo = bpy.data.worlds.new("Mundo")
+    mundo.use_nodes = True
+    mundo.node_tree.nodes["Background"].inputs[0].default_value = (0.8, 0.88, 0.95, 1)
+    mundo.node_tree.nodes["Background"].inputs[1].default_value = 0.6
+    bpy.context.scene.world = mundo
+    escena = bpy.context.scene
+    escena.render.engine = 'CYCLES'
+    escena.cycles.samples = int(os.environ.get("MUESTRAS", "96"))
+    escena.cycles.use_denoising = False
+    escena.cycles.sample_clamp_indirect = 3.0
+    escena.view_settings.view_transform = 'AgX'
+    escena.render.resolution_x = 900
+    escena.render.resolution_y = 700
+    escena.render.filepath = os.path.abspath("padres.png")
+    if os.environ.get("SIN_RENDER") != "1":
+        bpy.ops.render.render(write_still=True)
+
+    # ---------- EXPORTAR ----------
+    for arm, malla, archivo in ((papa, mallaPapa, "papa.glb"), (mama, mallaMama, "mama.glb")):
+        for a in (papa, mama):
+            a.animation_data.action = None
+            for pista in a.animation_data.nla_tracks:
+                pista.mute = False
+        bpy.context.scene.frame_set(1)
+        arm.location.x = 0
+        bpy.ops.object.select_all(action='DESELECT')
+        arm.select_set(True)
+        malla.select_set(True)
+        bpy.context.view_layer.objects.active = arm
+        bpy.ops.export_scene.gltf(
+            filepath=os.path.abspath(archivo),
+            export_format='GLB',
+            use_selection=True,
+            export_animation_mode='NLA_TRACKS',
+            export_force_sampling=True,
+            export_skins=True,
+        )
+        print("Exportado", archivo)
+
+
+
+if __name__ == "__main__":
+    main()
