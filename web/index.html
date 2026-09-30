@@ -295,6 +295,34 @@
   .ficha-pez strong { display: block; font: 800 18px "Baloo 2", "Nunito", system-ui, sans-serif; }
   .ficha-pez span { font-size: 14px; color: var(--tinta-suave); font-variant-numeric: tabular-nums; }
 
+  .brujula {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 118px);
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px 6px 8px;
+    border-radius: 999px;
+    background: rgba(255, 253, 246, 0.9);
+    color: #123a4a;
+    font: 800 15px "Nunito", system-ui, sans-serif;
+    box-shadow: 0 4px 14px rgba(0, 40, 60, 0.25);
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .brujula[hidden] { display: none; }
+  .brujula .flecha {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #ffc81a;
+    color: #5a3a00;
+    font-size: 17px;
+  }
   .fundido {
     position: fixed;
     inset: 0;
@@ -2625,7 +2653,7 @@
       objetivo: () => (estaDentro(ninoE.pos) ? new V3(INT.x + 5.0, INT.y, INT.z + 3.0) : dentro.puertaFuera) },
     { id: 'dormir', titulo: 'Échate a dormir en tu cama', total: 1, cuenta: 0,
       objetivo: () => (estaDentro(ninoE.pos) ? new V3(INT.x + 6.0, INT.y, INT.z - 4.6) : dentro.puertaFuera) },
-    { id: 'arrecife', titulo: 'Coge la barca del muelle y descubre las 6 zonas del arrecife', total: 6, cuenta: 0,
+    { id: 'arrecife', titulo: 'Coge la barca del muelle y descubre las 7 zonas del arrecife', total: 7, cuenta: 0,
       objetivo: () => {
         if (!enArrecife(ninoE.pos)) return new V3(46.1, MUELLE.y, 27.5);
         const z = ZONAS_ARRECIFE.find((k) => !arrecife.descubiertas.has(k.id));
@@ -2634,7 +2662,8 @@
   ];
   const misionPor = (id) => MISIONES_NINO.find((m) => m.id === id);
   const hechaNino = (id) => { const m = misionPor(id); return m && m.cuenta >= m.total; };
-  const misionNino = () => MISIONES_NINO.find((m) => m.cuenta < m.total) || null;
+  let buceando = false;  // bajo el agua, la tarea que se ve es la del arrecife
+  const misionNino = () => (buceando && !hechaNino('arrecife') ? misionPor('arrecife') : MISIONES_NINO.find((m) => m.cuenta < m.total) || null);
   function masCercanoA(lista, desde) {
     let mejor = null, d = Infinity;
     for (const p of lista) {
@@ -5200,12 +5229,13 @@
 
   // Zonas que hay que descubrir buceando
   const ZONAS_ARRECIFE = [
-    { id: 'jardin', nombre: 'el jardín de corales', x: 0, z: -12, dato: '¡Los corales son animales, no plantas!' },
-    { id: 'gorgonias', nombre: 'el bosque de gorgonias', x: -30, z: -26, dato: 'Las gorgonias son abanicos que filtran el agua.' },
-    { id: 'anemonas', nombre: 'las anémonas de los peces payaso', x: 26, z: -22, dato: 'El pez payaso vive entre las anémonas sin picarse.' },
-    { id: 'tortuga', nombre: 'la tortuga marina', x: -24, z: 12, dato: '¡Una tortuga! Pueden vivir más de 80 años.' },
-    { id: 'hundida', nombre: 'la barca hundida', x: 26, z: 16, dato: 'En la barca hundida ya crecen corales.' },
-    { id: 'tesoro', nombre: 'el cofre del tesoro', x: 2, z: -44, dato: '¡Un tesoro pirata lleno de monedas!' },
+    { id: 'jardin', nombre: 'el jardín de corales', corto: 'Jardín de corales', x: 0, z: -12, dato: '¡Los corales son animales, no plantas!' },
+    { id: 'gorgonias', nombre: 'el bosque de gorgonias', corto: 'Gorgonias', x: -30, z: -26, dato: 'Las gorgonias son abanicos que filtran el agua.' },
+    { id: 'anemonas', nombre: 'las anémonas de los peces payaso', corto: 'Peces payaso', x: 26, z: -22, dato: 'El pez payaso vive entre las anémonas sin picarse.' },
+    { id: 'tortuga', nombre: 'la bahía de las tortugas', corto: 'Tortugas', x: -24, z: 12, dato: '¡Cuántas tortugas! Pueden vivir más de 80 años.' },
+    { id: 'barco', nombre: 'el barco pirata hundido', corto: 'Barco pirata', x: 27, z: 17, radio: 9, dato: '¡Un barco pirata hundido hace muchísimos años!' },
+    { id: 'cueva', nombre: 'la cueva de las morenas', corto: 'Cueva', x: -41, z: -3, radio: 8, dato: 'Las morenas se esconden en los agujeros de las rocas.' },
+    { id: 'tesoro', nombre: 'el cofre del tesoro', corto: 'Tesoro', x: 4, z: -46, dato: '¡Un tesoro pirata lleno de monedas de oro!' },
   ];
 
   function construirArrecife(gArrecife) {
@@ -5277,20 +5307,35 @@
 
     // ---------- Corales: muchas copias de cada pieza ----------
     const lista = {};  // tipo -> [{x, y, z, ry, s, rx, rz, color}]
+    // Superficie de las rocas en un punto (cada roca es más o menos media elipse)
+    const rocas = [];
+    const superficieRoca = (x, z) => {
+      let h = -99;
+      for (const r of rocas) {
+        const dx = x - r.x, dz = z - r.z;
+        const lx = dx * Math.cos(r.ry) - dz * Math.sin(r.ry), lz = dx * Math.sin(r.ry) + dz * Math.cos(r.ry);
+        const k = 1 - (lx / r.ax) ** 2 - (lz / r.az) ** 2;
+        if (k > 0) h = Math.max(h, r.y + r.alto * Math.sqrt(k));
+      }
+      return h;
+    };
     const poner = (tipo, x, z, s, extra = {}) => {
-      // si hay una roca debajo, el coral crece encima de ella
-      const y = extra.y !== undefined ? extra.y : Math.max(lechoArrecife(x, z) - 0.08 * s, arrecife.alturaTecho(x, z) - 0.25);
-      (lista[tipo] = lista[tipo] || []).push({ x, y, z, s, ry: entre(0, Math.PI * 2), rx: extra.rx ?? entre(-0.12, 0.12), rz: extra.rz ?? entre(-0.12, 0.12), color: extra.color || elegir(PALETA_CORAL[tipo]) });
+      // en la arena, o encima de la roca que tenga justo debajo (nunca encima de otro coral: así no flotan)
+      const y = extra.y !== undefined ? extra.y : Math.max(lechoArrecife(x, z) - 0.08 * s, superficieRoca(x, z) - 0.15);
+      const d = { x, y, z, s, ry: entre(0, Math.PI * 2), rx: extra.rx ?? entre(-0.12, 0.12), rz: extra.rz ?? entre(-0.12, 0.12), color: extra.color || elegir(PALETA_CORAL[tipo]) };
+      (lista[tipo] = lista[tipo] || []).push(d);
       const g = arrecife.piezas[tipo].geometry;
       if (!g.boundingBox) g.computeBoundingBox();
+      if (tipo.startsWith('Roca')) rocas.push({ x, z, y, ry: d.ry, ax: g.boundingBox.max.x * s * 0.9, az: g.boundingBox.max.z * s * 0.9, alto: g.boundingBox.max.y * s * 0.95 });
       if (!['Hierba', 'Estrella', 'Erizo', 'Anemona'].includes(tipo)) marcarTecho(x, z, Math.max(g.boundingBox.max.x, g.boundingBox.max.z) * s * 0.8, y + g.boundingBox.max.y * s);
     };
     const cerca = (x, z, zona, r) => Math.hypot(x - ARRECIFE.x - zona.x, z - ARRECIFE.z - zona.z) < r;
-    const [zJardin, zGorg, zAnem, zTort, zHund, zTesoro] = ZONAS_ARRECIFE;
+    const [zJardin, zGorg, zAnem, zTort, zBarco, zCueva, zTesoro] = ZONAS_ARRECIFE;
+    const despejado = (x, z) => cerca(x, z, zBarco, 10) || cerca(x, z, zCueva, 7) || cerca(x, z, zTesoro, 5);
     // Rocas: la base del arrecife
     for (let k = 0; k < 400 && (lista.Roca1?.length || 0) + (lista.Roca2?.length || 0) + (lista.Roca3?.length || 0) < 50; k++) {
       const x = ARRECIFE.x + entre(-55, 55), z = ARRECIFE.z + entre(-55, 55);
-      if (lechoArrecife(x, z) < -8.5 || cerca(x, z, zHund, 7)) continue;
+      if (lechoArrecife(x, z) < -8.5 || despejado(x, z)) continue;
       poner(elegir(['Roca1', 'Roca2', 'Roca3']), x, z, entre(0.9, 1.7), { rx: 0, rz: 0, y: lechoArrecife(x, z) - 0.35 });
     }
     // Encima de cada roca crecen unos cuantos corales
@@ -5308,7 +5353,7 @@
     for (let k = 0; k < 12000; k++) {
       const x = ARRECIFE.x + entre(-58, 58), z = ARRECIFE.z + entre(-58, 58);
       const h = lechoArrecife(x, z);
-      if (h < -10.2 || azarA() > 0.15 + smoothstep(-10, -6.5, h) * 0.85 || cerca(x, z, zHund, 5) || Math.hypot(x - BARCA_MAR.x, z - BARCA_MAR.z) < 4) continue;
+      if (h < -10.2 || azarA() > 0.15 + smoothstep(-10, -6.5, h) * 0.85 || despejado(x, z) || Math.hypot(x - BARCA_MAR.x, z - BARCA_MAR.z) < 4) continue;
       let bolsa = ['Cerebro', 'Cerebro', 'Cuerno', 'Arbusto', 'Dedos', 'Mesa', 'Coliflor', 'Coliflor', 'Tubos', 'Gorgonia'];
       if (cerca(x, z, zGorg, 14)) bolsa = ['Gorgonia', 'Gorgonia', 'Gorgonia', 'Tubos', 'Cerebro'];
       else if (cerca(x, z, zTort, 12)) bolsa = ['Mesa', 'Mesa', 'Mesa2', 'Cuerno', 'Cerebro'];
@@ -5332,28 +5377,85 @@
       poner('Erizo', x, z, entre(0.8, 1.3));
     }
 
-    // ---------- Barca hundida (con corales que crecen en ella) ----------
-    const hundida = arrecife.piezas.Barca.clone();
-    hundida.material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, color: '#a8b8a0', side: THREE.DoubleSide });
-    conCausticas(hundida.material);
-    const hx = ARRECIFE.x + zHund.x, hz = ARRECIFE.z + zHund.z;
-    hundida.position.set(hx, lechoArrecife(hx, hz) - 0.5, hz);
-    hundida.rotation.set(0.12, 0.8, 0.45);
-    hundida.scale.setScalar(1.5);
-    hundida.castShadow = hundida.receiveShadow = true;
-    G.add(hundida);
-    marcarTecho(hx, hz, 3.5, hundida.position.y + 1.6);
-    [[0.6, 0.8], [-0.5, -0.9], [0.2, 1.8], [-0.7, 0.3]].forEach(([dx, dz], i) => {
-      poner(['Coliflor', 'Tubos', 'Anemona', 'Dedos'][i], hx + dx, hz + dz, 0.8, { y: hundida.position.y + 0.9 });
+    // ---------- Barco pirata hundido (con corales que crecen en él) ----------
+    const matVC = (pieza) => {
+      const m = pieza.material.clone();
+      m.vertexColors = true;
+      m.side = THREE.DoubleSide;
+      return conCausticas(m, 1.2);
+    };
+    const bx = ARRECIFE.x + zBarco.x, bz = ARRECIFE.z + zBarco.z;
+    const barco = arrecife.piezas.BarcoPirata.clone();
+    barco.material = matVC(arrecife.piezas.BarcoPirata);
+    barco.material.color.set('#b8a690');  // madera vieja y oscura
+    barco.position.set(bx, lechoArrecife(bx, bz) - 1.1, bz);
+    barco.rotation.set(0.06, 0.9, 0.26, 'YXZ');
+    barco.castShadow = barco.receiveShadow = true;
+    G.add(barco);
+    arrecife.barco = barco;
+    barco.updateMatrixWorld(true);
+    // Manuel pasa por encima del casco (y del mástil roto)
+    for (let t = -6.5; t <= 6.5; t += 1) {
+      const p = new V3(0, 3.3, t).applyMatrix4(barco.matrixWorld);
+      marcarTecho(p.x, p.z, 2.4, p.y + 0.2);
+    }
+    // Corales, anémonas y esponjas sobre la cubierta
+    [[-1.2, -4], [1.0, -2.5], [-0.8, 0.5], [1.2, 2], [-1.3, 3.5], [0.4, -5.2], [0.9, 4.6], [-0.2, -1.2]].forEach(([lx, lz], i) => {
+      const p = new V3(lx, 2.45, lz).applyMatrix4(barco.matrixWorld);
+      poner(['Coliflor', 'Tubos', 'Anemona', 'Cerebro', 'Gorgonia', 'Dedos', 'Coliflor', 'Arbusto'][i], p.x, p.z, entre(0.8, 1.2), { y: p.y - 0.1 });
+    });
+    for (let k = 0; k < 16; k++) {  // corales alrededor del casco, en la arena
+      const a = entre(0, Math.PI * 2), d = entre(6, 9);
+      poner(elegir(['Cerebro', 'Coliflor', 'Dedos', 'Tubos']), bx + Math.cos(a) * d, bz + Math.sin(a) * d, entre(0.9, 1.5));
+    }
+
+    // ---------- Cueva de las morenas ----------
+    const cx = ARRECIFE.x + zCueva.x, cz = ARRECIFE.z + zCueva.z;
+    const cueva = arrecife.piezas.Cueva.clone();
+    cueva.material = matVC(arrecife.piezas.Cueva);
+    cueva.material.side = THREE.FrontSide;
+    cueva.position.set(cx, lechoArrecife(cx, cz) - 0.3, cz);
+    cueva.rotation.y = 0.5;
+    cueva.scale.setScalar(1.3);
+    cueva.castShadow = cueva.receiveShadow = true;
+    G.add(cueva);
+    cueva.updateMatrixWorld(true);
+    marcarTecho(cx, cz, 5.5, cueva.position.y + 3.7);
+    rocas.push({ x: cx, z: cz, y: cueva.position.y, ry: 0.5, ax: 5.2, az: 3.7, alto: 3.3 });
+    for (let k = 0; k < 10; k++) {  // corales encima de la cueva
+      const a = entre(0, Math.PI * 2), d = entre(0, 3.2);
+      poner(elegir(['Cerebro', 'Coliflor', 'Gorgonia', 'Tubos', 'Arbusto']), cx + Math.cos(a) * d, cz + Math.sin(a) * d * 0.7, entre(0.8, 1.3));
+    }
+    // Morenas asomando por los agujeros (en coordenadas de la cueva, antes de girarla y escalarla)
+    const matMorena = arrecife.piezas.Morena.material.clone();
+    matMorena.onBeforeCompile = (sh) => {
+      sh.uniforms.uT = uTiempo;
+      sh.vertexShader = 'uniform float uT;\n' + sh.vertexShader.replace('#include <begin_vertex>', `
+        vec3 transformed = vec3(position);
+        float cola = clamp((0.7 - position.z) / 1.6, 0.0, 1.0);
+        transformed.x += sin(uT * 2.6 - position.z * 5.0) * 0.07 * (0.2 + cola);`);
+    };
+    arrecife.morenas = [];
+    [[-1.8, 1.6, 2.2], [1.6, 1.2, 2.3], [0.2, 2.3, 2.0], [2.2, 1.4, -2.2], [4.6, 0.9, 0], [-4.6, 0.9, 0]].forEach(([x, y, z], k) => {
+      const agujero = new V3(x, y, z).applyMatrix4(cueva.matrixWorld);
+      const centro = new V3(0, y, 0).applyMatrix4(cueva.matrixWorld);
+      const dir = agujero.clone().sub(centro).setY(0).normalize();
+      const m = new THREE.Mesh(arrecife.piezas.Morena.geometry, matMorena);
+      m.scale.setScalar(2.2);
+      m.rotation.y = Math.atan2(dir.x, dir.z);
+      G.add(m);
+      arrecife.morenas.push({ m, agujero, dir, fase: k * 1.7 });
     });
 
-    // ---------- Cofre del tesoro entre las rocas ----------
+    // ---------- Cofre del tesoro: grande, dorado y brillante ----------
     const tx = ARRECIFE.x + zTesoro.x, tz = ARRECIFE.z + zTesoro.z;
     const cofre = arrecife.piezas.Cofre.clone();
     cofre.material = arrecife.piezas.Cofre.material.clone();
+    cofre.material.emissive = new THREE.Color('#ffb020');
+    cofre.material.emissiveIntensity = 0.18;
     cofre.position.set(tx, lechoArrecife(tx, tz) - 0.1, tz);
-    cofre.rotation.set(0.05, -0.4, 0.08);
-    cofre.scale.setScalar(1.3);
+    cofre.rotation.set(0.04, 0.3, 0.05);
+    cofre.scale.setScalar(2.4);
     cofre.castShadow = true;
     const tapa = arrecife.piezas.CofreTapa.clone();
     tapa.material = cofre.material;
@@ -5363,10 +5465,52 @@
     G.add(cofre);
     arrecife.tapa = tapa;
     arrecife.cofre = cofre;
-    for (let k = 0; k < 3; k++) {
-      const a = -Math.PI / 2 + (k - 1) * 0.9;  // detrás del cofre, sin taparlo
-      poner(elegir(['Roca1', 'Roca2']), tx + Math.cos(a) * 3.6, tz + Math.sin(a) * 3.6, entre(0.9, 1.2), { rx: 0, rz: 0 });
+    marcarTecho(tx, tz, 1.6, cofre.position.y + 1.3);
+    const luzOro = new THREE.PointLight('#ffc040', 3, 14, 2);
+    luzOro.position.set(tx, cofre.position.y + 1.8, tz);
+    G.add(luzOro);
+    arrecife.luzOro = luzOro;
+    // Monedas de oro por la arena
+    const monedas = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.06, 0.06, 0.015, 12),
+      new THREE.MeshStandardMaterial({ color: '#ffcf40', emissive: '#ffa000', emissiveIntensity: 0.35, metalness: 0.8, roughness: 0.25 }), 90);
+    const mm = new THREE.Matrix4(), qm = new THREE.Quaternion(), em = new THREE.Euler();
+    for (let k = 0; k < 90; k++) {
+      const a = entre(0, Math.PI * 2), d = 1.2 + Math.pow(azarA(), 1.5) * 3.2;
+      const x = tx + Math.cos(a) * d, z = tz + Math.sin(a) * d;
+      qm.setFromEuler(em.set(entre(-0.4, 0.4), 0, entre(-0.4, 0.4)));
+      mm.compose(new V3(x, lechoArrecife(x, z) + 0.02, z), qm, new V3(1, 1, 1));
+      monedas.setMatrixAt(k, mm);
     }
+    G.add(monedas);
+    // Destellos dorados alrededor del cofre
+    const ND = 60, pd = new Float32Array(ND * 3), fd = new Float32Array(ND);
+    for (let k = 0; k < ND; k++) {
+      pd.set([tx + entre(-2.5, 2.5), cofre.position.y + entre(0.3, 3.5), tz + entre(-2.5, 2.5)], k * 3);
+      fd[k] = entre(0, 10);
+    }
+    const gd = new THREE.BufferGeometry();
+    gd.setAttribute('position', new THREE.BufferAttribute(pd, 3));
+    gd.setAttribute('aFase', new THREE.BufferAttribute(fd, 1));
+    const destellos = new THREE.Points(gd, new THREE.ShaderMaterial({
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+      uniforms: { uT: uTiempo },
+      vertexShader: `attribute float aFase; uniform float uT; varying float vB;
+        void main() {
+          vec3 p = position + vec3(0.0, sin(uT * 0.8 + aFase) * 0.3, 0.0);
+          vec4 mv = modelViewMatrix * vec4(p, 1.0);
+          vB = pow(max(0.0, sin(uT * 2.5 + aFase * 3.0)), 6.0);
+          gl_PointSize = 260.0 * vB / -mv.z + 1.0;
+          gl_Position = projectionMatrix * mv;
+        }`,
+      fragmentShader: `varying float vB;
+        void main() {
+          vec2 q = abs(gl_PointCoord - 0.5);
+          float estrella = max(0.0, 1.0 - (q.x * q.y) * 60.0 - length(q) * 1.6);
+          gl_FragColor = vec4(vec3(1.0, 0.85, 0.4) * estrella * vB, 1.0);
+        }`,
+    }));
+    destellos.frustumCulled = false;
+    G.add(destellos);
 
     // Crear las InstancedMesh
     const mTmp = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), s3 = new V3(), p3 = new V3(), col = new THREE.Color();
@@ -5497,10 +5641,14 @@
         float lado = abs(position.x) - 0.42;
         if (lado > 0.0) transformed.y += sin(uT * 1.8 + (position.z > 0.0 ? 0.0 : 1.5)) * lado * (position.z > 0.0 ? 0.9 : 0.4);`);
     };
-    tort.scale.setScalar(1.4);
-    tort.castShadow = true;
-    G.add(tort);
-    arrecife.tortuga = tort;
+    arrecife.tortugas = [];
+    for (let k = 0; k < 9; k++) {
+      const m = new THREE.Mesh(tort.geometry, tort.material);
+      m.scale.setScalar(entre(0.9, 1.6));
+      m.castShadow = true;
+      G.add(m);
+      arrecife.tortugas.push({ m, r: entre(3, 11), r2: entre(3, 8), w: entre(0.07, 0.16) * (k % 3 ? 1 : -1), fase: entre(0, 6.3), alto: entre(1.2, 4.5) });
+    }
 
     // ---------- Marcas de las zonas: una columna de luz y burbujas ----------
     const matMarca = new THREE.ShaderMaterial({
@@ -5515,15 +5663,19 @@
         }`,
       fragmentShader: `uniform float uT; uniform vec3 uColor; varying vec2 vUv; varying float vBorde;
         void main() {
-          float a = smoothstep(0.0, 0.15, vUv.y) * (1.0 - vUv.y) * pow(vBorde, 2.0) * (0.6 + 0.4 * sin(uT * 3.0 + vUv.y * 8.0)) * 0.35;
+          float a = smoothstep(0.0, 0.05, vUv.y) * (0.3 + 0.7 * (1.0 - vUv.y)) * pow(vBorde, 1.5) * (0.65 + 0.35 * sin(uT * 3.0 - vUv.y * 14.0)) * 0.5;
           gl_FragColor = vec4(uColor * a, 1.0);
         }`,
     });
     ZONAS_ARRECIFE.forEach((z) => {
       const x = ARRECIFE.x + z.x, zz = ARRECIFE.z + z.z;
       const y0 = Math.max(lechoArrecife(x, zz), arrecife.alturaTecho(x, zz));
-      const col = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1.3, 7, 20, 1, true), matMarca);
-      col.position.set(x, y0 + 3.5, zz);
+      // La columna llega hasta la superficie: se ve desde lejos
+      const alto = -y0;
+      const mat = z.id === 'tesoro' ? matMarca.clone() : matMarca;
+      if (z.id === 'tesoro') { mat.uniforms.uColor.value = new THREE.Color('#ffc030'); mat.uniforms.uT = uTiempo; }
+      const col = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.8, alto, 24, 1, true), mat);
+      col.position.set(x, y0 + alto / 2, zz);
       G.add(col);
       z.marca = col;
       z.pos = new V3(x, y0 + 1.5, zz);
@@ -5723,8 +5875,17 @@
   let luzHemi = null;
   scene.traverse((o) => { if (o.isHemisphereLight) luzHemi = o; });
   const luzNormal = { hemiCielo: luzHemi ? luzHemi.color.clone() : null, hemiSuelo: luzHemi ? luzHemi.groundColor.clone() : null, hemiI: luzHemi ? luzHemi.intensity : 0, sol: sol.intensity, solColor: sol.color.clone() };
+  const brujula = document.createElement('div');
+  brujula.className = 'brujula';
+  brujula.hidden = true;
+  brujula.innerHTML = '<span class="flecha">➤</span><span class="txt"></span>';
+  document.body.appendChild(brujula);
+  const brujulaFlecha = brujula.querySelector('.flecha'), brujulaTexto = brujula.querySelector('.txt');
   function modoSubmarino(on) {
     arrecife.activo = on;
+    buceando = on;
+    brujula.hidden = !on;
+    pintarTarea();
     arrecife.grupo.visible = on;
     cielo.visible = !on;
     agua.visible = !on;
@@ -5766,7 +5927,7 @@
       cam.objetivo.copy(E.pos);
       musica.proximo = 'casa';
       animarNino('idle');
-      avisar('¡A bucear! Busca las 6 zonas del arrecife', 2800);
+      avisar(`¡A bucear! Busca las ${ZONAS_ARRECIFE.length} zonas del arrecife`, 2800);
       setTimeout(() => ninoDice('¡Qué bonito es el fondo del mar!', 2.4), 1200);
     });
   }
@@ -5833,7 +5994,7 @@
     // ¿Ha llegado a una zona nueva?
     for (const z of ZONAS_ARRECIFE) {
       if (arrecife.descubiertas.has(z.id) || !z.pos) continue;
-      if (distXZ(E.pos, z.pos) < 7) {
+      if (distXZ(E.pos, z.pos) < (z.radio || 7)) {
         arrecife.descubiertas.add(z.id);
         avisar(`¡Has descubierto ${z.nombre}! (${arrecife.descubiertas.size} de ${ZONAS_ARRECIFE.length})`, 2600);
         ninoDice(z.dato, 3.2);
@@ -5861,12 +6022,22 @@
     arrecife.rayos.forEach((r) => {
       r.rotation.set(0, Math.atan2(camera.position.x - r.position.x, camera.position.z - r.position.z), r.userData.inclina, 'YXZ');
     });
-    // Tortuga nadando en círculos en su zona
+    // Tortugas nadando en círculos en su bahía
     const zt = ZONAS_ARRECIFE[3];
-    const a = t * 0.12;
-    const tx = ARRECIFE.x + zt.x + Math.cos(a) * 7, tz = ARRECIFE.z + zt.z + Math.sin(a) * 5;
-    arrecife.tortuga.position.set(tx, Math.max(lechoArrecife(tx, tz), arrecife.alturaTecho(tx, tz)) + 1.8 + Math.sin(t * 0.7) * 0.3, tz);
-    arrecife.tortuga.rotation.set(Math.sin(t * 0.7) * 0.1, Math.atan2(-Math.sin(a) * 7, Math.cos(a) * 5), Math.sin(t * 0.5) * 0.08);
+    arrecife.tortugas.forEach((tt) => {
+      const a = tt.fase + t * tt.w;
+      const tx = ARRECIFE.x + zt.x + Math.cos(a) * tt.r, tz = ARRECIFE.z + zt.z + Math.sin(a) * tt.r2;
+      const fondoT = Math.max(lechoArrecife(tx, tz), arrecife.alturaTecho(tx, tz));
+      tt.m.position.set(tx, Math.min(fondoT + tt.alto + Math.sin(t * 0.7 + tt.fase) * 0.3, -1), tz);
+      const vx = -Math.sin(a) * tt.r * tt.w, vz = Math.cos(a) * tt.r2 * tt.w;
+      tt.m.rotation.set(Math.sin(t * 0.7 + tt.fase) * 0.1, Math.atan2(vx, vz), Math.sin(t * 0.5 + tt.fase) * 0.1);
+    });
+    // Morenas que asoman y se esconden
+    arrecife.morenas.forEach((mo) => {
+      const fuera = 0.35 + 0.5 * (0.5 + 0.5 * Math.sin(t * 0.7 + mo.fase));
+      mo.m.position.copy(mo.agujero).addScaledVector(mo.dir, (fuera - 0.9) * 2.2);
+    });
+    arrecife.luzOro.intensity = 2.5 + Math.sin(t * 2) * 0.8;
     // Cofre abriéndose al descubrirlo
     if (arrecife.abriendo > 0 && arrecife.abriendo < 1) {
       arrecife.abriendo = Math.min(1, arrecife.abriendo + dt * 0.6);
@@ -5890,6 +6061,20 @@
       pb.setXYZ(i, bb.activa ? bb.p.x : 0, bb.activa ? bb.p.y : -999, bb.activa ? bb.p.z : 0);
     });
     pb.needsUpdate = true;
+    // Brújula: apunta a la zona más cercana sin descubrir (o a la barca al terminar)
+    let objetivoB = null, dB = Infinity;
+    for (const z of ZONAS_ARRECIFE) {
+      if (arrecife.descubiertas.has(z.id) || !z.pos) continue;
+      const d = distXZ(E.pos, z.pos);
+      if (d < dB) { dB = d; objetivoB = z; }
+    }
+    const destino = objetivoB ? objetivoB.pos : BARCA_MAR;
+    const dx = destino.x - E.pos.x, dz = destino.z - E.pos.z;
+    const fx = -Math.sin(cam.yaw), fz = -Math.cos(cam.yaw), rx = Math.cos(cam.yaw), rz = -Math.sin(cam.yaw);
+    const ang = Math.atan2(dx * rx + dz * rz, dx * fx + dz * fz);
+    brujulaFlecha.style.transform = `rotate(${(ang * 180 / Math.PI - 90).toFixed(0)}deg)`;
+    const txt = objetivoB ? `${objetivoB.corto} · ${Math.round(dB)} m` : `Vuelve a la barca · ${Math.round(Math.hypot(dx, dz))} m`;
+    if (brujulaTexto.textContent !== txt) brujulaTexto.textContent = txt;
     // El color del agua: más claro cerca de la superficie
     const prof = clamp(-camera.position.y / 12, 0, 1);
     colorAgua.set('#178fbf').lerp(new THREE.Color('#08507e'), prof);

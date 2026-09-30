@@ -748,6 +748,164 @@ def barca(nombre="Barca"):
     return o
 
 
+def barco_pirata(nombre="BarcoPirata"):
+    """Barco pirata grande, hundido y viejo: casco de madera oscura con algas, castillo de popa, mástiles rotos y cañones."""
+    estaciones, perfil = 30, 15
+    L, B, H = 13.0, 4.2, 3.2
+    verts, caras = [], []
+    for i in range(estaciones + 1):
+        t = i / estaciones             # 0 = popa (+Y), 1 = proa (-Y)
+        y = L / 2 - t * L
+        manga = B / 2 * (math.sin(math.pi * (0.3 + 0.7 * (1 - t))) if t > 0.6 else 1.0) * (0.9 + 0.1 * math.sin(math.pi * t))
+        manga = max(manga, 0.05)
+        arrufo = H + 0.6 * max(0.0, t - 0.7) ** 2 * 10 + 0.5 * max(0.0, 0.2 - t) * 5
+        for j in range(perfil):
+            s = j / (perfil - 1) * 2 - 1
+            z = arrufo - H * (1 - abs(s) ** 1.6) - 0.3 * (1 - abs(s))
+            verts.append((s * manga, y, z))
+    for i in range(estaciones):
+        for j in range(perfil - 1):
+            a = i * perfil + j
+            caras.append((a, a + perfil, a + perfil + 1, a + 1))
+    caras.append(tuple(reversed(range(perfil))))
+    me = bpy.data.meshes.new(nombre)
+    me.from_pydata(verts, [], caras)
+    casco = objeto(nombre, me)
+    so = casco.modifiers.new("Grosor", 'SOLIDIFY')
+    so.thickness = 0.14
+    aplicar(casco)
+    suave(casco)
+    partes = [casco]
+
+    def caja(loc, esc, rot=(0, 0, 0)):
+        bpy.ops.mesh.primitive_cube_add(size=1, location=loc, rotation=rot)
+        c = bpy.context.object
+        c.scale = esc
+        bpy.ops.object.transform_apply(scale=True, rotation=True)
+        partes.append(c)
+        return c
+
+    def cilindro(loc, r, largo, rot=(0, 0, 0), v=12):
+        bpy.ops.mesh.primitive_cylinder_add(vertices=v, radius=r, depth=largo, location=loc, rotation=rot)
+        c = bpy.context.object
+        bpy.ops.object.transform_apply(rotation=True)
+        partes.append(c)
+        return c
+
+    caja((0, 0.3, H * 0.74), (B * 0.86, L * 0.78, 0.12))              # cubierta
+    caja((0, L / 2 - 1.5, H * 0.74 + 0.9), (B * 0.82, 2.8, 1.8))       # castillo de popa
+    caja((0, L / 2 - 1.5, H * 0.74 + 1.85), (B * 0.9, 3.0, 0.12))      # techo del castillo
+    cilindro((0.4, -1.2, H + 2.2), 0.2, 6.0, rot=(0.35, 0.3, 0))        # mástil roto e inclinado
+    cilindro((0.9, -1.9, H + 3.6), 0.09, 3.6, rot=(0.35, 1.3, 0))       # verga
+    cilindro((0, 3.0, H + 0.8), 0.18, 1.8)                              # mástil partido
+    cilindro((0, -L / 2 - 0.6, H + 0.4), 0.1, 2.6, rot=(1.1, 0, 0))    # bauprés
+    for sx in (1, -1):
+        for k in range(4):
+            y = -3.2 + k * 1.8
+            cilindro((sx * (B / 2 * 0.95), y, H * 0.86), 0.13, 1.1, rot=(0, math.pi / 2, 0))
+    # Timón del barco
+    bpy.ops.mesh.primitive_torus_add(major_radius=0.45, minor_radius=0.05, location=(0, L / 2 - 3.2, H * 0.74 + 0.9), rotation=(math.pi / 2, 0, 0))
+    partes.append(bpy.context.object)
+    o = unir(partes, nombre)
+    madera, oscura = lineal("#6b4a2c"), lineal("#3a2616")
+    alga, negro = lineal("#56733c"), lineal("#1a1a1a")
+
+    def color(co, n):
+        if abs(abs(co.x) - B / 2 * 0.95) < 0.6 and abs(co.z - H * 0.86) < 0.16 and abs(co.y + 0.5) < 3.4:
+            return negro  # cañones
+        tabla = 0.5 + 0.5 * math.sin(co.z * 9 + 0.3 * math.sin(co.y))
+        c = mezclar(madera, oscura, 0.35 * tabla + 0.3 * (0.5 + 0.5 * noise.noise(co * 0.8)))
+        if n.z > 0.5:
+            c = mezclar(c, alga, 0.55 * (0.5 + 0.5 * noise.noise(co * 1.3)))
+        return c
+    pintar(o, color, VC_BRILLO)
+    return o
+
+
+def cueva(nombre="Cueva"):
+    """Gran roca con un túnel y agujeros: la cueva de las morenas."""
+    bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=5, radius=1.0)
+    o = bpy.context.object
+    o.name = nombre
+    off = Vector((4.4, 1.3, 0))
+    for v in o.data.vertices:
+        p = v.co.copy()
+        p += p * (0.22 * noise.noise(p * 1.5 + off) + 0.08 * noise.noise(p * 4.5 + off))
+        p.x *= 4.2
+        p.y *= 3.0
+        p.z *= 2.6
+        if p.z < -0.3:
+            p.z = -0.3 + (p.z + 0.3) * 0.1
+        v.co = p
+    # Túnel de lado a lado y agujeros para las morenas
+    huecos = []
+    bpy.ops.mesh.primitive_cylinder_add(vertices=32, radius=1.25, depth=10, location=(0, 0, 0.9), rotation=(0, math.pi / 2, 0))
+    huecos.append(bpy.context.object)
+    for (x, y, z) in ((-1.8, -2.2, 1.6), (1.6, -2.3, 1.2), (0.2, -2.0, 2.3), (2.2, 2.2, 1.4)):
+        bpy.ops.mesh.primitive_uv_sphere_add(segments=16, ring_count=8, radius=0.42, location=(x, y, z))
+        huecos.append(bpy.context.object)
+    for h in huecos:
+        b = o.modifiers.new("Hueco", 'BOOLEAN')
+        b.operation = 'DIFFERENCE'
+        b.object = h
+        b.solver = 'EXACT'
+        activar(o)
+        bpy.ops.object.modifier_apply(modifier=b.name)
+        bpy.data.objects.remove(h)
+    suave(o)
+    gris, marron = lineal("#857d6c"), lineal("#5d4d3c")
+    rosa, lila, verde = lineal("#d77a9b"), lineal("#8a6fc4"), lineal("#6f9a4a")
+
+    def color(co, n):
+        c = mezclar(gris, marron, 0.5 + 0.5 * noise.noise(co * 0.9 + off))
+        m = noise.noise(co * 1.6 + off + Vector((5, 0, 0)))
+        if m > 0.2:
+            c = mezclar(c, rosa, min(0.5, (m - 0.2) * 2))
+        elif m < -0.3:
+            c = mezclar(c, lila, min(0.4, (-m - 0.3) * 2))
+        if n.z > 0.6:
+            c = mezclar(c, verde, 0.4)
+        # dentro del túnel, más oscuro
+        if abs(co.y) < 2.6 and co.z < 2.2 and math.hypot(co.y, co.z - 0.9) < 1.5:
+            c = c * 0.35
+        return c
+    pintar(o, color)
+    return o
+
+
+def morena(nombre="Morena"):
+    """Morena: cuerpo largo y ondulado (mira hacia -Y), boca abierta y manchas."""
+    verts, aristas, radios = [], [], []
+    n = 14
+    for i in range(n):
+        t = i / (n - 1)
+        verts.append(Vector((0, -0.8 + t * 1.8, 0)))
+        radios.append(0.085 * (1 - 0.65 * t) * (0.75 + 0.25 * math.sin(math.pi * min(1.0, t * 4 + 0.2))))
+        if i:
+            aristas.append((i - 1, i))
+    o = arbol_skin(nombre, verts, aristas, radios)
+    for v in o.data.vertices:  # cabeza un poco más alta, cuerpo aplanado de lado
+        v.co.x *= 0.8
+        if v.co.y < -0.6:
+            v.co.z *= 1.15
+    partes = [o]
+    for sx in (1, -1):
+        bpy.ops.mesh.primitive_uv_sphere_add(segments=10, ring_count=6, radius=0.018, location=(sx * 0.05, -0.74, 0.04))
+        partes.append(bpy.context.object)
+    o = unir(partes, nombre)
+    verde, oscuro, amarillo = lineal("#7a8f2a"), lineal("#2a3312"), lineal("#d8d060")
+
+    def color(co, n):
+        if co.y < -0.72 and abs(co.x) > 0.035 and co.z > 0.02:
+            return lineal("#101010")  # ojos
+        if co.y < -0.78 and abs(co.z) < 0.012:
+            return lineal("#3a0e0e")  # boca
+        manchas = noise.noise(co * 22)
+        return mezclar(verde, oscuro, 0.6 if manchas > 0.2 else 0.0) + (amarillo * 0.25 if co.z < -0.03 else Vector((0, 0, 0)))
+    pintar(o, color, VC_BRILLO)
+    return o
+
+
 # =====================================================================
 # ---------- CREAR TODAS LAS PIEZAS ----------
 # =====================================================================
@@ -777,6 +935,9 @@ proto.append(pez("PezLoro", alto=0.34, ancho=0.13, cola="horquilla", aleta=0.08,
 proto.append(tortuga())
 proto += list(cofre())
 proto.append(barca())
+proto.append(barco_pirata())
+proto.append(cueva())
+proto.append(morena())
 for o in proto:
     o.location = (0, 0, 0)
     print(f"{o.name}: {len(o.data.polygons)} caras")
