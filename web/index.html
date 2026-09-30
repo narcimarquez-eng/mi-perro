@@ -386,6 +386,134 @@
     .tarea-titulo { font-size: 17px; }
     .estado { font-size: 13px; }
   }
+  /* ---------- Carreras de karts ---------- */
+  body.en-carrera .acciones, body.en-carrera .ayuda, body.en-carrera .estado { display: none; }
+  .hud-carrera {
+    position: fixed;
+    left: 16px;
+    top: 44%;
+    display: grid;
+    gap: 2px;
+    pointer-events: none;
+    font-family: "Baloo 2", "Nunito", system-ui, sans-serif;
+    color: #fffdf6;
+    text-shadow: 0 3px 0 #123a4a, 0 6px 14px rgba(0, 0, 0, 0.35);
+  }
+  .hud-carrera[hidden], .minimapa[hidden], .mandos-carrera[hidden], .menu-carrera[hidden] { display: none; }
+  .hud-carrera .puesto { font-size: 64px; font-weight: 900; line-height: 1; }
+  .hud-carrera .vuelta { font-size: 20px; font-weight: 800; }
+  .minimapa {
+    position: fixed;
+    right: 16px;
+    top: calc(12px + env(safe-area-inset-top, 0px));
+    width: 150px;
+    height: 150px;
+    border-radius: 18px;
+    background: rgba(255, 253, 246, 0.55);
+    box-shadow: 0 4px 14px rgba(0, 40, 60, 0.25);
+    pointer-events: none;
+  }
+  .mandos-carrera {
+    position: fixed;
+    right: 16px;
+    bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    display: grid;
+    grid-template-columns: auto auto;
+    grid-template-areas: "obj obj" "freno acel";
+    justify-items: end;
+    align-items: end;
+    gap: 12px;
+  }
+  .mandos-carrera button {
+    border: 0;
+    border-radius: 50%;
+    font: 800 15px "Baloo 2", "Nunito", system-ui, sans-serif;
+    color: #fffdf6;
+    cursor: pointer;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .mandos-carrera button:focus-visible { outline: 3px solid var(--tinta); outline-offset: 3px; }
+  .m-acel { grid-area: acel; width: 92px; height: 92px; background: #29b35a; box-shadow: 0 5px 0 #1b7f3e, 0 6px 14px rgba(18, 59, 74, 0.25); }
+  .m-freno { grid-area: freno; width: 70px; height: 70px; background: #e2321f; box-shadow: 0 5px 0 #a8200f, 0 6px 14px rgba(18, 59, 74, 0.25); }
+  .m-objeto {
+    grid-area: obj;
+    width: 76px; height: 76px;
+    font-size: 36px !important;
+    background: rgba(255, 253, 246, 0.6) !important;
+    box-shadow: inset 0 0 0 4px rgba(255, 255, 255, 0.9), 0 6px 14px rgba(18, 59, 74, 0.25);
+  }
+  .m-objeto.lleno { background: #ffc81a !important; box-shadow: inset 0 0 0 4px #fff3b0, 0 0 0 4px rgba(255, 200, 26, 0.45), 0 6px 14px rgba(18, 59, 74, 0.25); }
+  .mandos-carrera .pulsado { transform: translateY(4px); box-shadow: none; }
+  .menu-carrera {
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 16px;
+    background: rgba(8, 30, 42, 0.55);
+    overflow-y: auto;
+  }
+  .menu-caja {
+    width: min(760px, 100%);
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+    padding: 14px 16px 16px;
+    border-radius: 20px;
+    background: var(--cristal);
+    box-shadow: 0 10px 30px rgba(0, 20, 30, 0.35);
+  }
+  .menu-caja h2 { margin: 2px 0 8px; font: 800 22px "Baloo 2", "Nunito", system-ui, sans-serif; }
+  .fichas { display: grid; gap: 8px; margin-bottom: 12px; }
+  .fichas.coches { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+  .fichas.pistas { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  .ficha-coche, .ficha-pista {
+    position: relative;
+    display: grid;
+    gap: 3px;
+    justify-items: center;
+    padding: 8px;
+    border: 3px solid transparent;
+    border-radius: 16px;
+    background: #fffdf7;
+    color: var(--tinta);
+    font: 600 12px "Nunito", system-ui, sans-serif;
+    box-shadow: 0 3px 0 #d8cdb3;
+    cursor: pointer;
+  }
+  .ficha-coche strong, .ficha-pista strong { font: 800 16px "Baloo 2", "Nunito", system-ui, sans-serif; }
+  .ficha-coche.elegida { border-color: var(--coral); background: #fff1e8; }
+  .ficha-pista.elegida { border-color: var(--color); background: #f4fbff; }
+  .ficha-coche:focus-visible, .ficha-pista:focus-visible, .menu-botones button:focus-visible { outline: 3px solid var(--tinta); outline-offset: 2px; }
+  .ficha-coche .foto {
+    width: 100%;
+    aspect-ratio: 32 / 22;
+    background: url(vehiculos.png) 0 0 / 500% 100% no-repeat;
+  }
+  .ficha-coche .stat { display: flex; width: 100%; justify-content: space-between; align-items: center; gap: 6px; }
+  .menu-carrera .barra { display: inline-flex; gap: 2px; height: auto; background: none; border-radius: 0; overflow: visible; }
+  .menu-carrera .barra i, .menu-carrera .barra b { position: static; display: block; width: 9px; height: 9px; border-radius: 2px; }
+  .menu-carrera .barra i { background: var(--coral); }
+  .menu-carrera .barra b { background: #e3dccb; }
+  .ficha-pista canvas { width: 120px; height: 90px; border-radius: 10px; background: color-mix(in srgb, var(--color) 16%, #fff); }
+  .ficha-pista .copa { position: absolute; top: 6px; right: 8px; font-size: 22px; }
+  .menu-botones { display: flex; justify-content: flex-end; gap: 10px; }
+  .menu-botones button {
+    border: 0;
+    border-radius: 999px;
+    padding: 10px 20px;
+    font: 800 18px "Baloo 2", "Nunito", system-ui, sans-serif;
+    cursor: pointer;
+  }
+  .menu-volver { color: var(--tinta); background: var(--arena); }
+  .menu-empezar { color: #fffdf6; background: var(--coral); box-shadow: 0 4px 0 var(--coral-osc); }
+  @media (max-width: 520px) {
+    .minimapa { width: 110px; height: 110px; top: calc(150px + env(safe-area-inset-top, 0px)); }
+    .hud-carrera .puesto { font-size: 48px; }
+    .fichas.coches { grid-template-columns: repeat(2, 1fr); }
+    .fichas.pistas { grid-template-columns: repeat(2, 1fr); }
+  }
 </style>
 
 <canvas id="escena" aria-label="Playa en 3D con Drako, un perro bretón, y Manuel, que juegan con un balón"></canvas>
@@ -1008,9 +1136,9 @@
   // Papá y mamá (hechos en Blender con Padres.py); si faltan, se usan los muñecos sencillos
   const cargarOpcional = (n) => cargar(n).catch(() => null);
   Promise.all([cargar('playa.glb'), cargar('perro.glb'), cargar('nino.glb'), cargarOpcional('papa.glb'), cargarOpcional('mama.glb'),
-    cargarOpcional('arrecife.glb'), cargarOpcional('coches.glb'),
+    cargarOpcional('arrecife.glb'), cargarOpcional('coches.glb'), cargarOpcional('pistas.glb'),
     cargarOpcional('amigo1.glb'), cargarOpcional('amigo2.glb'), cargarOpcional('amigo3.glb'), cargarOpcional('amigo4.glb')])
-    .then(([playa, gPerro, gNino, gPapa, gMama, gArrecife, gCoches, ...gAmigos]) => {
+    .then(([playa, gPerro, gNino, gPapa, gMama, gArrecife, gCoches, gPistas, ...gAmigos]) => {
     prepararPlaya(playa);
     prepararPerro(gPerro);
     prepararNino(gNino);
@@ -1020,7 +1148,7 @@
     construirInterior(gPapa, gMama);
     construirArrecife(gArrecife);
     construirCoche(gCoches);
-    if (gCoches) construirCircuito(gAmigos);
+    if (gCoches && gPistas) construirCircuito(gAmigos, gPistas);
     parque.toboganes.forEach((t) => {
       if (t.aro) return;
       const aro = new THREE.Mesh(new THREE.RingGeometry(0.4, 0.6, 32), new THREE.MeshBasicMaterial({ color: '#ffd42a', side: THREE.DoubleSide, transparent: true, opacity: 0.85 }));
@@ -1966,7 +2094,7 @@
     let zona = 'arena', texto;
     if (E.modo === 'bucear') { zona = 'agua'; texto = `Buceando · ${Math.max(0, Math.round(-E.pos.y))} m`; }
     else if (E.modo === 'atraccion' && E.atr && E.atr.tipo === 'coche') texto = `Conduciendo · ${Math.round(Math.abs(E.atr.vehiculo.vel) * 3.6)} km/h`;
-    else if (enCircuito(E.pos)) texto = circuito.fase === 'carrera' || circuito.fase === 'cuenta' ? `Carrera · ${Math.round(Math.abs(circuito.karts[4].vel) * 3.6)} km/h` : 'En el circuito de karts';
+    else if (enCircuito(E.pos)) texto = circuito.fase === 'carrera' || circuito.fase === 'cuenta' ? `${circuito.pista ? circuito.pista.def.nombre : 'Carrera'} · ${Math.round(Math.abs(circuito.yo ? circuito.yo.vel : 0) * 3.6)} km/h` : 'En el circuito de karts';
     else if (E.modo === 'tobogan') { zona = 'agua'; texto = '¡Bajando por el tobogán!'; }
     else if (E.modo === 'volando') { zona = 'agua'; texto = '¡Volando!'; }
     else if (E.modo === 'pescar') { zona = 'muelle'; texto = 'Pescando en el muelle'; }
@@ -2689,12 +2817,14 @@
       objetivo: () => (coches.conduciendo || !coches.coche ? PUERTA_CIRCUITO : new V3(coches.coche.x, coches.coche.y, coches.coche.z)) },
     { id: 'carrera', titulo: 'Corre con tus amigos y queda entre los 3 primeros', total: 1, cuenta: 0,
       objetivo: () => (!enCircuito(ninoE.pos) ? PUERTA_CIRCUITO : circuito.fase === 'paddock' && circuito.amigos[0] ? circuito.amigos[0].grupo.position : null) },
+    { id: 'copas', titulo: 'Gana una copa (podio) en los 4 circuitos: verde, ciudad, playa y bosque', total: 4, cuenta: 0,
+      objetivo: () => (!enCircuito(ninoE.pos) ? PUERTA_CIRCUITO : circuito.fase === 'paddock' && circuito.amigos[0] ? circuito.amigos[0].grupo.position : null) },
   ];
   const misionPor = (id) => MISIONES_NINO.find((m) => m.id === id);
   const hechaNino = (id) => { const m = misionPor(id); return m && m.cuenta >= m.total; };
   let buceando = false;  // bajo el agua, la tarea que se ve es la del arrecife
   const misionNino = () => (buceando && !hechaNino('arrecife') ? misionPor('arrecife') :
-    enCircuito(ninoE.pos) && !hechaNino('carrera') ? misionPor('carrera') : MISIONES_NINO.find((m) => m.cuenta < m.total) || null);
+    enCircuito(ninoE.pos) && !hechaNino('carrera') ? misionPor('carrera') : enCircuito(ninoE.pos) && !hechaNino('copas') ? misionPor('copas') : MISIONES_NINO.find((m) => m.cuenta < m.total) || null);
   function masCercanoA(lista, desde) {
     let mejor = null, d = Infinity;
     for (const p of lista) {
@@ -6190,11 +6320,10 @@
   const APARCAMIENTO = new V3(10, 0, -9);      // donde está aparcado el coche al empezar
   const coches = { piezas: {}, coche: null, ruedas: [], conduciendo: false, casco: null };
   const circuito = {
-    listo: false, grupo: new THREE.Group(), fase: 'fuera', amigos: [], karts: [], N: 800, L: 0,
+    listo: false, fase: 'fuera', amigos: [], karts: [], N: 800, L: 0,
     px: null, pz: null, tx: null, tz: null, alto: null, turbos: [], cajas: [], hud: null, cuenta: 0, podio: null,
   };
   const VUELTAS = 3;
-  const ANCHO_PISTA = 12;
   const NOMBRES_AMIGOS = ['Lucía', 'Hugo', 'Martina', 'Leo'];
   const COLORES_KART = ['#ff4f8b', '#29b35a', '#ffb400', '#2a7ae0'];
 
@@ -6412,126 +6541,187 @@
   }
 
   // =====================================================================
-  // ---------- El circuito ----------
+  // ---------- Los circuitos: verde, ciudad, playa y bosque misterioso ----------
   // =====================================================================
-  const PUNTOS_PISTA = [[0, 0], [45, 0], [75, 8], [88, 32], [78, 56], [52, 62], [34, 48], [20, 30], [0, 32], [-22, 52],
-    [-50, 58], [-72, 42], [-78, 16], [-62, -4], [-32, -8]];
+  // Las piezas de los escenarios vienen de Pistas.py (pistas.glb) y los vehículos de Coches.py.
   const PADDOCK = new V3(CIRC.x + 12, 0, CIRC.z - 30);   // puerta del circuito, donde esperan los niños
+  const PISTAS = [
+    { id: 'verde', nombre: 'Circuito Verde', color: '#29b35a', tema: 'verde', ancho: 12,
+      puntos: [[0, 0], [45, 0], [75, 8], [88, 32], [78, 56], [52, 62], [34, 48], [20, 30], [0, 32], [-22, 52], [-50, 58], [-72, 42], [-78, 16], [-62, -4], [-32, -8]],
+      rampas: [[-47, -6]], turbos: [[60, 3], [86, 26], [-12, 42], [-76, 30], [30, 44]] },
+    { id: 'ciudad', nombre: 'Gran Ciudad', color: '#2a7ae0', tema: 'ciudad', ancho: 13,
+      puntos: [[0, 0], [60, 0], [110, 0], [130, 18], [130, 70], [112, 90], [70, 90], [52, 108], [52, 150], [34, 168], [-30, 168], [-50, 150], [-50, 100], [-70, 82], [-110, 82], [-128, 64], [-128, 20], [-110, 2], [-60, 0]],
+      rampas: [[-128, 40]], turbos: [[90, 0], [130, 45], [52, 128], [0, 168], [-90, 82], [-35, 0]] },
+    { id: 'playa', nombre: 'Costa Soleada', color: '#ffb400', tema: 'playa', ancho: 12,
+      puntos: [[0, 0], [70, -6], [130, 6], [165, 40], [175, 95], [150, 140], [100, 150], [70, 125], [40, 95], [0, 110], [-40, 140], [-90, 130], [-115, 90], [-100, 45], [-60, 20], [-25, 6]],
+      rampas: [[172, 70]], arroyo: [172, 80], turbos: [[100, 0], [160, 125], [55, 110], [-65, 138], [-110, 70]] },
+    { id: 'bosque', nombre: 'Bosque Misterioso', color: '#9a4fe0', tema: 'bosque', ancho: 11,
+      puntos: [[0, 0], [45, 8], [85, -8], [125, 10], [150, 50], [135, 95], [95, 110], [70, 140], [30, 150], [-10, 125], [-20, 85], [-55, 70], [-90, 85], [-120, 60], [-110, 20], [-70, 5], [-35, -8]],
+      rampas: [[-20, 100]], turbos: [[65, 0], [145, 72], [50, 147], [-72, 76], [-90, 10]], colinas: true },
+  ];
+  const VEHICULOS = [
+    { id: 'kart', nombre: 'Kart', cuerpo: 'Kart', rueda: 'KartRueda', radio: 0.13, escala: 1, largo: 1.4, asiento: [0, 0.34, -0.25],
+      ruedas: [[0.62, 0.13, 0.62], [-0.62, 0.13, 0.62], [0.62, 0.13, -0.72], [-0.62, 0.13, -0.72]], vel: 14.2, acel: 10, volante: 2.3, stats: [3, 5, 5] },
+    { id: 'gt', nombre: 'Coche GT', cuerpo: 'Coche', rueda: 'CocheRueda', radio: 0.34, escala: 0.5, largo: 2.3, asiento: [0, 0.4, 0], oculto: true, sinTinte: true,
+      ruedas: [[0.87, 0.34, 1.45], [-0.87, 0.34, 1.45], [0.87, 0.34, -1.35], [-0.87, 0.34, -1.35]], vel: 15.6, acel: 8.5, volante: 1.9, stats: [5, 3, 3] },
+    { id: 'bolido', nombre: 'Bólido', cuerpo: 'Bolido', rueda: 'BolidoRueda', radio: 0.2, escala: 1, largo: 2.4, asiento: [0, 0.18, -0.1],
+      ruedas: [[0.62, 0.2, 0.95], [-0.62, 0.2, 0.95], [0.64, 0.22, -0.85], [-0.64, 0.22, -0.85]], vel: 16.2, acel: 9, volante: 1.8, stats: [5, 4, 2] },
+    { id: 'buggy', nombre: 'Buggy', cuerpo: 'Buggy', rueda: 'BuggyRueda', radio: 0.36, escala: 1, largo: 1.9, asiento: [0, 0.9, -0.35], todoterreno: true,
+      ruedas: [[0.78, 0.36, 0.85], [-0.78, 0.36, 0.85], [0.78, 0.36, -0.85], [-0.78, 0.36, -0.85]], vel: 14.6, acel: 9.5, volante: 2.0, stats: [3, 4, 4] },
+    { id: 'nave', nombre: 'Nave', cuerpo: 'Futurista', radio: 1, escala: 1, largo: 2.4, asiento: [0, 0.7, 0], oculto: true, flota: true,
+      ruedas: [], vel: 15.2, acel: 11, volante: 2.1, stats: [4, 5, 3] },
+  ];
+  const OBJETOS = {
+    seta: { emoji: '🍄', nombre: 'Seta turbo' }, triple: { emoji: '🍄', nombre: 'Tres setas' }, platano: { emoji: '🍌', nombre: 'Plátano' },
+    verde: { emoji: '🟢', nombre: 'Caparazón verde' }, rojo: { emoji: '🔴', nombre: 'Caparazón rojo' }, estrella: { emoji: '⭐', nombre: 'Estrella' },
+    rayo: { emoji: '⚡', nombre: 'Rayo' },
+  };
+  Object.assign(circuito, { pistas: {}, pista: null, eleccion: { vehiculo: 'kart', pista: 'verde' }, copas: new Set(), corredores: [], proyectiles: [], platanos: [],
+    paddock: new THREE.Group(), boton: { acel: false, freno: false } });
 
-  // Punto de la pista más cercano (busca cerca del último conocido)
+  // ---------- Geometría de la pista actual ----------
   function indicePista(x, z, desde) {
-    const N = circuito.N;
+    const P = circuito.pista, N = P.N;
     let mejor = desde ?? 0, d = Infinity;
-    const busca = desde === undefined ? N : 60;
-    for (let k = -busca; k <= busca; k++) {
+    const busca = desde === undefined ? N : 70;
+    const paso = desde === undefined ? 3 : 1;
+    for (let k = -busca; k <= busca; k += paso) {
       const i = ((desde ?? 0) + k + N * 4) % N;
-      const dd = (circuito.px[i] - x) ** 2 + (circuito.pz[i] - z) ** 2;
+      const dd = (P.px[i] - x) ** 2 + (P.pz[i] - z) ** 2;
       if (dd < d) { d = dd; mejor = i; }
     }
+    if (paso > 1) return indicePista(x, z, mejor);
     return mejor;
   }
-  // Altura de la pista (la rampa de salto) y del suelo del circuito
   function sueloCircuito(x, z, v) {
+    const P = circuito.pista;
+    if (!P) return 0.02;
     const i = indicePista(x, z, v ? v.indice : undefined);
     if (v) v.indice = i;
-    const dx = x - circuito.px[i], dz = z - circuito.pz[i];
-    const lateral = dx * circuito.tz[i] - dz * circuito.tx[i];
+    const dx = x - P.px[i], dz = z - P.pz[i];
+    const lateral = dx * P.tz[i] - dz * P.tx[i];
     if (v) v.lateral = lateral;
-    return Math.abs(lateral) < ANCHO_PISTA / 2 + 0.5 ? circuito.alto[i] : 0.02;
+    return Math.abs(lateral) < P.ancho / 2 + 1.5 ? P.alto[i] : Math.max(0.02, P.alto[i] - (Math.abs(lateral) - P.ancho / 2 - 1.5) * 0.6);
   }
 
-  function construirCircuito(amigosG) {
-    const G = circuito.grupo;
+  // ---------- Texturas pintadas en un lienzo ----------
+  function lienzo(w, h, pintar) {
+    const l = document.createElement('canvas');
+    l.width = w;
+    l.height = h;
+    pintar(l.getContext('2d'), w, h);
+    const t = new THREE.CanvasTexture(l);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.encoding = THREE.sRGBEncoding;
+    t.anisotropy = 4;
+    return t;
+  }
+  function textoLienzo(texto, fondo, color, w = 512, h = 256) {
+    return lienzo(w, h, (c) => {
+      c.fillStyle = fondo;
+      c.fillRect(0, 0, w, h);
+      c.fillStyle = color;
+      c.font = `900 ${Math.round(h * 0.34)}px "Baloo 2", "Nunito", sans-serif`;
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      texto.split('\n').forEach((l, k, arr) => c.fillText(l, w / 2, h / 2 + (k - (arr.length - 1) / 2) * h * 0.38));
+    });
+  }
+
+  // ---------- Construir un circuito (la primera vez que se elige) ----------
+  function construirPista(def) {
+    if (circuito.pistas[def.id]) return circuito.pistas[def.id];
+    const G = new THREE.Group();
     G.visible = false;
     scene.add(G);
-    // Trazado: curva cerrada y puntos repartidos a la misma distancia
-    const curva = new THREE.CatmullRomCurve3(PUNTOS_PISTA.map(([x, z]) => new V3(CIRC.x + x, 0, CIRC.z + z)), true, 'catmullrom', 0.5);
-    const N = circuito.N;
+    const P = { def, grupo: G, ancho: def.ancho, turbos: [], cajas: [], obstaculos: [], animados: [], brillo: [] };
+    circuito.pistas[def.id] = P;
+    const antes = circuito.pista;
+    circuito.pista = P;
+    const curva = new THREE.CatmullRomCurve3(def.puntos.map(([x, z]) => new V3(CIRC.x + x, 0, CIRC.z + z)), true, 'catmullrom', 0.5);
+    P.L = curva.getLength();
+    const N = P.N = Math.round(P.L / 0.5);
+    P.ds = P.L / N;
     const pts = curva.getSpacedPoints(N);
-    circuito.L = curva.getLength();
-    circuito.ds = circuito.L / N;
-    circuito.px = new Float32Array(N);
-    circuito.pz = new Float32Array(N);
-    circuito.tx = new Float32Array(N);
-    circuito.tz = new Float32Array(N);
-    circuito.alto = new Float32Array(N);
-    circuito.curva = new Float32Array(N);
-    for (let i = 0; i < N; i++) {
-      circuito.px[i] = pts[i].x;
-      circuito.pz[i] = pts[i].z;
-    }
+    ['px', 'pz', 'tx', 'tz', 'alto', 'curva'].forEach((k) => { P[k] = new Float32Array(N); });
+    for (let i = 0; i < N; i++) { P.px[i] = pts[i].x; P.pz[i] = pts[i].z; }
     for (let i = 0; i < N; i++) {
       const a = (i + 1) % N, b = (i - 1 + N) % N;
-      const tx = circuito.px[a] - circuito.px[b], tz = circuito.pz[a] - circuito.pz[b];
-      const l = Math.hypot(tx, tz);
-      circuito.tx[i] = tx / l;
-      circuito.tz[i] = tz / l;
+      const tx = P.px[a] - P.px[b], tz = P.pz[a] - P.pz[b], l = Math.hypot(tx, tz);
+      P.tx[i] = tx / l;
+      P.tz[i] = tz / l;
     }
     for (let i = 0; i < N; i++) {
-      const a = (i + 8) % N;
-      circuito.curva[i] = Math.abs(Math.atan2(circuito.tx[i] * circuito.tz[a] - circuito.tz[i] * circuito.tx[a], circuito.tx[i] * circuito.tx[a] + circuito.tz[i] * circuito.tz[a]));
+      const a = (i + 16) % N;
+      P.curva[i] = Math.abs(Math.atan2(P.tx[i] * P.tz[a] - P.tz[i] * P.tx[a], P.tx[i] * P.tx[a] + P.tz[i] * P.tz[a]));
     }
     const cercano = (x, z) => indicePista(CIRC.x + x, CIRC.z + z);
-    // Rampa de salto en la última recta
-    const iRampa = cercano(-47, -6);
-    const largoRampa = Math.round(9 / circuito.ds);
-    for (let k = 0; k < largoRampa; k++) circuito.alto[(iRampa + k) % N] = 1.5 * (k / largoRampa) + 0.02;
-    circuito.iRampa = iRampa;
-    for (let i = 0; i < N; i++) if (!circuito.alto[i]) circuito.alto[i] = 0.02;
-
-    // Hierba
-    const lienzoH = document.createElement('canvas');
-    lienzoH.width = lienzoH.height = 128;
-    const cH = lienzoH.getContext('2d');
-    for (let i = 0; i < 8; i++) {
-      cH.fillStyle = i % 2 ? '#5fb043' : '#6cc04c';
-      cH.fillRect(0, i * 16, 128, 16);
+    // Alturas: colinas en el bosque y rampas de salto
+    for (let i = 0; i < N; i++) {
+      const u = i / N;
+      let h = 0.02;
+      if (def.colinas) h += 2.4 * Math.pow(Math.sin(Math.PI * u * 5), 2) * smoothstep(0.04, 0.12, u) * (1 - smoothstep(0.88, 0.96, u));
+      P.alto[i] = h;
     }
-    const texH = new THREE.CanvasTexture(lienzoH);
-    texH.wrapS = texH.wrapT = THREE.RepeatWrapping;
-    texH.repeat.set(40, 40);
-    texH.encoding = THREE.sRGBEncoding;
-    const hierba = new THREE.Mesh(new THREE.PlaneGeometry(420, 420), new THREE.MeshStandardMaterial({ map: texH, roughness: 1 }));
-    hierba.rotation.x = -Math.PI / 2;
-    hierba.position.set(CIRC.x + 5, -0.01, CIRC.z + 25);
-    hierba.receiveShadow = true;
-    G.add(hierba);
+    P.rampas = [];
+    (def.rampas || []).forEach(([x, z]) => {
+      const i0 = cercano(x, z), largo = Math.round(10 / P.ds);
+      for (let k = 0; k < largo; k++) P.alto[(i0 + k) % N] += 1.8 * (k / largo);
+      P.rampas.push([i0, largo]);
+    });
+    const alrededor = (x, z) => {
+      const i = indicePista(x, z);
+      return Math.hypot(x - P.px[i], z - P.pz[i]);
+    };
+    const libre = (x, z, margen) => alrededor(x, z) > P.ancho / 2 + margen && Math.hypot(x - PADDOCK.x, z - PADDOCK.z) > 24;
 
-    // Asfalto con líneas blancas en los bordes
-    const lienzoA = document.createElement('canvas');
-    lienzoA.width = 256;
-    lienzoA.height = 256;
-    const cA = lienzoA.getContext('2d');
-    cA.fillStyle = '#4a4e57';
-    cA.fillRect(0, 0, 256, 256);
-    for (let k = 0; k < 900; k++) {
-      cA.fillStyle = Math.random() < 0.5 ? '#555a64' : '#40444c';
-      cA.fillRect(Math.random() * 256, Math.random() * 256, 2, 2);
-    }
-    cA.fillStyle = '#f4f4f0';
-    cA.fillRect(8, 0, 8, 256);
-    cA.fillRect(240, 0, 8, 256);
-    for (let y = 0; y < 256; y += 64) cA.fillRect(126, y, 4, 32);
-    const texA = new THREE.CanvasTexture(lienzoA);
-    texA.wrapS = texA.wrapT = THREE.RepeatWrapping;
-    texA.encoding = THREE.sRGBEncoding;
-    texA.anisotropy = 4;
-    const cinta = (ancho, desplaza, altura, mat, colores) => {
+    // Suelo del escenario
+    const tema = def.tema;
+    const texSuelo = {
+      verde: () => lienzo(128, 128, (c) => { for (let i = 0; i < 8; i++) { c.fillStyle = i % 2 ? '#5fb043' : '#6cc04c'; c.fillRect(0, i * 16, 128, 16); } }),
+      ciudad: () => lienzo(128, 128, (c) => { c.fillStyle = '#8d949c'; c.fillRect(0, 0, 128, 128); c.strokeStyle = '#7b828a'; c.lineWidth = 3; for (let i = 0; i <= 128; i += 32) { c.beginPath(); c.moveTo(i, 0); c.lineTo(i, 128); c.moveTo(0, i); c.lineTo(128, i); c.stroke(); } }),
+      playa: () => lienzo(128, 128, (c) => { c.fillStyle = '#f0d9a6'; c.fillRect(0, 0, 128, 128); for (let k = 0; k < 400; k++) { c.fillStyle = Math.random() < 0.5 ? '#e6cb94' : '#f6e4b8'; c.fillRect(Math.random() * 128, Math.random() * 128, 2, 2); } }),
+      bosque: () => lienzo(128, 128, (c) => { c.fillStyle = '#1f3a24'; c.fillRect(0, 0, 128, 128); for (let k = 0; k < 500; k++) { c.fillStyle = ['#244a2b', '#2d5a30', '#1a3120', '#3a2f22'][k % 4]; c.fillRect(Math.random() * 128, Math.random() * 128, 3, 3); } }),
+    }[tema]();
+    texSuelo.repeat.set(tema === 'ciudad' ? 60 : 45, tema === 'ciudad' ? 60 : 45);
+    const suelo0 = new THREE.Mesh(new THREE.PlaneGeometry(520, 520), new THREE.MeshStandardMaterial({ map: texSuelo, roughness: 1 }));
+    suelo0.rotation.x = -Math.PI / 2;
+    suelo0.position.set(CIRC.x + 10, -0.01, CIRC.z + 70);
+    suelo0.receiveShadow = true;
+    G.add(suelo0);
+
+    // Asfalto (o camino de tierra en el bosque) y bordes
+    const texPista = lienzo(256, 256, (c) => {
+      const base = { verde: '#4a4e57', ciudad: '#3b3f47', playa: '#50545c', bosque: '#6b5238' }[tema];
+      c.fillStyle = base;
+      c.fillRect(0, 0, 256, 256);
+      for (let k = 0; k < 1200; k++) {
+        c.fillStyle = tema === 'bosque' ? (Math.random() < 0.5 ? '#7a5f42' : '#5c452f') : (Math.random() < 0.5 ? '#5a5e68' : '#40444c');
+        c.fillRect(Math.random() * 256, Math.random() * 256, 2, 2);
+      }
+      if (tema !== 'bosque') {
+        c.fillStyle = '#f4f4f0';
+        c.fillRect(8, 0, 8, 256);
+        c.fillRect(240, 0, 8, 256);
+        c.fillStyle = tema === 'ciudad' ? '#ffcf2e' : '#f4f4f0';
+        for (let y = 0; y < 256; y += 64) c.fillRect(125, y, 6, 34);
+      }
+    });
+    const cinta = (ancho, desplaza, altura, mat, colores, saltar) => {
       const pos = [], uv = [], col = [], ind = [];
+      let n = 0;
       for (let i = 0; i <= N; i++) {
         const k = i % N;
-        const nx = circuito.tz[k], nz = -circuito.tx[k];
-        const y = circuito.alto[k] + altura;
+        const nx = P.tz[k], nz = -P.tx[k];
+        const y = P.alto[k] + altura;
         for (const lado of [-1, 1]) {
           const d = desplaza + lado * ancho / 2;
-          pos.push(circuito.px[k] + nx * d, y, circuito.pz[k] + nz * d);
-          uv.push(lado < 0 ? 0 : 1, i * circuito.ds / 12);
+          pos.push(P.px[k] + nx * d, y, P.pz[k] + nz * d);
+          uv.push(lado < 0 ? 0 : 1, i * P.ds / 12);
           if (colores) col.push(...colores(i));
         }
-        if (i < N) {
-          const a = i * 2;
-          ind.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
-        }
+        if (i < N && !(saltar && saltar(k))) ind.push(n, n + 2, n + 1, n + 1, n + 2, n + 3);
+        n += 2;
       }
       const g = new THREE.BufferGeometry();
       g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
@@ -6544,181 +6734,430 @@
       G.add(m);
       return m;
     };
-    cinta(ANCHO_PISTA, 0, 0.02, new THREE.MeshStandardMaterial({ map: texA, roughness: 0.85, side: THREE.DoubleSide }));
-    // Pianos rojos y blancos a los dos lados
-    const rojo = new THREE.Color('#e2321f').convertSRGBToLinear(), blanco = new THREE.Color('#f5f5f0').convertSRGBToLinear();
-    const matPiano = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6, side: THREE.DoubleSide });
-    const pianoCol = (i) => { const c = Math.floor(i * circuito.ds / 2) % 2 ? rojo : blanco; return [c.r, c.g, c.b]; };
-    cinta(1.2, ANCHO_PISTA / 2 + 0.6, 0.03, matPiano, pianoCol);
-    cinta(1.2, -ANCHO_PISTA / 2 - 0.6, 0.03, matPiano, pianoCol);
-    // Rampa (un plano inclinado con flechas)
-    const matRampa = new THREE.MeshStandardMaterial({ color: '#ffb400', roughness: 0.5 });
-    for (let k = 0; k < largoRampa; k += 1) {
-      const i = (iRampa + k) % N;
-      const tabla = new THREE.Mesh(new THREE.BoxGeometry(ANCHO_PISTA * 0.7, 0.12, circuito.ds * 1.05), k % 2 ? matRampa : new THREE.MeshStandardMaterial({ color: '#222', roughness: 0.6 }));
-      tabla.position.set(circuito.px[i], circuito.alto[i], circuito.pz[i]);
-      tabla.rotation.set(-Math.atan2(1.5, 9), Math.atan2(circuito.tx[i], circuito.tz[i]), 0, 'YXZ');
-      G.add(tabla);
+    // En la playa, el arroyo corta la pista justo después de la rampa: ¡hay que saltarlo!
+    let arroyo = null;
+    if (def.arroyo) {
+      const i0 = cercano(def.arroyo[0], def.arroyo[1]);
+      arroyo = [i0, Math.round(9 / P.ds)];
+      P.arroyo = arroyo;
     }
-    const fin = (iRampa + largoRampa) % N;
-    const pared = new THREE.Mesh(new THREE.BoxGeometry(ANCHO_PISTA * 0.7, 1.55, 0.3), matRampa);
-    pared.position.set(circuito.px[fin], 0.78, circuito.pz[fin]);
-    pared.rotation.y = Math.atan2(circuito.tx[fin], circuito.tz[fin]);
-    G.add(pared);
+    const enArroyo = (k) => arroyo && ((k - arroyo[0] + N) % N) < arroyo[1];
+    cinta(P.ancho, 0, 0.02, new THREE.MeshStandardMaterial({ map: texPista, roughness: 0.85, side: THREE.DoubleSide }), null, enArroyo);
+    const [cA, cB] = { verde: ['#e2321f', '#f5f5f0'], ciudad: ['#ffcf2e', '#2a2d33'], playa: ['#2a7ae0', '#f5f5f0'], bosque: ['#9a4fe0', '#43e0b0'] }[tema]
+      .map((c) => new THREE.Color(c).convertSRGBToLinear());
+    const matPiano = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6, side: THREE.DoubleSide });
+    if (tema === 'bosque') { matPiano.emissive = new THREE.Color('#ffffff'); matPiano.emissiveIntensity = 0.25; }
+    const pianoCol = (i) => { const c = Math.floor(i * P.ds / 2) % 2 ? cA : cB; return [c.r, c.g, c.b]; };
+    cinta(1.2, P.ancho / 2 + 0.6, 0.03, matPiano, pianoCol, enArroyo);
+    cinta(1.2, -P.ancho / 2 - 0.6, 0.03, matPiano, pianoCol, enArroyo);
+    if (tema === 'ciudad') {
+      // aceras
+      const matAcera = new THREE.MeshStandardMaterial({ color: '#c9ccd0', roughness: 0.9, side: THREE.DoubleSide });
+      cinta(3.5, P.ancho / 2 + 3.0, 0.12, matAcera);
+      cinta(3.5, -P.ancho / 2 - 3.0, 0.12, matAcera);
+    }
+    // Rampas: tablas amarillas y negras
+    const matR1 = new THREE.MeshStandardMaterial({ color: '#ffb400', roughness: 0.5 }), matR2 = new THREE.MeshStandardMaterial({ color: '#222', roughness: 0.6 });
+    P.rampas.forEach(([i0, largo]) => {
+      for (let k = 0; k < largo; k++) {
+        const i = (i0 + k) % N;
+        const tabla = new THREE.Mesh(new THREE.BoxGeometry(P.ancho * 0.7, 0.12, P.ds * 1.05), k % 4 < 2 ? matR1 : matR2);
+        tabla.position.set(P.px[i], P.alto[i], P.pz[i]);
+        tabla.rotation.set(-Math.atan2(1.8, 10), Math.atan2(P.tx[i], P.tz[i]), 0, 'YXZ');
+        G.add(tabla);
+      }
+    });
+    // Agua del arroyo
+    if (arroyo) {
+      const i = (arroyo[0] + Math.round(arroyo[1] / 2)) % N;
+      const agua0 = new THREE.Mesh(new THREE.PlaneGeometry(40, arroyo[1] * P.ds + 1), new THREE.MeshStandardMaterial({ color: '#2fb6d8', roughness: 0.1, metalness: 0.1, transparent: true, opacity: 0.9 }));
+      agua0.rotation.set(-Math.PI / 2, Math.atan2(P.tx[i], P.tz[i]), 0, 'YXZ');
+      agua0.position.set(P.px[i], -0.25, P.pz[i]);
+      G.add(agua0);
+    }
 
-    // Línea de salida (cuadros) y arco con el semáforo
-    const iSal = 0;
-    const salida = new THREE.Mesh(new THREE.PlaneGeometry(ANCHO_PISTA, 1.6), new THREE.MeshBasicMaterial({ map: texturaCuadros(12, 2) }));
-    salida.rotation.set(-Math.PI / 2, Math.atan2(circuito.tx[iSal], circuito.tz[iSal]), 0, 'YXZ');  // a lo ancho de la pista
-    salida.position.set(circuito.px[iSal], 0.05, circuito.pz[iSal]);
+    // Salida: cuadros, arco con el semáforo, gradas y globos
+    const salida = new THREE.Mesh(new THREE.PlaneGeometry(P.ancho, 1.6), new THREE.MeshBasicMaterial({ map: texturaCuadros(12, 2) }));
+    salida.rotation.set(-Math.PI / 2, Math.atan2(P.tx[0], P.tz[0]), 0, 'YXZ');
+    salida.position.set(P.px[0], 0.05, P.pz[0]);
     G.add(salida);
     const arco = (i, texto, color) => {
-      const nx = circuito.tz[i], nz = -circuito.tx[i];
+      const nx = P.tz[i], nz = -P.tx[i];
       const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.4 });
       [-1, 1].forEach((l) => {
-        const p = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.45, 6, 16), mat);
-        p.position.set(circuito.px[i] + nx * l * (ANCHO_PISTA / 2 + 1.2), 3, circuito.pz[i] + nz * l * (ANCHO_PISTA / 2 + 1.2));
+        const p = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.45, 7, 16), mat);
+        p.position.set(P.px[i] + nx * l * (P.ancho / 2 + 1.4), P.alto[i] + 3.5, P.pz[i] + nz * l * (P.ancho / 2 + 1.4));
         p.castShadow = true;
         G.add(p);
-        colisiones.push({ x: p.position.x, z: p.position.z, r: 0.5 });
+        P.obstaculos.push({ x: p.position.x, z: p.position.z, r: 0.6 });
       });
-      const letrero = cartel(texto, ANCHO_PISTA + 3, 1.6);
-      letrero.position.set(circuito.px[i], 6.2, circuito.pz[i]);
-      letrero.rotation.y = Math.atan2(circuito.tx[i], circuito.tz[i]) + Math.PI;
+      const letrero = cartel(texto, P.ancho + 3.4, 1.6);
+      letrero.position.set(P.px[i], P.alto[i] + 7.2, P.pz[i]);
+      letrero.rotation.y = Math.atan2(P.tx[i], P.tz[i]) + Math.PI;
       G.add(letrero);
-      return letrero;
     };
-    arco(iSal, 'SALIDA · META', '#e2321f');
-    arco(cercano(80, 45), '¡TURBO!', '#2a7ae0');
-    arco(cercano(-35, 58), 'CIRCUITO DE KARTS', '#29b35a');
-    // Semáforo encima de la salida
-    circuito.luces = [];
+    arco(0, 'SALIDA · META', '#e2321f');
+    arco(Math.round(N * 0.33), def.nombre.toUpperCase(), def.color);
+    arco(Math.round(N * 0.66), '¡A TOPE!', '#ffb400');
+    P.luces = [];
     for (let k = 0; k < 3; k++) {
       const luz = new THREE.Mesh(new THREE.SphereGeometry(0.35, 16, 12), new THREE.MeshBasicMaterial({ color: '#330000' }));
-      luz.position.set(circuito.px[iSal] + circuito.tz[iSal] * (k - 1) * 0.9, 7.6, circuito.pz[iSal] - circuito.tx[iSal] * (k - 1) * 0.9);
+      luz.position.set(P.px[0] + P.tz[0] * (k - 1) * 0.9, 8.6, P.pz[0] - P.tx[0] * (k - 1) * 0.9);
       G.add(luz);
-      circuito.luces.push(luz);
+      P.luces.push(luz);
+    }
+    const mm = new THREE.Matrix4(), cc = new THREE.Color(), qq = new THREE.Quaternion(), ee = new THREE.Euler();
+    // Grada al lado de la recta de salida
+    {
+      const i = Math.round(N * 0.04), lado = 1;
+      const d = P.ancho / 2 + 9;
+      const gx = P.px[i] + P.tz[i] * d * lado, gz = P.pz[i] - P.tx[i] * d * lado;
+      const ry = Math.atan2(P.tx[i], P.tz[i]);
+      const grada = new THREE.Group();
+      for (let k = 0; k < 4; k++) {
+        const esc = new THREE.Mesh(new THREE.BoxGeometry(26, 0.6, 1.4), new THREE.MeshStandardMaterial({ color: '#cfd6dc' }));
+        esc.position.set(0, 0.3 + k * 0.6, k * 1.4);
+        esc.castShadow = esc.receiveShadow = true;
+        grada.add(esc);
+      }
+      const publico = new THREE.InstancedMesh(new THREE.CapsuleGeometry(0.22, 0.4, 4, 8), new THREE.MeshStandardMaterial({ roughness: 0.7 }), 110);
+      for (let k = 0; k < 110; k++) {
+        const fila = k % 4;
+        mm.makeTranslation(-12.5 + (k / 4 | 0) * 0.93, 0.9 + fila * 0.6, fila * 1.4);
+        publico.setMatrixAt(k, mm);
+        publico.setColorAt(k, cc.set(['#ff4f8b', '#29b35a', '#ffb400', '#2a7ae0', '#ffffff', '#e2321f'][k % 6]));
+      }
+      grada.add(publico);
+      P.publico = publico;
+      for (let k = 0; k < 14; k++) {
+        const gl = new THREE.Mesh(new THREE.SphereGeometry(0.5, 14, 12), new THREE.MeshStandardMaterial({ color: COLORES_KART[k % 4], roughness: 0.3 }));
+        gl.scale.y = 1.2;
+        gl.position.set(-13 + k * 2, 8 + Math.random() * 2, 6);
+        grada.add(gl);
+        P.animados.push((t) => { gl.position.y = 8.5 + Math.sin(t * 0.8 + k) * 0.4; });
+      }
+      grada.position.set(gx, 0, gz);
+      grada.rotation.y = ry - Math.PI / 2;
+      G.add(grada);
     }
 
-    // Turbos (flechas que brillan) y cajas sorpresa
-    const lienzoT = document.createElement('canvas');
-    lienzoT.width = 64;
-    lienzoT.height = 128;
-    const cT = lienzoT.getContext('2d');
-    cT.fillStyle = '#ff8a00';
-    cT.fillRect(0, 0, 64, 128);
-    cT.fillStyle = '#fff36a';
-    for (let y = 0; y < 128; y += 42) {
-      cT.beginPath();
-      cT.moveTo(8, y + 36); cT.lineTo(32, y + 10); cT.lineTo(56, y + 36); cT.lineTo(44, y + 36); cT.lineTo(32, y + 24); cT.lineTo(20, y + 36);
-      cT.fill();
-    }
-    const texT = new THREE.CanvasTexture(lienzoT);
-    texT.wrapT = THREE.RepeatWrapping;
-    texT.encoding = THREE.sRGBEncoding;
-    circuito.texTurbo = texT;
-    [[60, 3, 0], [86, 26, 0], [-12, 42, 0], [-76, 30, 0], [30, 44, 0]].forEach(([x, z]) => {
+    // Turbos (flechas que brillan)
+    const texT = lienzo(64, 128, (c) => {
+      c.fillStyle = '#ff8a00';
+      c.fillRect(0, 0, 64, 128);
+      c.fillStyle = '#fff36a';
+      for (let y = 0; y < 128; y += 42) {
+        c.beginPath();
+        c.moveTo(8, y + 36); c.lineTo(32, y + 10); c.lineTo(56, y + 36); c.lineTo(44, y + 36); c.lineTo(32, y + 24); c.lineTo(20, y + 36);
+        c.fill();
+      }
+    });
+    P.texTurbo = texT;
+    (def.turbos || []).forEach(([x, z]) => {
       const i = cercano(x, z);
       const pad = new THREE.Mesh(new THREE.PlaneGeometry(3, 5), new THREE.MeshBasicMaterial({ map: texT, toneMapped: false }));
-      pad.rotation.set(-Math.PI / 2, Math.atan2(circuito.tx[i], circuito.tz[i]) + Math.PI, 0, 'YXZ');  // flechas hacia delante
-      pad.position.set(circuito.px[i], circuito.alto[i] + 0.04, circuito.pz[i]);
+      pad.rotation.set(-Math.PI / 2, Math.atan2(P.tx[i], P.tz[i]) + Math.PI, 0, 'YXZ');
+      pad.position.set(P.px[i], P.alto[i] + 0.05, P.pz[i]);
       G.add(pad);
-      circuito.turbos.push({ i, x: pad.position.x, z: pad.position.z });
+      P.turbos.push({ i, x: pad.position.x, z: pad.position.z });
     });
-    const lienzoC = document.createElement('canvas');
-    lienzoC.width = lienzoC.height = 128;
-    const cC = lienzoC.getContext('2d');
-    const grad = cC.createLinearGradient(0, 0, 128, 128);
-    ['#ff4f8b', '#ffb400', '#29b35a', '#2a7ae0', '#9a4fe0'].forEach((c, k) => grad.addColorStop(k / 4, c));
-    cC.fillStyle = grad;
-    cC.fillRect(0, 0, 128, 128);
-    cC.fillStyle = '#fff';
-    cC.font = '900 96px sans-serif';
-    cC.textAlign = 'center';
-    cC.textBaseline = 'middle';
-    cC.fillText('?', 64, 70);
-    const texC = new THREE.CanvasTexture(lienzoC);
-    texC.encoding = THREE.sRGBEncoding;
-    const matCaja = new THREE.MeshStandardMaterial({ map: texC, transparent: true, opacity: 0.85, emissive: '#ffffff', emissiveMap: texC, emissiveIntensity: 0.4 });
-    [[84, 18], [-62, 54], [8, 31]].forEach(([x, z]) => {
-      const i = cercano(x, z);
-      [-3.5, 0, 3.5].forEach((d) => {
-        const c = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), matCaja);
-        c.position.set(circuito.px[i] + circuito.tz[i] * d, 1, circuito.pz[i] - circuito.tx[i] * d);
+    // Cajas sorpresa: filas de cuatro cada cierto tramo
+    const texC = lienzo(128, 128, (c) => {
+      const grad = c.createLinearGradient(0, 0, 128, 128);
+      ['#ff4f8b', '#ffb400', '#29b35a', '#2a7ae0', '#9a4fe0'].forEach((col, k) => grad.addColorStop(k / 4, col));
+      c.fillStyle = grad;
+      c.fillRect(0, 0, 128, 128);
+      c.fillStyle = '#fff';
+      c.font = '900 96px sans-serif';
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      c.fillText('?', 64, 70);
+    });
+    const matCaja = new THREE.MeshStandardMaterial({ map: texC, transparent: true, opacity: 0.88, emissive: '#ffffff', emissiveMap: texC, emissiveIntensity: 0.5 });
+    const filas = 6;
+    for (let f = 0; f < filas; f++) {
+      const i = Math.round(N * (0.1 + f / filas));
+      [-4.2, -1.4, 1.4, 4.2].forEach((d) => {
+        const c = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.1, 1.1), matCaja);
+        c.position.set(P.px[i] + P.tz[i] * d, P.alto[i] + 1, P.pz[i] - P.tx[i] * d);
+        c.userData.y0 = c.position.y;
         G.add(c);
-        circuito.cajas.push({ m: c, oculta: 0 });
+        P.cajas.push({ m: c, oculta: 0 });
       });
-    });
+    }
 
-    // Neumáticos en el exterior de las curvas, árboles, gradas con público y globos
-    const toro = new THREE.TorusGeometry(0.42, 0.18, 8, 14);
-    toro.rotateX(Math.PI / 2);
-    const neum = new THREE.InstancedMesh(toro, new THREE.MeshStandardMaterial({ roughness: 0.8 }), 900);
-    let nn = 0;
-    const mm = new THREE.Matrix4(), cc = new THREE.Color();
-    for (let i = 0; i < N && nn < 890; i += 2) {
-      if (circuito.curva[i] < 0.06) continue;
-      const giroSigno = Math.sign(circuito.tx[i] * circuito.tz[(i + 8) % N] - circuito.tz[i] * circuito.tx[(i + 8) % N]);
-      const d = -giroSigno * (ANCHO_PISTA / 2 + 3.2);
-      for (let h = 0; h < 2; h++) {
-        mm.makeTranslation(circuito.px[i] + circuito.tz[i] * d, 0.18 + h * 0.36, circuito.pz[i] - circuito.tx[i] * d);
-        neum.setMatrixAt(nn, mm);
-        neum.setColorAt(nn, cc.set(Math.floor(i / 6) % 3 === 0 ? COLORES_KART[Math.floor(i / 18) % 4] : '#1c1c1c'));
-        nn++;
+    // ---------- Decorado de cada escenario ----------
+    const piezas = circuito.piezasPista || {};
+    const sembrar = (nombre, lista, opciones = {}) => {
+      const pieza = piezas[nombre];
+      if (!pieza || !lista.length) return null;
+      const mat = pieza.material.clone();
+      if (opciones.brillo) { mat.emissive = new THREE.Color(opciones.brillo); mat.emissiveIntensity = opciones.intensidad ?? 0.8; }
+      if (opciones.mat) opciones.mat(mat);
+      const im = new THREE.InstancedMesh(pieza.geometry, mat, lista.length);
+      lista.forEach((d, k) => {
+        qq.setFromEuler(ee.set(d.rx || 0, d.ry || 0, 0));
+        mm.compose(new V3(d.x, d.y ?? 0, d.z), qq, new V3(d.s, d.s, d.s));
+        im.setMatrixAt(k, mm);
+        if (d.color) im.setColorAt(k, cc.set(d.color));
+      });
+      im.castShadow = opciones.sombra !== false;
+      im.receiveShadow = true;
+      G.add(im);
+      if (opciones.choca) lista.forEach((d) => P.obstaculos.push({ x: d.x, z: d.z, r: opciones.choca * d.s }));
+      return im;
+    };
+    // puntos a los lados de la pista, cada "paso" metros
+    const lados = (paso, dMin, dMax, fn, rnd = Math.random) => {
+      const out = [];
+      for (let i = 0; i < N; i += Math.max(1, Math.round(paso / P.ds))) {
+        for (const lado of [-1, 1]) {
+          const d = P.ancho / 2 + dMin + rnd() * (dMax - dMin);
+          const x = P.px[i] + P.tz[i] * d * lado, z = P.pz[i] - P.tx[i] * d * lado;
+          if (!libre(x, z, dMin - 0.5)) continue;
+          const r = fn(x, z, i, lado);
+          if (r) out.push(r);
+        }
       }
-      colisiones.push({ x: circuito.px[i] + circuito.tz[i] * d, z: circuito.pz[i] - circuito.tx[i] * d, r: 0.6, circuito: true });
+      return out;
+    };
+    const haciaPista = (i, lado) => Math.atan2(P.tx[i], P.tz[i]) + (lado > 0 ? -Math.PI / 2 : Math.PI / 2);
+    if (tema === 'verde') {
+      // neumáticos en las curvas y árboles redondos
+      const toro = new THREE.TorusGeometry(0.42, 0.18, 8, 14);
+      toro.rotateX(Math.PI / 2);
+      const neum = new THREE.InstancedMesh(toro, new THREE.MeshStandardMaterial({ roughness: 0.8 }), 1400);
+      let nn = 0;
+      for (let i = 0; i < N && nn < 1390; i += 3) {
+        if (P.curva[i] < 0.1) continue;
+        const signo = Math.sign(P.tx[i] * P.tz[(i + 16) % N] - P.tz[i] * P.tx[(i + 16) % N]);
+        const d = -signo * (P.ancho / 2 + 3.2);
+        const x = P.px[i] + P.tz[i] * d, z = P.pz[i] - P.tx[i] * d;
+        for (let h = 0; h < 2; h++) {
+          mm.makeTranslation(x, 0.18 + h * 0.36, z);
+          neum.setMatrixAt(nn, mm);
+          neum.setColorAt(nn, cc.set(Math.floor(i / 12) % 3 === 0 ? COLORES_KART[Math.floor(i / 36) % 4] : '#1c1c1c'));
+          nn++;
+        }
+        P.obstaculos.push({ x, z, r: 0.6 });
+      }
+      neum.count = nn;
+      neum.castShadow = true;
+      G.add(neum);
+      sembrar('ArbolCalle', lados(9, 9, 30, (x, z) => ({ x, z, ry: Math.random() * 6, s: 0.9 + Math.random() * 0.6 })));
+      sembrar('Helecho', lados(7, 3, 8, (x, z) => ({ x, z, ry: Math.random() * 6, s: 0.8 + Math.random() * 0.5 })), { sombra: false });
+    } else if (tema === 'ciudad') {
+      // rascacielos en dos filas, farolas, árboles, semáforos y vallas de anuncios
+      const colores = ['#ffffff', '#f2e6ff', '#fff2dc', '#e6f4ff'];
+      const edificios = { Edificio1: [], Edificio2: [], Edificio3: [], Edificio4: [], Edificio5: [] };
+      const nombres = Object.keys(edificios);
+      lados(20, 16, 22, (x, z, i, lado) => {
+        edificios[nombres[(i * 7 + (lado > 0 ? 3 : 0)) % 5]].push({ x, z, ry: haciaPista(i, lado), s: 0.9 + Math.random() * 0.35, color: colores[i % 4] });
+      });
+      lados(26, 34, 48, (x, z, i, lado) => {
+        edificios[nombres[(i * 3 + 1) % 5]].push({ x, z, ry: haciaPista(i, lado), s: 1.0 + Math.random() * 0.5, color: colores[(i + 1) % 4] });
+      });
+      nombres.forEach((n) => sembrar(n, edificios[n], { choca: 5 }));
+      sembrar('Farola', lados(16, 2.6, 2.61, (x, z, i, lado) => ({ x, z, ry: haciaPista(i, lado) + Math.PI, s: 1 })), { brillo: '#ffe9a8', intensidad: 0.05 });
+      sembrar('ArbolCalle', lados(16, 4.2, 4.21, (x, z, i, lado) => (i % 3 ? { x, z, ry: Math.random() * 6, s: 0.8 } : null)));
+      sembrar('Semaforo', lados(60, 2.4, 2.41, (x, z, i, lado) => ({ x, z, ry: haciaPista(i, lado), s: 1 })));
+      const anuncios = ['PLAYA DEL\nPERRO', '¡DRAKO!', 'HELADOS\nMANUEL', 'CARRERAS\n¡YA!'];
+      lados(90, 7, 7.01, (x, z, i, lado) => {
+        const k = P.animados.length % 4;
+        const valla = piezas.Valla ? new THREE.Mesh(piezas.Valla.geometry, piezas.Valla.material) : null;
+        if (!valla) return null;
+        valla.position.set(x, 0, z);
+        valla.rotation.y = haciaPista(i, lado) + Math.PI;
+        G.add(valla);
+        const panel = new THREE.Mesh(new THREE.PlaneGeometry(7.2, 3.2), new THREE.MeshBasicMaterial({ map: textoLienzo(anuncios[k], ['#ff4f8b', '#2a7ae0', '#ffb400', '#29b35a'][k], '#ffffff'), toneMapped: false }));
+        panel.position.set(0, 5.6, -0.2);
+        panel.rotation.y = Math.PI;
+        valla.add(panel);
+        P.animados.push(() => {});
+        return null;
+      });
+      // puente elevado sobre la pista
+      const iP = Math.round(N * 0.5);
+      const puente = new THREE.Group();
+      const matP = new THREE.MeshStandardMaterial({ color: '#8d949c', roughness: 0.8 });
+      [-1, 1].forEach((l) => {
+        const pil = new THREE.Mesh(new THREE.BoxGeometry(1.4, 8, 3), matP);
+        pil.position.set(l * (P.ancho / 2 + 2.5), 4, 0);
+        puente.add(pil);
+      });
+      const tablero = new THREE.Mesh(new THREE.BoxGeometry(P.ancho + 8, 1.2, 5), matP);
+      tablero.position.y = 8.4;
+      puente.add(tablero);
+      const cartelP = cartel('GRAN CIUDAD', P.ancho + 6, 1.1);
+      cartelP.position.set(0, 8.4, 2.55);
+      puente.add(cartelP);
+      puente.position.set(P.px[iP], 0, P.pz[iP]);
+      puente.rotation.y = Math.atan2(P.tx[iP], P.tz[iP]) + Math.PI / 2;
+      puente.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+      G.add(puente);
+      [-1, 1].forEach((l) => P.obstaculos.push({ x: P.px[iP] + P.tz[iP] * l * (P.ancho / 2 + 2.5), z: P.pz[iP] - P.tx[iP] * l * (P.ancho / 2 + 2.5), r: 1.5 }));
+      // pasos de cebra
+      [0.2, 0.75].forEach((u) => {
+        const i = Math.round(N * u);
+        const cebra = new THREE.Mesh(new THREE.PlaneGeometry(P.ancho, 3), new THREE.MeshBasicMaterial({ map: lienzo(128, 32, (c) => { c.fillStyle = '#3b3f47'; c.fillRect(0, 0, 128, 32); c.fillStyle = '#f4f4f0'; for (let x = 4; x < 128; x += 16) c.fillRect(x, 0, 9, 32); }), transparent: true }));
+        cebra.rotation.set(-Math.PI / 2, Math.atan2(P.tx[i], P.tz[i]), 0, 'YXZ');
+        cebra.position.set(P.px[i], P.alto[i] + 0.04, P.pz[i]);
+        G.add(cebra);
+      });
+    } else if (tema === 'playa') {
+      // el mar al este, con veleros; palmeras, sombrillas, casetas y un faro en la punta
+      const mar = new THREE.Mesh(new THREE.PlaneGeometry(420, 700, 60, 60), new THREE.MeshStandardMaterial({ color: '#1fa3c9', roughness: 0.15, metalness: 0.1, transparent: true, opacity: 0.93 }));
+      mar.rotation.x = -Math.PI / 2;
+      mar.position.set(CIRC.x + 410, -0.3, CIRC.z + 70);
+      G.add(mar);
+      const posM = mar.geometry.attributes.position;
+      P.animados.push((t) => {
+        for (let k = 0; k < posM.count; k++) posM.setZ(k, Math.sin(posM.getX(k) * 0.08 + t * 1.3) * 0.25 + Math.cos(posM.getY(k) * 0.07 + t) * 0.2);
+        posM.needsUpdate = true;
+      });
+      const orilla = new THREE.Mesh(new THREE.PlaneGeometry(10, 700), new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.6 }));
+      orilla.rotation.x = -Math.PI / 2;
+      orilla.position.set(CIRC.x + 201, -0.05, CIRC.z + 70);
+      G.add(orilla);
+      P.animados.push((t) => { orilla.material.opacity = 0.35 + 0.3 * Math.sin(t * 1.4); });
+      const enMar = (x) => x > CIRC.x + 198;
+      sembrar('Palmera', lados(12, 3, 9, (x, z) => (enMar(x) ? null : { x, z, ry: Math.random() * 6, s: 0.9 + Math.random() * 0.3 })), { choca: 0.4 });
+      sembrar('Palmera2', lados(15, 10, 24, (x, z) => (enMar(x) ? null : { x, z, ry: Math.random() * 6, s: 0.9 + Math.random() * 0.3 })));
+      sembrar('Sombrilla', lados(22, 6, 12, (x, z) => (enMar(x) ? null : { x, z, ry: Math.random() * 6, s: 1.2 })), { sombra: false });
+      sembrar('Caseta', lados(40, 12, 18, (x, z, i, lado) => (enMar(x) ? null : { x, z, ry: haciaPista(i, lado), s: 1.2, color: ['#ff4f8b', '#2a7ae0', '#29b35a', '#ffb400'][i % 4] })), { choca: 1.6 });
+      sembrar('RocaPlaya', lados(35, 5, 14, (x, z) => (enMar(x) ? null : { x, z, ry: Math.random() * 6, s: 0.8 + Math.random() * 0.8 })), { choca: 1.2 });
+      const veleros = [];
+      for (let k = 0; k < 8; k++) veleros.push({ x: CIRC.x + 230 + Math.random() * 120, z: CIRC.z + Math.random() * 220 - 40, ry: Math.random() * 6, s: 1.3, y: -0.3 });
+      const imV = sembrar('Velero', veleros);
+      if (imV) P.animados.push((t) => { imV.position.y = Math.sin(t) * 0.15; imV.rotation.z = Math.sin(t * 0.8) * 0.02; });
+      if (piezas.Faro) {
+        const faro = new THREE.Mesh(piezas.Faro.geometry, piezas.Faro.material);
+        faro.position.set(CIRC.x + 205, 0, CIRC.z + 150);
+        faro.scale.setScalar(1.3);
+        faro.castShadow = true;
+        G.add(faro);
+      }
+    } else if (tema === 'bosque') {
+      // árboles retorcidos, setas y cristales que brillan, ruinas sobre la pista, helechos y luciérnagas
+      sembrar('ArbolMisterio', lados(9, 4, 12, (x, z) => ({ x, z, ry: Math.random() * 6, s: 0.9 + Math.random() * 0.5, color: ['#b0c8ff', '#ffffff', '#c8b0ff'][Math.floor(Math.random() * 3)] })), { choca: 1.0 });
+      sembrar('ArbolMisterio2', lados(11, 14, 30, (x, z) => ({ x, z, ry: Math.random() * 6, s: 1.0 + Math.random() * 0.6 })));
+      const colSeta = ['#ff4fd8', '#4fd8ff', '#b0ff4f', '#ffb04f'];
+      colSeta.forEach((c, k) => {
+        sembrar('SetaGigante', lados(28, 3 + k, 9 + k, (x, z, i) => (i % 4 === k ? { x, z, ry: Math.random() * 6, s: 1 + Math.random() * 1.2, color: c } : null)),
+          { brillo: c, intensidad: 0.9, choca: 0.5 });
+      });
+      ['#7ff6ff', '#d07fff'].forEach((c, k) => {
+        sembrar('Cristales', lados(34, 2.6 + k, 7, (x, z, i) => (i % 2 === k ? { x, z, ry: Math.random() * 6, s: 1 + Math.random() * 0.8, color: c } : null)),
+          { brillo: c, intensidad: 1.2, mat: (m) => { m.transparent = true; m.opacity = 0.85; m.roughness = 0.1; } });
+      });
+      sembrar('Helecho', lados(5, 2, 10, (x, z) => ({ x, z, ry: Math.random() * 6, s: 0.9 + Math.random() * 0.7 })), { sombra: false });
+      sembrar('TroncoCaido', lados(45, 6, 14, (x, z) => ({ x, z, ry: Math.random() * 6, s: 1 })));
+      sembrar('Farolillo', lados(20, 1.9, 1.91, (x, z, i, lado) => ({ x, z, ry: haciaPista(i, lado) + Math.PI, s: 1.1 })), { brillo: '#9fffcf', intensidad: 0.1 });
+      // ruinas: arcos de piedra que cruzan la pista
+      const ruinas = [0.18, 0.47, 0.8].map((u) => {
+        const i = Math.round(N * u);
+        return { x: P.px[i], z: P.pz[i], y: P.alto[i] - 0.2, ry: Math.atan2(P.tx[i], P.tz[i]), s: 2.4 };
+      });
+      sembrar('Ruina', ruinas);
+      ruinas.forEach((r) => [-1, 1].forEach((l) => P.obstaculos.push({ x: r.x + Math.cos(r.ry) * l * 7.7, z: r.z - Math.sin(r.ry) * l * 7.7, r: 1.6 })));
+      // luciérnagas
+      const NL = 500, pl = new Float32Array(NL * 3), fl = new Float32Array(NL);
+      for (let k = 0; k < NL; k++) {
+        const i = Math.floor(Math.random() * N);
+        const d = (Math.random() - 0.5) * 40;
+        pl.set([P.px[i] + P.tz[i] * d, 0.5 + Math.random() * 5, P.pz[i] - P.tx[i] * d], k * 3);
+        fl[k] = Math.random() * 10;
+      }
+      const gl = new THREE.BufferGeometry();
+      gl.setAttribute('position', new THREE.BufferAttribute(pl, 3));
+      gl.setAttribute('aFase', new THREE.BufferAttribute(fl, 1));
+      const luci = new THREE.Points(gl, new THREE.ShaderMaterial({
+        transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, uniforms: { uT: uTiempo },
+        vertexShader: `attribute float aFase; uniform float uT; varying float vB;
+          void main() {
+            vec3 p = position + vec3(sin(uT * 0.5 + aFase) * 0.8, sin(uT * 0.7 + aFase * 2.0) * 0.5, cos(uT * 0.4 + aFase) * 0.8);
+            vec4 mv = modelViewMatrix * vec4(p, 1.0);
+            vB = 0.4 + 0.6 * pow(max(0.0, sin(uT * 2.0 + aFase * 5.0)), 3.0);
+            gl_PointSize = 90.0 / -mv.z;
+            gl_Position = projectionMatrix * mv;
+          }`,
+        fragmentShader: `varying float vB; void main() { float d = length(gl_PointCoord - 0.5); if (d > 0.5) discard; gl_FragColor = vec4(vec3(0.75, 1.0, 0.45) * vB * (1.0 - d * 2.0), 1.0); }`,
+      }));
+      luci.frustumCulled = false;
+      G.add(luci);
     }
-    neum.count = nn;
-    neum.castShadow = true;
-    G.add(neum);
-    circuito.neumaticos = colisiones.filter((c) => c.circuito);
-    const arboles = new THREE.InstancedMesh(new THREE.SphereGeometry(1.8, 12, 10), new THREE.MeshStandardMaterial({ color: '#3f9a3a', roughness: 0.9 }), 140);
-    const troncos = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.25, 0.35, 2.4, 8), new THREE.MeshStandardMaterial({ color: '#7a5230' }), 140);
-    let na = 0;
-    for (let k = 0; k < 2000 && na < 140; k++) {
-      const x = CIRC.x + (Math.random() - 0.5) * 300, z = CIRC.z + 25 + (Math.random() - 0.5) * 260;
-      const i = indicePista(x, z);
-      if (Math.hypot(x - circuito.px[i], z - circuito.pz[i]) < ANCHO_PISTA + 8 || Math.hypot(x - PADDOCK.x, z - PADDOCK.z) < 18) continue;
-      const s = 0.8 + Math.random() * 0.8;
-      mm.compose(new V3(x, 2.4 * s + 1, z), new THREE.Quaternion(), new V3(s, s * 1.1, s));
-      arboles.setMatrixAt(na, mm);
-      mm.compose(new V3(x, 1.2 * s, z), new THREE.Quaternion(), new V3(s, s, s));
-      troncos.setMatrixAt(na, mm);
-      na++;
-    }
-    arboles.count = troncos.count = na;
-    arboles.castShadow = troncos.castShadow = true;
-    G.add(arboles, troncos);
-    // Grada junto a la recta de salida con público de colores
-    const gx = CIRC.x + 22, gz = CIRC.z + 13;
-    for (let k = 0; k < 4; k++) {
-      const esc = new THREE.Mesh(new THREE.BoxGeometry(26, 0.6, 1.4), new THREE.MeshStandardMaterial({ color: '#cfd6dc' }));
-      esc.position.set(gx, 0.3 + k * 0.6, gz + k * 1.4);
-      esc.castShadow = esc.receiveShadow = true;
-      G.add(esc);
-    }
-    const publico = new THREE.InstancedMesh(new THREE.CapsuleGeometry(0.22, 0.4, 4, 8), new THREE.MeshStandardMaterial({ roughness: 0.7 }), 110);
-    for (let k = 0; k < 110; k++) {
-      const fila = k % 4;
-      mm.makeTranslation(gx - 12.5 + (k / 4 | 0) * 0.93, 0.9 + fila * 0.6, gz + fila * 1.4);
-      publico.setMatrixAt(k, mm);
-      publico.setColorAt(k, cc.set(['#ff4f8b', '#29b35a', '#ffb400', '#2a7ae0', '#ffffff', '#e2321f'][k % 6]));
-    }
-    G.add(publico);
-    circuito.publico = publico;
-    circuito.globos = [];
-    for (let k = 0; k < 14; k++) {
-      const gl = new THREE.Mesh(new THREE.SphereGeometry(0.5, 14, 12), new THREE.MeshStandardMaterial({ color: COLORES_KART[k % 4], roughness: 0.3 }));
-      gl.scale.y = 1.2;
-      gl.position.set(gx - 13 + k * 2, 8 + Math.random() * 2, gz + 6);
-      G.add(gl);
-      circuito.globos.push(gl);
-    }
+    circuito.pista = antes;
+    return P;
+  }
 
-    // ---------- La puerta del circuito (paddock), el podio y los karts ----------
+  // ---------- Ambiente de cada escenario (luz, niebla, cielo) ----------
+  const ambienteBase = { niebla: scene.fog, exp: 0.62, hemi: null, sol: sol.intensity, solColor: sol.color.clone(), sunPos: cielo.material.uniforms.sunPosition.value.clone() };
+  scene.traverse((o) => { if (o.isHemisphereLight) ambienteBase.hemi = { l: o, c: o.color.clone(), g: o.groundColor.clone(), i: o.intensity }; });
+  const nieblas = {
+    ciudad: new THREE.Fog(new THREE.Color('#f2b98f'), 70, 330),
+    playa: new THREE.Fog(new THREE.Color('#cfe8f4'), 110, 420),
+    bosque: new THREE.FogExp2(new THREE.Color('#16283a'), 0.016),
+  };
+  function ambiente(tema) {
+    const H = ambienteBase.hemi;
+    const u = cielo.material.uniforms;
+    // valores normales
+    scene.fog = ambienteBase.niebla;
+    scene.background = null;
+    cielo.visible = true;
+    renderer.toneMappingExposure = ambienteBase.exp;
+    sol.intensity = ambienteBase.sol;
+    sol.color.copy(ambienteBase.solColor);
+    u.sunPosition.value.copy(ambienteBase.sunPos);
+    if (H) { H.l.color.copy(H.c); H.l.groundColor.copy(H.g); H.l.intensity = H.i; }
+    if (tema === 'ciudad') {
+      // atardecer
+      scene.fog = nieblas.ciudad;
+      u.sunPosition.value.setFromSphericalCoords(1, THREE.MathUtils.degToRad(84), THREE.MathUtils.degToRad(230));
+      sol.color.set('#ffb070');
+      sol.intensity = 2.0;
+      if (H) { H.l.color.set('#ffd6b0'); H.l.groundColor.set('#5a4a6a'); H.l.intensity = 0.8; }
+      renderer.toneMappingExposure = 0.7;
+    } else if (tema === 'playa') {
+      scene.fog = nieblas.playa;
+      sol.intensity = 2.7;
+      renderer.toneMappingExposure = 0.66;
+    } else if (tema === 'bosque') {
+      // noche misteriosa: niebla azul, luz de luna y cosas que brillan
+      scene.fog = nieblas.bosque;
+      scene.background = new THREE.Color('#0d1b27');
+      cielo.visible = false;
+      sol.color.set('#9fb8ff');
+      sol.intensity = 0.9;
+      if (H) { H.l.color.set('#7a6fd0'); H.l.groundColor.set('#10301c'); H.l.intensity = 0.75; }
+      renderer.toneMappingExposure = 0.95;
+    }
+  }
+
+  function mostrarPista(id) {
+    const def = PISTAS.find((p) => p.id === id) || PISTAS[0];
+    const P = construirPista(def);
+    Object.values(circuito.pistas).forEach((q) => { q.grupo.visible = q === P && circuito.fase !== 'fuera'; });
+    circuito.pista = P;
+    // compatibilidad con el código de antes
+    circuito.N = P.N;
+    circuito.px = P.px; circuito.pz = P.pz; circuito.tx = P.tx; circuito.tz = P.tz; circuito.alto = P.alto;
+    if (circuito.fase !== 'fuera') ambiente(def.tema);
+    return P;
+  }
+
+  // ---------- El paddock: la puerta, los amigos y el podio ----------
+  function construirCircuito(amigosG, gPistas) {
+    if (gPistas) {
+      circuito.piezasPista = {};
+      gPistas.scene.traverse((o) => { if (o.isMesh) circuito.piezasPista[o.name] = o; });
+    }
+    const G = circuito.paddock;
+    G.visible = false;
+    scene.add(G);
     const arcoP = cartel('CIRCUITO DE KARTS', 9, 1.4);
     arcoP.position.set(PADDOCK.x, 5.4, PADDOCK.z - 4);
-    arcoP.rotation.y = Math.PI;  // mira hacia donde llega Manuel
+    arcoP.rotation.y = Math.PI;
     G.add(arcoP);
     [-4.5, 4.5].forEach((dx) => {
       const p = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.4, 5.4, 16), new THREE.MeshStandardMaterial({ color: '#ffb400' }));
@@ -6730,8 +7169,13 @@
     volver.position.set(PADDOCK.x, 0.05, PADDOCK.z - 7);
     G.add(volver);
     puntosAccion.push({ pos: new V3(PADDOCK.x, 0.02, PADDOCK.z - 7), radio: 1.8, texto: 'Volver a la playa', hacer: volverDelCircuito,
-      visible: () => circuito.fase === 'paddock' || circuito.fase === 'fin' });
-    // Podio (1, 2 y 3)
+      visible: () => circuito.fase === 'paddock' });
+    const suelo1 = new THREE.Mesh(new THREE.CircleGeometry(22, 48), new THREE.MeshStandardMaterial({ color: '#d9d4c7', roughness: 0.95 }));
+    suelo1.rotation.x = -Math.PI / 2;
+    suelo1.position.set(PADDOCK.x - 3, 0.005, PADDOCK.z + 3);
+    suelo1.receiveShadow = true;
+    G.add(suelo1);
+    // Podio
     circuito.podio = new THREE.Group();
     [[0, 1.2, '1'], [-2, 0.8, '2'], [2, 0.5, '3']].forEach(([dx, h, n]) => {
       const b = new THREE.Mesh(new THREE.BoxGeometry(1.9, h, 1.6), new THREE.MeshStandardMaterial({ color: n === '1' ? '#ffd42a' : n === '2' ? '#cfd6dc' : '#d58b4a' }));
@@ -6744,37 +7188,10 @@
     });
     circuito.podio.position.set(PADDOCK.x - 12, 0, PADDOCK.z + 4);
     G.add(circuito.podio);
-    // Se puede subir a los cajones del podio
     [[0, 1.2], [-2, 0.8], [2, 0.5]].forEach(([dx, h]) => {
       const x = circuito.podio.position.x + dx, z = circuito.podio.position.z;
-      plataformas.push({ x0: x - 0.95, x1: x + 0.95, z0: z - 0.8, z1: z + 0.8, y: () => h });
+      plataformas.push({ x0: x - 0.95, x1: x + 0.95, z0: z - 0.8, z1: z + 0.8, y: () => (enCircuito(ninoE.pos) ? h : -99) });
     });
-    // Karts: uno por niño y el de Manuel (blanco, con las franjas azul, morado y rojo de su coche)
-    const P = coches.piezas;
-    for (let k = 0; k < 5; k++) {
-      const grupo = new THREE.Group();
-      const mat = P.Kart.material.clone();
-      mat.color.set(k < 4 ? COLORES_KART[k] : '#ffffff');
-      const m = new THREE.Mesh(P.Kart.geometry, mat);
-      m.castShadow = true;
-      grupo.add(m);
-      if (k === 4) {
-        // franjas del coche de Manuel en el morro
-        ['#1f8fe0', '#2b2f8f', '#e2321f'].forEach((c, j) => {
-          const f = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.02, 0.36), new THREE.MeshStandardMaterial({ color: c }));
-          f.position.set(-0.2 + j * 0.17, 0.33, 0.78);
-          f.rotation.x = 0.15;
-          grupo.add(f);
-        });
-      }
-      const ruedas = ponerRuedas(grupo, P.KartRueda, [[0.62, 0.13, 0.62], [-0.62, 0.13, 0.62], [0.62, 0.13, -0.72], [-0.62, 0.13, -0.72]]);
-      G.add(grupo);
-      const v = nuevoVehiculo(grupo, ruedas, { aceleracion: 9, frenada: 16, rozamiento: 0.25, volante: 2.1, gravedad: 11, sueloFn: null });
-      v.sueloFn = (x, z) => sueloCircuito(x, z, v);
-      v.inclinaFn = (x, z) => sueloCircuito(x, z);
-      v.id = k;
-      circuito.karts.push(v);
-    }
     // Los amigos
     (amigosG || []).forEach((g, k) => {
       if (!g) return;
@@ -6785,50 +7202,87 @@
       p.casco = casco;
       p.nombre = NOMBRES_AMIGOS[k];
       p.globo = crearGlobo();
-      // altura de la cadera (el hueso "raiz" empieza en la pelvis)
       let raiz = null;
       p.grupo.traverse((o) => { if (o.isBone && o.name === 'raiz') raiz = o; });
       p.grupo.updateMatrixWorld(true);
       p.cadera = raiz ? raiz.getWorldPosition(new V3()).y : 0.6;
-      G.add(p.grupo);
+      scene.add(p.grupo);
+      p.grupo.visible = false;
       circuito.amigos.push(p);
+    });
+    // Karts aparcados en el paddock (de adorno, uno de cada tipo)
+    circuito.aparcados = [];
+    VEHICULOS.forEach((d, k) => {
+      const v = crearVehiculo(d, k < 4 ? COLORES_KART[k] : '#ffffff');
+      v.malla.position.set(PADDOCK.x - 6 + k * 3.2, 0.02, PADDOCK.z + 6);
+      v.malla.rotation.y = Math.PI;
+      G.add(v.malla);
+      circuito.aparcados.push(v);
     });
     colocarEnPaddock();
     circuito.listo = true;
+    // Marcadores
+    circuito.hud = Object.assign(document.createElement('div'), { className: 'hud-carrera', hidden: true });
+    circuito.hud.innerHTML = '<div class="puesto"></div><div class="vuelta"></div>';
+    document.body.appendChild(circuito.hud);
+    circuito.grande = Object.assign(document.createElement('div'), { className: 'cuenta-atras', hidden: true });
+    document.body.appendChild(circuito.grande);
+    circuito.minimapa = Object.assign(document.createElement('canvas'), { className: 'minimapa', width: 170, height: 170, hidden: true });
+    document.body.appendChild(circuito.minimapa);
+    crearMandosCarrera();
+    crearMenuCarrera();
+  }
 
-    // Marcador de la carrera
-    const hud = document.createElement('div');
-    hud.className = 'brujula carrera';
-    hud.hidden = true;
-    document.body.appendChild(hud);
-    circuito.hud = hud;
-    const grande = document.createElement('div');
-    grande.className = 'cuenta-atras';
-    grande.hidden = true;
-    document.body.appendChild(grande);
-    circuito.grande = grande;
+  // Un vehículo del tipo d, con su color
+  function crearVehiculo(d, color) {
+    const P = coches.piezas;
+    const grupo = new THREE.Group();
+    const cuerpo = new THREE.Group();
+    cuerpo.scale.setScalar(d.escala);
+    grupo.add(cuerpo);
+    const pieza = P[d.cuerpo];
+    const mat = pieza.material.clone();
+    if (!d.sinTinte) mat.color.set(color);
+    if (d.flota) { mat.emissive = new THREE.Color('#7ff6ff'); mat.emissiveIntensity = 0.12; }
+    const m = new THREE.Mesh(pieza.geometry, mat);
+    m.castShadow = true;
+    cuerpo.add(m);
+    const ruedas = d.rueda ? ponerRuedas(cuerpo, P[d.rueda], d.ruedas) : [];
+    const v = nuevoVehiculo(grupo, ruedas, { aceleracion: d.acel, frenada: 16, rozamiento: 0.25, volante: d.volante, gravedad: 11, def: d, mat });
+    v.sueloFn = (x, z) => sueloCircuito(x, z, v);
+    v.inclinaFn = (x, z) => sueloCircuito(x, z);
+    v.cuerpo = cuerpo;
+    return v;
   }
 
   function colocarEnPaddock() {
-    // Los niños esperan en la puerta, delante de sus karts, y saludan
     circuito.amigos.forEach((p, k) => {
       p.grupo.position.set(PADDOCK.x - 4.5 + k * 3, 0, PADDOCK.z + 2);
       p.grupo.rotation.set(0, Math.PI, 0);
       if (p.casco) p.casco.visible = false;
       animarPadre(p, 'saludar');
-      p.enKart = false;
-    });
-    circuito.karts.forEach((v, k) => {
-      v.x = PADDOCK.x - 4.5 + k * 3;
-      v.z = PADDOCK.z + 5.5;
-      v.y = 0.02;
-      v.rumbo = Math.PI;
-      v.vel = 0;
-      v.malla.position.set(v.x, v.y, v.z);
-      v.malla.rotation.set(0, v.rumbo, 0);
+      p.enKart = null;
+      p.grupo.visible = circuito.fase !== 'fuera';
     });
   }
 
+  // En el circuito no se dibuja lo que queda lejos (la playa, la casa, el arrecife): va mucho más fluido
+  function mundoLejos(ocultar) {
+    if (!ocultar) {
+      (circuito.ocultos || []).forEach((o) => { o.visible = true; });
+      circuito.ocultos = null;
+      return;
+    }
+    if (circuito.ocultos) return;
+    const quedan = new Set([circuito.paddock, ...Object.values(circuito.pistas).map((q) => q.grupo), ...circuito.amigos.map((p) => p.grupo)]);
+    const caja = new THREE.Box3();
+    circuito.ocultos = [];
+    scene.children.forEach((o) => {
+      if (!o.visible || quedan.has(o) || o.isLight || o.isCamera) return;
+      caja.setFromObject(o);
+      if (!caja.isEmpty() && caja.min.x > -500) { o.visible = false; circuito.ocultos.push(o); }
+    });
+  }
   function irAlCircuito() {
     if (!circuito.listo) return;
     fundido(() => {
@@ -6837,8 +7291,10 @@
         terminarAtraccion();
       }
       if (balon.estado === 'mano') { balon.estado = 'libre'; balon.pos.set(PUERTA_CIRCUITO.x + 3, PUERTA_CIRCUITO.y + 0.5, PUERTA_CIRCUITO.z); balon.vel.set(0, 0, 0); }
-      circuito.grupo.visible = true;
       circuito.fase = 'paddock';
+      circuito.paddock.visible = true;
+      mostrarPista(circuito.eleccion.pista);
+      mundoLejos(true);
       colocarEnPaddock();
       ninoE.modo = 'libre';
       ninoE.pos.set(PADDOCK.x, 0.02, PADDOCK.z - 6);
@@ -6854,15 +7310,20 @@
       sumarNino('coche');
       setTimeout(pintarTarea, 50);
       setTimeout(() => {
-        circuito.amigos.forEach((p, k) => setTimeout(() => diga(p, ['¡Hola, Manuel!', '¡Te estábamos esperando!', '¿Echamos una carrera?', '¡Ponte el casco!'][k], 2.6), k * 700));
+        circuito.amigos.forEach((p, k) => setTimeout(() => diga(p, ['¡Hola, Manuel!', '¡Hay circuitos nuevos!', '¿Qué coche eliges?', '¡Ponte el casco!'][k], 2.6), k * 700));
       }, 500);
     });
   }
   function volverDelCircuito() {
     fundido(() => {
       circuito.fase = 'fuera';
-      circuito.grupo.visible = false;
-      circuito.hud.hidden = true;
+      mundoLejos(false);
+      circuito.paddock.visible = false;
+      Object.values(circuito.pistas).forEach((q) => { q.grupo.visible = false; });
+      circuito.amigos.forEach((p) => { p.grupo.visible = false; });
+      limpiarCorredores();
+      ambiente(null);
+      verHudCarrera(false);
       if (coches.casco) coches.casco.visible = false;
       ninoE.modo = 'libre';
       ninoE.pos.set(PUERTA_CIRCUITO.x + 5, 0, PUERTA_CIRCUITO.z);
@@ -6878,120 +7339,340 @@
     });
   }
 
+  // ---------- Menú: elegir coche y circuito ----------
+  function crearMenuCarrera() {
+    const m = document.createElement('div');
+    m.className = 'menu-carrera';
+    m.hidden = true;
+    const barras = (n) => '<span class="barra">' + '<i></i>'.repeat(n) + '<b></b>'.repeat(5 - n) + '</span>';
+    m.innerHTML = `
+      <div class="menu-caja">
+        <h2>Elige tu coche</h2>
+        <div class="fichas coches">${VEHICULOS.map((d, k) => `
+          <button class="ficha-coche" data-id="${d.id}">
+            <span class="foto" style="background-position:${k * 25}% 0"></span>
+            <strong>${d.nombre}</strong>
+            <span class="stat">Velocidad ${barras(d.stats[0])}</span>
+            <span class="stat">Aceleración ${barras(d.stats[1])}</span>
+            <span class="stat">Giro ${barras(d.stats[2])}</span>
+          </button>`).join('')}</div>
+        <h2>Elige el circuito</h2>
+        <div class="fichas pistas">${PISTAS.map((p) => `
+          <button class="ficha-pista" data-id="${p.id}" style="--color:${p.color}">
+            <canvas width="120" height="90"></canvas>
+            <strong>${p.nombre}</strong>
+            <span class="copa" data-copa="${p.id}"></span>
+          </button>`).join('')}</div>
+        <div class="menu-botones">
+          <button class="menu-volver">Volver</button>
+          <button class="menu-empezar">¡A correr!</button>
+        </div>
+      </div>`;
+    document.body.appendChild(m);
+    circuito.menu = m;
+    // dibujo de cada pista
+    m.querySelectorAll('.ficha-pista canvas').forEach((cv, k) => {
+      const def = PISTAS[k], c = cv.getContext('2d');
+      const xs = def.puntos.map((p) => p[0]), zs = def.puntos.map((p) => p[1]);
+      const x0 = Math.min(...xs), x1 = Math.max(...xs), z0 = Math.min(...zs), z1 = Math.max(...zs);
+      const e = Math.min(104 / (x1 - x0), 74 / (z1 - z0));
+      const curva = new THREE.CatmullRomCurve3(def.puntos.map(([x, z]) => new V3(x, 0, z)), true, 'catmullrom', 0.5);
+      c.lineWidth = 7;
+      c.lineJoin = 'round';
+      c.strokeStyle = '#2b2f36';
+      c.beginPath();
+      curva.getSpacedPoints(120).forEach((p, i) => { const X = 8 + (p.x - x0) * e, Y = 82 - (p.z - z0) * e; i ? c.lineTo(X, Y) : c.moveTo(X, Y); });
+      c.stroke();
+      c.lineWidth = 3;
+      c.strokeStyle = def.color;
+      c.stroke();
+    });
+    const marcar = () => {
+      m.querySelectorAll('.ficha-coche').forEach((b) => b.classList.toggle('elegida', b.dataset.id === circuito.eleccion.vehiculo));
+      m.querySelectorAll('.ficha-pista').forEach((b) => b.classList.toggle('elegida', b.dataset.id === circuito.eleccion.pista));
+      m.querySelectorAll('.copa').forEach((s) => { s.textContent = circuito.copas.has(s.dataset.copa) ? '🏆' : ''; });
+    };
+    circuito.marcarMenu = marcar;
+    m.addEventListener('click', (ev) => {
+      const b = ev.target.closest('button');
+      if (!b) return;
+      if (b.classList.contains('ficha-coche')) circuito.eleccion.vehiculo = b.dataset.id;
+      else if (b.classList.contains('ficha-pista')) {
+        circuito.eleccion.pista = b.dataset.id;
+        mostrarPista(b.dataset.id);
+      } else if (b.classList.contains('menu-volver')) { m.hidden = true; return; }
+      else if (b.classList.contains('menu-empezar')) { m.hidden = true; empezarCarreraElegida(); return; }
+      marcar();
+    });
+  }
+  function abrirMenuCarrera() {
+    circuito.marcarMenu();
+    circuito.menu.hidden = false;
+  }
+
+  // ---------- Botones de la carrera: acelerar, frenar y usar objeto ----------
+  function crearMandosCarrera() {
+    const c = document.createElement('div');
+    c.className = 'mandos-carrera';
+    c.hidden = true;
+    c.innerHTML = '<button class="m-objeto" aria-label="Usar objeto"><span></span></button><button class="m-freno" aria-label="Frenar">Frenar</button><button class="m-acel" aria-label="Acelerar">Acelerar</button>';
+    document.body.appendChild(c);
+    circuito.mandos = c;
+    const mantener = (el, clave) => {
+      const on = (e) => { e.preventDefault(); circuito.boton[clave] = true; el.classList.add('pulsado'); };
+      const off = () => { circuito.boton[clave] = false; el.classList.remove('pulsado'); };
+      el.addEventListener('pointerdown', on);
+      ['pointerup', 'pointercancel', 'pointerleave'].forEach((t) => el.addEventListener(t, off));
+    };
+    mantener(c.querySelector('.m-acel'), 'acel');
+    mantener(c.querySelector('.m-freno'), 'freno');
+    c.querySelector('.m-objeto').addEventListener('pointerdown', (e) => { e.preventDefault(); usarObjeto(circuito.yo); });
+    circuito.iconoObjeto = c.querySelector('.m-objeto span');
+  }
+  function verHudCarrera(si) {
+    circuito.hud.hidden = !si;
+    circuito.mandos.hidden = !si;
+    circuito.minimapa.hidden = !si;
+    document.body.classList.toggle('en-carrera', si);
+    if (!si) { circuito.boton.acel = circuito.boton.freno = false; }
+  }
+  // Mandos del jugador en la carrera: [giro, acelerador]
+  function mandosCarrera() {
+    let ix = joy.x;
+    if (teclas.has('KeyD') || teclas.has('ArrowRight')) ix += 1;
+    if (teclas.has('KeyA') || teclas.has('ArrowLeft')) ix -= 1;
+    const acel = circuito.boton.acel || teclas.has('KeyW') || teclas.has('ArrowUp') || joy.y > 0.5;
+    const freno = circuito.boton.freno || teclas.has('KeyS') || teclas.has('ArrowDown') || joy.y < -0.5;
+    return [clamp(ix, -1, 1), freno ? -1 : acel ? 1 : 0];
+  }
+
   // ---------- La carrera ----------
+  function limpiarCorredores() {
+    circuito.corredores.forEach((v) => { if (v.malla.parent) v.malla.parent.remove(v.malla); });
+    circuito.proyectiles.forEach((p) => p.m.parent && p.m.parent.remove(p.m));
+    circuito.platanos.forEach((p) => p.m.parent && p.m.parent.remove(p.m));
+    circuito.corredores = [];
+    circuito.karts = circuito.corredores;
+    circuito.proyectiles = [];
+    circuito.platanos = [];
+  }
+  function empezarCarreraElegida() {
+    circuito.ceremonia = false;
+    circuito.amigos.forEach((p, k) => setTimeout(() => diga(p, ['¡Casco puesto!', '¡Vamos!', '¡A por todas!', '¡Suerte, Manuel!'][k], 1.8), k * 250));
+    circuito.amigos.forEach((p) => { if (p.casco) p.casco.visible = true; });
+    if (coches.casco) coches.casco.visible = true;
+    const def = PISTAS.find((p) => p.id === circuito.eleccion.pista);
+    avisar(`¡Os ponéis el casco! Circuito: ${def.nombre}`, 1600);
+    setTimeout(prepararCarrera, 1600);
+  }
   function prepararCarrera() {
     fundido(() => {
+      const P = mostrarPista(circuito.eleccion.pista);
+      const N = P.N;
       circuito.fase = 'cuenta';
       circuito.cuenta = 4.2;
       circuito.terminados = [];
-      const N = circuito.N;
-      // Parrilla: dos filas detrás de la línea de salida; Manuel sale en tercera posición
-      const orden = [0, 1, 4, 2, 3];  // índice de kart en cada puesto de salida
+      circuito.paddock.visible = false;
+      limpiarCorredores();
+      P.cajas.forEach((c) => { c.oculta = 0; });
+      // Vehículos: el de Manuel el elegido; los niños, uno distinto cada vez
+      const tipos = VEHICULOS.map((d) => d.id).filter((id) => id !== circuito.eleccion.vehiculo);
+      for (let k = 0; k < 5; k++) {
+        const id = k === 4 ? circuito.eleccion.vehiculo : tipos[(k + Math.floor(Math.random() * 4)) % tipos.length];
+        const d = VEHICULOS.find((x) => x.id === id);
+        const v = crearVehiculo(d, k < 4 ? COLORES_KART[k] : '#f4f6f8');
+        v.id = k;
+        v.nombre = k < 4 ? NOMBRES_AMIGOS[k] : 'Manuel';
+        P.grupo.add(v.malla);
+        circuito.corredores.push(v);
+      }
+      circuito.karts = circuito.corredores;
+      circuito.yo = circuito.corredores[4];
+      // Parrilla: Manuel sale en tercera posición
+      const orden = [0, 1, 4, 2, 3];
       orden.forEach((k, puesto) => {
-        const v = circuito.karts[k];
-        const i = (N - Math.round((6 + puesto * 5) / circuito.ds)) % N;
-        const lado = puesto % 2 ? -2.6 : 2.6;
-        v.x = circuito.px[i] + circuito.tz[i] * lado;
-        v.z = circuito.pz[i] - circuito.tx[i] * lado;
-        v.y = 0.02;
-        v.vy = 0;
-        v.rumbo = Math.atan2(circuito.tx[i], circuito.tz[i]);
-        v.vel = 0;
-        v.turbo = 0;
-        v.indice = i;
-        v.vuelta = 0;             // veces que ha cruzado la línea (la primera empieza la vuelta 1)
-        v.progreso = i;
-        v.mitad = true;
-        v.lado = lado;
-        v.terminado = false;
-        v.ritmo = [1.0, 0.965, 0, 0.93, 0.9][k];  // lo rápidos que son los niños
+        const v = circuito.corredores[k];
+        const i = (N - Math.round((7 + puesto * 5.5) / P.ds)) % N;
+        const lado = puesto % 2 ? -2.8 : 2.8;
+        Object.assign(v, { x: P.px[i] + P.tz[i] * lado, z: P.pz[i] - P.tx[i] * lado, y: P.alto[i], vy: 0, rumbo: Math.atan2(P.tx[i], P.tz[i]), vel: 0, turbo: 0,
+          indice: i, vuelta: 0, progreso: i, mitad: true, lado, terminado: false, objeto: null, usos: 0, aturdido: 0, estrella: 0, encogido: 0,
+          ritmo: [1.0, 0.97, 0, 0.94, 0.91][k], tObjeto: 0 });
+        colocarVehiculo(v, 0.016, { largo: v.def.largo, radio: v.def.radio });
       });
-      // Los amigos, con el casco puesto, sentados en sus karts
-      circuito.amigos.forEach((p) => {
+      // Los amigos, con el casco, en sus vehículos (o dentro, si es cerrado)
+      circuito.amigos.forEach((p, k) => {
+        const v = circuito.corredores[k];
+        p.enKart = v;
+        p.grupo.visible = !v.def.oculto;
         if (p.casco) p.casco.visible = true;
         animarPadre(p, 'conducir');
-        p.enKart = true;
       });
       if (coches.casco) coches.casco.visible = true;
-      const v = circuito.karts[4];
-      empezarAtraccion({ tipo: 'kart', pos: new V3(v.x, 0.3, v.z), ry: v.rumbo, sentado: true, fijo: true, volante: true, vehiculo: v,
-        asientoY: 0.34,
+      const v = circuito.yo;
+      nino.grupo.visible = !v.def.oculto;
+      empezarAtraccion({ tipo: 'kart', pos: new V3(v.x, 0.3, v.z), ry: v.rumbo, sentado: true, fijo: true, volante: true, vehiculo: v, asientoY: 0.34,
         actualizar: (dt, a) => {
-          a.pos.set(v.x - Math.sin(v.rumbo) * 0.25, v.y, v.z - Math.cos(v.rumbo) * 0.25);
-          a.asientoY = v.y + 0.34;
-          a.ry = v.rumbo;
+          const [ax, ay, az] = v.def.asiento;
+          const s = v.def.escala;
+          a.pos.set(v.x + Math.sin(v.rumbo) * az * s, v.y, v.z + Math.cos(v.rumbo) * az * s);
+          a.asientoY = v.y + ay * s + (v.def.flota ? 0.3 : 0);
+          a.ry = v.malla.rotation.y;
           a.rx = v.malla.rotation.x;
         },
-        accion: () => ({ texto: '¡Pi, pi!', hacer: pitar }),
-        saltar: () => { if (v.enSuelo) { v.vy = 4.5; v.enSuelo = false; } } });
+        accion: () => ({ texto: v.objeto ? OBJETOS[v.objeto].emoji : '…', hacer: () => usarObjeto(v) }),
+        saltar: () => usarObjeto(v),
+        alSalir: () => { nino.grupo.visible = true; } });
       cam.yaw = v.rumbo + Math.PI;
-      cam.pitch = 0.28;
-      cam.dist = 6;
+      cam.pitch = 0.26;
+      cam.dist = 6.5;
       cam.objetivo.copy(ninoE.pos);
-      circuito.hud.hidden = false;
-      circuito.luces.forEach((l) => l.material.color.set('#330000'));
+      verHudCarrera(true);
+      pintarObjeto();
+      P.luces.forEach((l) => l.material.color.set('#330000'));
+      dibujarFondoMinimapa(P);
     });
   }
 
-  function actualizarKart(v, dt, esJugador) {
-    const N = circuito.N;
+  // ---------- Objetos de las cajas sorpresa ----------
+  function sortearObjeto(v) {
+    const puesto = posiciones().indexOf(v) + 1;
+    const bolsa = puesto === 1 ? ['platano', 'platano', 'verde', 'seta'] : puesto <= 3 ? ['seta', 'verde', 'rojo', 'platano', 'triple'] : ['estrella', 'rojo', 'triple', 'rayo', 'seta', 'estrella'];
+    return bolsa[Math.floor(Math.random() * bolsa.length)];
+  }
+  function pintarObjeto() {
+    const v = circuito.yo;
+    if (!circuito.iconoObjeto || !v) return;
+    const txt = v.ruleta > 0 ? Object.values(OBJETOS)[Math.floor(reloj.elapsedTime * 12) % 7].emoji : v.objeto ? OBJETOS[v.objeto].emoji + (v.objeto === 'triple' ? `×${v.usos}` : '') : '';
+    if (circuito.iconoObjeto.textContent !== txt) circuito.iconoObjeto.textContent = txt;
+    circuito.mandos.querySelector('.m-objeto').classList.toggle('lleno', !!v.objeto && !(v.ruleta > 0));
+  }
+  function usarObjeto(v) {
+    if (!v || !v.objeto || v.ruleta > 0 || circuito.fase !== 'carrera' || v.terminado) return;
+    const P = circuito.pista, f = new V3(Math.sin(v.rumbo), 0, Math.cos(v.rumbo));
+    const tipo = v.objeto;
+    const esYo = v === circuito.yo;
+    if (tipo === 'seta' || tipo === 'triple') {
+      v.turbo = 1.4;
+      if (tipo === 'triple' && --v.usos > 0) { pintarObjeto(); return; }
+    } else if (tipo === 'platano') {
+      const m = new THREE.Mesh(circuito.piezasPista.Platano.geometry, circuito.piezasPista.Platano.material);
+      m.scale.setScalar(1.6);
+      m.position.set(v.x - f.x * 2.2, v.y + 0.05, v.z - f.z * 2.2);
+      m.rotation.y = Math.random() * 6;
+      P.grupo.add(m);
+      circuito.platanos.push({ m, dueno: v, t: 0 });
+      if (circuito.platanos.length > 10) { const q = circuito.platanos.shift(); q.m.parent && q.m.parent.remove(q.m); }
+    } else if (tipo === 'verde' || tipo === 'rojo') {
+      const m = new THREE.Mesh(circuito.piezasPista.Caparazon.geometry, circuito.piezasPista.Caparazon.material.clone());
+      m.material.color.set(tipo === 'verde' ? '#2fd05a' : '#ff3b30');
+      m.scale.setScalar(1.8);
+      m.position.set(v.x + f.x * 2.2, v.y + 0.35, v.z + f.z * 2.2);
+      P.grupo.add(m);
+      const ranking = posiciones();
+      const objetivo = tipo === 'rojo' ? ranking[Math.max(0, ranking.indexOf(v) - 1)] : null;
+      circuito.proyectiles.push({ m, tipo, dueno: v, vel: f.clone().multiplyScalar(30), t: 0, objetivo: objetivo !== v ? objetivo : null, indice: v.indice });
+    } else if (tipo === 'estrella') {
+      v.estrella = 6;
+      v.turbo = Math.max(v.turbo, 6);
+    } else if (tipo === 'rayo') {
+      circuito.corredores.forEach((o) => { if (o !== v && !o.estrella) { o.encogido = 3.5; o.aturdido = Math.max(o.aturdido, 0.6); } });
+      circuito.destello = 0.4;
+    }
+    if (esYo) avisar(`¡${OBJETOS[tipo].nombre}!`, 900);
+    v.objeto = null;
+    v.usos = 0;
+    pintarObjeto();
+  }
+  function golpear(v, quien) {
+    if (v.estrella > 0 || v.aturdido > 0.3) return false;
+    v.aturdido = 1.3;
+    v.vel *= 0.3;
+    if (v === circuito.yo) { ninoDice('¡Ay!', 0.8); avisar(quien ? `¡Te ha dado ${quien}!` : '¡Cuidado!', 900); }
+    else if (quien === 'Manuel') { const p = circuito.amigos[v.id]; if (p) diga(p, '¡Oh, no!', 1.2); }
+    return true;
+  }
+
+  function actualizarCorredor(v, dt, esJugador) {
+    const P = circuito.pista, N = P.N;
     let giro = 0, acel = 0;
-    if (circuito.fase === 'carrera' && !v.terminado) {
-      if (esJugador) {
-        [giro, acel] = mandosVehiculo(true);
-        if (autopiloto) {
-          const i = (v.indice + 14) % N;
-          const lx = circuito.px[i] - v.x, lz = circuito.pz[i] - v.z;
-          const deseado = Math.atan2(lx, lz);
-          giro = clamp(-angulo(0, deseado - v.rumbo, 1) * 2.5, -1, 1);
-          acel = 1;
-        }
+    v.aturdido = Math.max(0, v.aturdido - dt);
+    v.estrella = Math.max(0, v.estrella - dt);
+    v.encogido = Math.max(0, v.encogido - dt);
+    if (v.ruleta > 0) {
+      v.ruleta -= dt;
+      if (v.ruleta <= 0) { v.objeto = v.porSalir; v.usos = v.objeto === 'triple' ? 3 : 1; }
+    }
+    if (circuito.fase === 'carrera' && !v.terminado && v.aturdido <= 0) {
+      if (esJugador && !autopiloto) {
+        [giro, acel] = mandosCarrera();
       } else {
-        // Los niños siguen la pista (cada uno por su carril) y frenan un poco en las curvas
-        const mira = (v.indice + 10) % N;
-        const lado = v.lado * (0.6 + 0.4 * Math.sin(reloj.elapsedTime * 0.3 + v.id));
-        const ox = circuito.px[mira] + circuito.tz[mira] * lado, oz = circuito.pz[mira] - circuito.tx[mira] * lado;
-        const deseado = Math.atan2(ox - v.x, oz - v.z);
-        let d = deseado - v.rumbo;
+        // Los niños (y el piloto automático de pruebas) siguen la pista por su carril
+        const mira = (v.indice + 18) % N;
+        const lado = esJugador ? 0 : v.lado * (0.6 + 0.4 * Math.sin(reloj.elapsedTime * 0.3 + v.id));
+        const ox = P.px[mira] + P.tz[mira] * lado, oz = P.pz[mira] - P.tx[mira] * lado;
+        let d = Math.atan2(ox - v.x, oz - v.z) - v.rumbo;
         d = Math.atan2(Math.sin(d), Math.cos(d));
         giro = clamp(-d * 2.2, -1, 1);
         acel = 1;
-        // ni muy lejos ni muy cerca de Manuel: la carrera está reñida
-        const yo = circuito.karts[4];
-        const ventaja = (v.vuelta * N + v.progreso) - (yo.vuelta * N + yo.progreso);
-        v.velMax = 13.2 * v.ritmo * (1 - Math.min(0.3, circuito.curva[mira] * 1.6)) * (ventaja > 40 ? 0.9 : ventaja < -60 ? 1.08 : 1);
+        if (!esJugador) {
+          const yo = circuito.yo;
+          const ventaja = (v.vuelta * N + v.progreso) - (yo.vuelta * N + yo.progreso);
+          v.velMax = v.def.vel * 0.93 * v.ritmo * (1 - Math.min(0.3, P.curva[mira] * 0.9)) * (ventaja > 80 ? 0.9 : ventaja < -120 ? 1.08 : 1);
+          // usan sus objetos
+          if (v.objeto && !(v.ruleta > 0)) {
+            v.tObjeto += dt;
+            const r = posiciones(), yoEn = r.indexOf(v);
+            const detras = r[yoEn + 1], delante = r[yoEn - 1];
+            const dist = (o) => o ? Math.hypot(o.x - v.x, o.z - v.z) : 999;
+            const usar = (v.objeto === 'seta' || v.objeto === 'triple' || v.objeto === 'estrella' || v.objeto === 'rayo') ? v.tObjeto > 1.5 :
+              v.objeto === 'platano' ? dist(detras) < 22 || v.tObjeto > 7 : dist(delante) < 30 || v.tObjeto > 8;
+            if (usar) { usarObjeto(v); v.tObjeto = 0; }
+          }
+        }
       }
     }
-    // En la hierba va más despacio
-    const fuera = Math.abs(v.lateral || 0) > ANCHO_PISTA / 2 + 1.2;
-    const vmax = (esJugador ? 14 : v.velMax || 13) * (fuera ? 0.5 : 1);
+    // Fuera de la pista va más despacio (el buggy, menos)
+    const fuera = Math.abs(v.lateral || 0) > P.ancho / 2 + 1.2;
+    const base = esJugador ? v.def.vel : (v.velMax || v.def.vel * 0.9);
+    const vmax = base * (fuera ? (v.def.todoterreno ? 0.78 : 0.5) : 1) * (v.encogido > 0 ? 0.65 : 1) * (v.estrella > 0 ? 1.2 : 1);
     moverVehiculo(v, dt, giro, acel, v.sueloFn, vmax);
-    // Límite exterior: no se aleja de la pista
-    if (Math.abs(v.lateral || 0) > ANCHO_PISTA / 2 + 9) {
-      const i = v.indice;
-      const s = Math.sign(v.lateral);
-      v.x = circuito.px[i] + circuito.tz[i] * s * (ANCHO_PISTA / 2 + 9);
-      v.z = circuito.pz[i] - circuito.tx[i] * s * (ANCHO_PISTA / 2 + 9);
+    // En el arroyo: salpica y frena
+    if (P.arroyo && v.enSuelo && ((v.indice - P.arroyo[0] + N) % N) < P.arroyo[1]) { v.vel *= Math.exp(-2.5 * dt); v.y = Math.max(v.y - 0.3, -0.3); }
+    // No se aleja demasiado de la pista
+    if (Math.abs(v.lateral || 0) > P.ancho / 2 + 14) {
+      const i = v.indice, s = Math.sign(v.lateral);
+      v.x = P.px[i] + P.tz[i] * s * (P.ancho / 2 + 14);
+      v.z = P.pz[i] - P.tx[i] * s * (P.ancho / 2 + 14);
       v.vel *= 0.7;
     }
-    // Choques con los neumáticos
-    for (const c of circuito.neumaticos) {
-      const dx = v.x - c.x, dz = v.z - c.z, d = Math.hypot(dx, dz);
-      if (d < 1.4 && d > 0.001) { v.x = c.x + dx / d * 1.4; v.z = c.z + dz / d * 1.4; v.vel *= 0.85; }
+    for (const c of P.obstaculos) {
+      const dx = v.x - c.x, dz = v.z - c.z, d = Math.hypot(dx, dz), r = c.r + 0.8;
+      if (d < r && d > 0.001) { v.x = c.x + dx / d * r; v.z = c.z + dz / d * r; v.vel *= 0.85; }
     }
     // Turbos y cajas sorpresa
-    for (const t of circuito.turbos) {
-      if (Math.hypot(v.x - t.x, v.z - t.z) < 2.4 && v.turbo <= 0 && v.enSuelo) {
-        v.turbo = 1.3;
-        if (esJugador) { avisar('¡Turbo!', 800); ninoDice('¡Wiii!', 0.8); }
+    for (const t of P.turbos) {
+      if (Math.hypot(v.x - t.x, v.z - t.z) < 2.6 && v.turbo <= 0.2 && v.enSuelo) {
+        v.turbo = 1.2;
+        if (esJugador) avisar('¡Turbo!', 700);
       }
     }
-    for (const c of circuito.cajas) {
+    for (const c of P.cajas) {
       if (c.oculta > 0) continue;
-      if (Math.hypot(v.x - c.m.position.x, v.z - c.m.position.z) < 1.3) {
+      if (Math.hypot(v.x - c.m.position.x, v.z - c.m.position.z) < 1.4 && Math.abs(v.y + 0.6 - c.m.position.y) < 1.8) {
         c.oculta = 3;
-        v.turbo = Math.max(v.turbo, 2);
-        if (esJugador) avisar(['¡Turbo doble!', '¡Supervelocidad!', '¡Estrella de turbo!'][Math.floor(Math.random() * 3)], 1000);
+        if (!v.objeto && !(v.ruleta > 0)) {
+          v.ruleta = esJugador ? 1.2 : 0.6;
+          v.porSalir = sortearObjeto(v);
+          v.tObjeto = 0;
+        }
+      }
+    }
+    // Plátanos
+    for (let k = circuito.platanos.length - 1; k >= 0; k--) {
+      const b = circuito.platanos[k];
+      if (b.dueno === v && b.t < 0.8) continue;
+      if (Math.hypot(v.x - b.m.position.x, v.z - b.m.position.z) < 1.3 && v.y < b.m.position.y + 1) {
+        if (golpear(v, b.dueno.nombre) || v.estrella > 0) { b.m.parent && b.m.parent.remove(b.m); circuito.platanos.splice(k, 1); }
       }
     }
     // Vueltas: al pasar por la mitad y luego por la salida
@@ -7004,28 +7685,36 @@
     }
     if (ahora > N * 0.45 && ahora < N * 0.55) v.mitad = true;
     v.progreso = ahora;
-    colocarVehiculo(v, dt, { largo: 1.4, radio: 0.13 });
-    if (v.aterriza > 0) v.aterriza -= dt;
+    colocarVehiculo(v, dt, { largo: v.def.largo, radio: v.def.radio });
+    // efectos: girando si le han dado, brillando con la estrella, encogido con el rayo, flotando la nave
+    if (v.aturdido > 0) v.malla.rotation.y += (1 - v.aturdido / 1.3) * Math.PI * 4;
+    const esc = damp(v.malla.scale.x, v.encogido > 0 ? 0.6 : 1, 6, dt);
+    v.malla.scale.setScalar(esc);
+    if (v.def.flota) v.cuerpo.position.y = 0.3 + Math.sin(reloj.elapsedTime * 3 + v.id) * 0.06;
+    if (v.estrella > 0) { v.mat.emissive = v.mat.emissive || new THREE.Color(); v.mat.emissive.setHSL((reloj.elapsedTime * 2) % 1, 1, 0.5); v.mat.emissiveIntensity = 0.8; }
+    else if (v.mat.emissiveIntensity > 0.5) { v.mat.emissive.set(v.def.flota ? '#7ff6ff' : '#000000'); v.mat.emissiveIntensity = v.def.flota ? 0.12 : 0; }
   }
 
   function terminaKart(v) {
     v.terminado = true;
     circuito.terminados.push(v.id);
     const puesto = circuito.terminados.length;
-    if (v.id === 4) {
+    if (v === circuito.yo) {
       circuito.fase = 'fin';
       circuito.puestoManuel = puesto;
       circuito.finT = 0;
       const podio = puesto <= 3;
       avisar(podio ? `¡Has quedado ${puesto}º! ¡Al podio!` : `Has quedado ${puesto}º. ¡Casi! Inténtalo otra vez`, 3200);
       ninoDice(puesto === 1 ? '¡He ganado!' : podio ? '¡Al podio!' : '¡La próxima gano!', 2.4);
-      if (podio) sumarNino('carrera');
+      if (podio) {
+        sumarNino('carrera');
+        if (!circuito.copas.has(circuito.pista.def.id)) { circuito.copas.add(circuito.pista.def.id); sumarNino('copas'); }
+      }
     }
   }
-
   function posiciones() {
-    const N = circuito.N;
-    return circuito.karts.slice().sort((a, b) => {
+    const N = circuito.pista ? circuito.pista.N : 1;
+    return circuito.corredores.slice().sort((a, b) => {
       if (a.terminado && b.terminado) return circuito.terminados.indexOf(a.id) - circuito.terminados.indexOf(b.id);
       if (a.terminado) return -1;
       if (b.terminado) return 1;
@@ -7034,14 +7723,16 @@
   }
 
   function ceremonia() {
-    // Todos al paddock; los tres primeros suben al podio
     fundido(() => {
       circuito.fase = 'paddock';
-      circuito.hud.hidden = true;
+      verHudCarrera(false);
+      circuito.paddock.visible = true;
+      const orden = posiciones().map((v) => v.id);
       colocarEnPaddock();
       if (ninoE.modo === 'atraccion') { ninoE.atr.salida = null; terminarAtraccion(); }
+      nino.grupo.visible = true;
+      limpiarCorredores();
       if (coches.casco) coches.casco.visible = false;
-      const orden = posiciones().map((v) => v.id);
       const sitios = [[0, 1.2], [-2, 0.8], [2, 0.5]];
       ninoE.pos.set(PADDOCK.x - 8, 0.02, PADDOCK.z + 7);
       orden.slice(0, 3).forEach((id, k) => {
@@ -7063,31 +7754,79 @@
       cam.pitch = 0.25;
       cam.dist = 9;
       cam.objetivo.copy(ninoE.pos);
-      avisar(circuito.puestoManuel <= 3 ? '¡Enhorabuena, campeón!' : 'Habla con tus amigos para correr otra vez', 2600);
+      avisar(circuito.puestoManuel <= 3 ? `¡Enhorabuena! Copas: ${circuito.copas.size} de ${PISTAS.length}` : 'Habla con tus amigos para correr otra vez', 2800);
+    });
+  }
+
+  // ---------- Minimapa ----------
+  function dibujarFondoMinimapa(P) {
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = 170;
+    const c = cv.getContext('2d');
+    let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+    for (let i = 0; i < P.N; i++) { x0 = Math.min(x0, P.px[i]); x1 = Math.max(x1, P.px[i]); z0 = Math.min(z0, P.pz[i]); z1 = Math.max(z1, P.pz[i]); }
+    const e = Math.min(146 / (x1 - x0), 146 / (z1 - z0));
+    P.mapa = { cv, x0, z0, e, ox: (170 - (x1 - x0) * e) / 2, oz: (170 - (z1 - z0) * e) / 2 };
+    c.fillStyle = 'rgba(255, 253, 246, 0.82)';
+    c.beginPath();
+    c.arc(85, 85, 84, 0, Math.PI * 2);
+    c.fill();
+    c.lineJoin = 'round';
+    c.beginPath();
+    for (let i = 0; i <= P.N; i += 4) {
+      const k = i % P.N;
+      const X = P.mapa.ox + (P.px[k] - x0) * e, Y = 170 - (P.mapa.oz + (P.pz[k] - z0) * e);
+      i ? c.lineTo(X, Y) : c.moveTo(X, Y);
+    }
+    c.lineWidth = 9;
+    c.strokeStyle = '#2b2f36';
+    c.stroke();
+    c.lineWidth = 4;
+    c.strokeStyle = P.def.color;
+    c.stroke();
+  }
+  function dibujarMinimapa() {
+    const P = circuito.pista, M = P && P.mapa;
+    if (!M) return;
+    const c = circuito.minimapa.getContext('2d');
+    c.clearRect(0, 0, 170, 170);
+    c.drawImage(M.cv, 0, 0);
+    circuito.corredores.forEach((v, k) => {
+      const X = M.ox + (v.x - M.x0) * M.e, Y = 170 - (M.oz + (v.z - M.z0) * M.e);
+      c.beginPath();
+      c.arc(X, Y, v === circuito.yo ? 7 : 5, 0, Math.PI * 2);
+      c.fillStyle = v === circuito.yo ? '#ffffff' : COLORES_KART[k];
+      c.fill();
+      c.lineWidth = 2;
+      c.strokeStyle = '#123a4a';
+      c.stroke();
     });
   }
 
   function actualizarCircuito(dt) {
     if (!circuito.listo || circuito.fase === 'fuera') return;
-    const t = reloj.elapsedTime;
-    circuito.texTurbo.offset.y = (circuito.texTurbo.offset.y + dt * 1.5) % 1;
-    circuito.cajas.forEach((c, k) => {
-      c.oculta = Math.max(0, c.oculta - dt);
-      c.m.visible = c.oculta <= 0;
-      c.m.rotation.set(t * 0.7 + k, t * 1.1 + k, 0);
-      c.m.position.y = 1 + Math.sin(t * 2 + k) * 0.15;
-    });
-    circuito.globos.forEach((g, k) => { g.position.y = 8.5 + Math.sin(t * 0.8 + k) * 0.4; });
-    // Amigos: animación y bocadillos
+    const t = reloj.elapsedTime, P = circuito.pista;
+    if (P) {
+      P.texTurbo.offset.y = (P.texTurbo.offset.y + dt * 1.5) % 1;
+      P.cajas.forEach((c, k) => {
+        c.oculta = Math.max(0, c.oculta - dt);
+        c.m.visible = c.oculta <= 0;
+        c.m.rotation.set(t * 0.7 + k, t * 1.1 + k, 0);
+        c.m.position.y = c.m.userData.y0 + Math.sin(t * 2 + k) * 0.15;
+      });
+      P.animados.forEach((f) => f(t));
+    }
     circuito.amigos.forEach((p, k) => {
+      if (!p.grupo.visible && !p.enKart) return;
       p.mixer.update(dt);
       if (p.enKart) {
-        const v = circuito.karts[k];
-        p.grupo.position.set(v.x - Math.sin(v.rumbo) * 0.25, v.y + 0.34 - p.cadera, v.z - Math.cos(v.rumbo) * 0.25);
-        p.grupo.rotation.set(v.malla.rotation.x, v.rumbo, 0, 'YXZ');
+        const v = p.enKart, [, ay, az] = v.def.asiento, s = v.def.escala * v.malla.scale.x;
+        p.grupo.position.set(v.x + Math.sin(v.malla.rotation.y) * az * s, v.y + ay * s + (v.def.flota ? 0.3 : 0) - p.cadera * v.malla.scale.x, v.z + Math.cos(v.malla.rotation.y) * az * s);
+        p.grupo.rotation.set(v.malla.rotation.x, v.malla.rotation.y, 0, 'YXZ');
+        p.grupo.scale.setScalar(v.malla.scale.x);
       } else if (circuito.fase === 'paddock') {
-        // miran a Manuel
         const g = p.grupo;
+        g.scale.setScalar(1);
         g.rotation.y = angulo(g.rotation.y, Math.atan2(ninoE.pos.x - g.position.x, ninoE.pos.z - g.position.z), 1 - Math.exp(-3 * dt));
       }
       if (!p.globo.el.hidden) {
@@ -7098,32 +7837,62 @@
     if (circuito.fase === 'cuenta') {
       circuito.cuenta -= dt;
       const n = Math.ceil(circuito.cuenta - 1);
-      circuito.luces.forEach((l, k) => l.material.color.set(circuito.cuenta <= 1 ? '#29e35a' : k < 3 - n ? '#ff2a1a' : '#330000'));
+      P.luces.forEach((l, k) => l.material.color.set(circuito.cuenta <= 1 ? '#29e35a' : k < 3 - n ? '#ff2a1a' : '#330000'));
       circuito.grande.hidden = circuito.cuenta > 3.99;
       circuito.grande.textContent = circuito.cuenta > 1 ? String(n) : '¡YA!';
       if (circuito.cuenta <= 1) circuito.fase = 'carrera';
-      circuito.karts.forEach((v, k) => actualizarKart(v, dt, k === 4));
+      circuito.corredores.forEach((v, k) => actualizarCorredor(v, dt, k === 4));
     } else if (circuito.fase === 'carrera' || circuito.fase === 'fin') {
       if (circuito.cuenta > 0) {
         circuito.cuenta -= dt;
         circuito.grande.hidden = circuito.cuenta <= 0;
       }
-      circuito.karts.forEach((v, k) => actualizarKart(v, dt, k === 4));
-      // Choques entre karts
-      const K = circuito.karts;
+      circuito.corredores.forEach((v, k) => actualizarCorredor(v, dt, k === 4));
+      // choques entre coches (con la estrella, el otro sale girando)
+      const K = circuito.corredores;
       for (let a = 0; a < K.length; a++) for (let b = a + 1; b < K.length; b++) {
         const dx = K[a].x - K[b].x, dz = K[a].z - K[b].z, d = Math.hypot(dx, dz);
-        if (d < 1.5 && d > 0.001) {
-          const e = (1.5 - d) / 2;
+        if (d < 1.7 && d > 0.001) {
+          if (K[a].estrella > 0 && !(K[b].estrella > 0)) golpear(K[b], K[a].nombre);
+          if (K[b].estrella > 0 && !(K[a].estrella > 0)) golpear(K[a], K[b].nombre);
+          const e = (1.7 - d) / 2;
           K[a].x += dx / d * e; K[a].z += dz / d * e;
           K[b].x -= dx / d * e; K[b].z -= dz / d * e;
         }
       }
+      // caparazones
+      for (let k = circuito.proyectiles.length - 1; k >= 0; k--) {
+        const p = circuito.proyectiles[k];
+        p.t += dt;
+        if (p.objetivo && !p.objetivo.terminado) {
+          const dir = new V3(p.objetivo.x - p.m.position.x, 0, p.objetivo.z - p.m.position.z).normalize().multiplyScalar(30);
+          p.vel.lerp(dir, 1 - Math.exp(-4 * dt));
+        }
+        p.m.position.addScaledVector(p.vel, dt);
+        p.indice = indicePista(p.m.position.x, p.m.position.z, p.indice);
+        p.m.position.y = P.alto[p.indice] + 0.35;
+        p.m.rotation.y += dt * 12;
+        let fuera = p.t > 6;
+        for (const v of circuito.corredores) {
+          if (v === p.dueno && p.t < 0.4) continue;
+          if (Math.hypot(v.x - p.m.position.x, v.z - p.m.position.z) < 1.4) { golpear(v, p.dueno.nombre); fuera = true; break; }
+        }
+        for (const c of P.obstaculos) if (Math.hypot(c.x - p.m.position.x, c.z - p.m.position.z) < c.r + 0.4) fuera = true;
+        if (fuera) { p.m.parent && p.m.parent.remove(p.m); circuito.proyectiles.splice(k, 1); }
+      }
+      circuito.platanos.forEach((b) => { b.t += dt; });
+      if (circuito.destello > 0) circuito.destello -= dt;
+      // marcadores
       const orden = posiciones();
-      const yo = circuito.karts[4];
+      const yo = circuito.yo;
       const puesto = orden.indexOf(yo) + 1;
-      const txt = circuito.fase === 'fin' ? `Meta · ${circuito.puestoManuel}º de 5` : `Vuelta ${Math.min(VUELTAS, Math.max(1, yo.vuelta))}/${VUELTAS} · ${puesto}º de 5`;
-      if (circuito.hud.textContent !== txt) circuito.hud.textContent = txt;
+      const pTxt = circuito.fase === 'fin' ? `${circuito.puestoManuel}º` : `${puesto}º`;
+      const vTxt = circuito.fase === 'fin' ? '¡Meta!' : `Vuelta ${Math.min(VUELTAS, Math.max(1, yo.vuelta))}/${VUELTAS}`;
+      const hp = circuito.hud.firstChild, hv = circuito.hud.lastChild;
+      if (hp.textContent !== pTxt) hp.textContent = pTxt;
+      if (hv.textContent !== vTxt) hv.textContent = vTxt;
+      pintarObjeto();
+      dibujarMinimapa();
       if (circuito.fase === 'fin') {
         circuito.finT += dt;
         if (circuito.finT > 4 && !circuito.ceremonia) { circuito.ceremonia = true; ceremonia(); }
@@ -7131,18 +7900,14 @@
     }
   }
 
-  // Acción junto a los amigos en el paddock: ¡a correr!
+  // Acción junto a los amigos en el paddock: elegir coche y circuito
   function amigosCerca() {
     return circuito.fase === 'paddock' && circuito.amigos.some((p) => distXZ(ninoE.pos, p.grupo.position) < 3.5);
   }
   function aCorrer() {
-    circuito.ceremonia = false;
-    circuito.amigos.forEach((p, k) => setTimeout(() => diga(p, ['¡Casco puesto!', '¡Vamos!', '¡A por todas!', '¡Suerte, Manuel!'][k], 1.8), k * 250));
-    circuito.amigos.forEach((p) => { if (p.casco) p.casco.visible = true; });
-    if (coches.casco) coches.casco.visible = true;
-    avisar('¡Os ponéis el casco y a los karts!', 1600);
-    setTimeout(prepararCarrera, 1600);
+    abrirMenuCarrera();
   }
+
 
 
   // ---------- Bucle principal ----------
@@ -7157,7 +7922,8 @@
       conducir: () => subirAlCoche(),
       irCircuito: () => irAlCircuito(),
       correr: () => aCorrer(),
-      carrera: () => ({ fase: circuito.fase, karts: circuito.karts.map((v) => [+v.x.toFixed(1), +v.z.toFixed(1), v.vuelta, +v.vel.toFixed(1)]), puesto: circuito.puestoManuel }),
+      elegir: (vehiculo = 'kart', pista = 'verde') => { circuito.eleccion = { vehiculo, pista }; circuito.menu.hidden = true; empezarCarreraElegida(); },
+      carrera: () => ({ fase: circuito.fase, pista: circuito.pista && circuito.pista.def.id, karts: circuito.corredores.map((v) => [+v.x.toFixed(1), +v.z.toFixed(1), v.vuelta, +v.vel.toFixed(1), v.objeto]), puesto: circuito.puestoManuel, copas: [...circuito.copas] }),
       moverBuzo: (lx, lz, y = -4, rumbo = 0) => { ninoE.pos.set(ARRECIFE.x + lx, y, ARRECIFE.z + lz); ninoE.rumbo = rumbo; cam.objetivo.copy(ninoE.pos); },
       estado: () => ({ mision: misionActual() && misionActual().id, cuenta: misionActual() && misionActual().cuenta,
         balon: balon.estado, nino: ninoE.modo, perro: estado.pos.toArray().map((v) => +v.toFixed(1)),

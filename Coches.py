@@ -447,7 +447,161 @@ def casco_manuel():
     return o
 
 
-proto = [coche(), rueda("CocheRueda", R_RUEDA, 0.28), kart(), rueda("KartRueda", 0.13, 0.14, 0.55), casco_manuel()]
+
+# =====================================================================
+# ---------- MÁS VEHÍCULOS PARA LAS CARRERAS ----------
+# =====================================================================
+# Lo pintado de blanco se tiñe en la web con el color de cada piloto
+def suave(o):
+    for p in o.data.polygons:
+        p.use_smooth = True
+
+
+def marcar(objs):
+    return set(tuple(round(c, 3) for c in o.matrix_world @ v.co) for o in objs for v in o.data.vertices)
+
+
+def bolido():
+    """Bólido de fórmula: morro largo, alerones, pontones y cabina abierta (mira hacia -Y)."""
+    partes = []
+    # cuerpo: huso alargado
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=24, ring_count=12, radius=1, location=(0, -0.1, 0.32))
+    c = bpy.context.object
+    c.scale = (0.34, 1.35, 0.2)
+    bpy.ops.object.transform_apply(scale=True)
+    for v in c.data.vertices:
+        if v.co.y < -0.3:
+            k = min(1.0, (-v.co.y - 0.3) / 1.2)
+            v.co.x *= 1 - 0.6 * k
+            v.co.z = 0.32 + (v.co.z - 0.32) * (1 - 0.5 * k) - 0.08 * k
+    partes.append(c)
+    blanco = []
+    for sx in (1, -1):
+        p = caja((sx * 0.42, 0.2, 0.3), (0.26, 0.9, 0.2), bisel=0.08)
+        blanco.append(p)
+    blanco.append(c)
+    partes += blanco[:-1]
+    # alerones (negros) y soportes
+    partes.append(caja((0, -1.42, 0.14), (1.3, 0.28, 0.04)))
+    for sx in (1, -1):
+        partes.append(caja((sx * 0.64, -1.42, 0.2), (0.03, 0.3, 0.16)))
+    partes.append(caja((0, 1.2, 0.72), (1.05, 0.26, 0.05)))
+    for sx in (1, -1):
+        partes.append(caja((sx * 0.5, 1.2, 0.62), (0.03, 0.3, 0.3)))
+    partes.append(caja((0, 1.1, 0.48), (0.08, 0.14, 0.34)))
+    # toma de aire sobre el piloto y halo
+    partes.append(caja((0, 0.45, 0.62), (0.2, 0.5, 0.28), bisel=0.06))
+    bpy.ops.mesh.primitive_torus_add(major_radius=0.26, minor_radius=0.025, location=(0, -0.05, 0.62), rotation=(math.pi / 2 - 0.2, 0, 0))
+    halo = bpy.context.object
+    halo.scale = (1, 1.2, 1)
+    bpy.ops.object.transform_apply(scale=True)
+    partes.append(halo)
+    tinte = marcar(blanco + [partes[-2]])
+    o = unir(partes, "Bolido")
+    pintar(o, lambda co, n: BLANCO if tuple(round(c, 3) for c in co) in tinte else lineal("#1d2026"))
+    return o
+
+
+def buggy():
+    """Buggy de arena: bañera baja, jaula de tubos, ruedas grandes y focos."""
+    partes = []
+    banera = caja((0, 0.05, 0.55), (1.2, 2.0, 0.4), bisel=0.12)
+    morro = caja((0, -1.0, 0.62), (1.0, 0.5, 0.3), rot=(0.35, 0, 0), bisel=0.1)
+    blanco = [banera, morro]
+    partes += blanco
+    # jaula antivuelco
+    verts, aristas, radios = [], [], []
+
+    def tubo(a, b):
+        i = len(verts)
+        verts.extend([Vector(a), Vector(b)])
+        radios.extend([0.035, 0.035])
+        aristas.append((i, i + 1))
+    for sx in (1, -1):
+        tubo((sx * 0.5, -0.45, 0.72), (sx * 0.42, -0.1, 1.45))
+        tubo((sx * 0.42, -0.1, 1.45), (sx * 0.42, 0.55, 1.45))
+        tubo((sx * 0.42, 0.55, 1.45), (sx * 0.5, 0.9, 0.72))
+    tubo((0.42, -0.1, 1.45), (-0.42, -0.1, 1.45))
+    tubo((0.42, 0.55, 1.45), (-0.42, 0.55, 1.45))
+    me = bpy.data.meshes.new("Jaula")
+    me.from_pydata(verts, aristas, [])
+    jaula = objeto("Jaula", me)
+    sk = jaula.modifiers.new("Skin", 'SKIN')
+    for i, r in enumerate(radios):
+        jaula.data.skin_vertices[0].data[i].radius = (r, r)
+        jaula.data.skin_vertices[0].data[i].use_root = i % 2 == 0
+    aplicar(jaula)
+    partes.append(jaula)
+    # barra de focos, rueda de repuesto y asiento
+    partes.append(caja((0, -0.1, 1.5), (0.8, 0.08, 0.1)))
+    focos = []
+    for k in range(4):
+        f = cilindro((-0.3 + k * 0.2, -0.16, 1.5), 0.06, 0.06, rot=(math.pi / 2, 0, 0), v=12)
+        focos.append(f)
+    partes += focos
+    partes.append(cilindro((0, 1.12, 0.9), 0.3, 0.2, rot=(math.pi / 2, 0, 0), v=16))
+    partes.append(caja((0, 0.35, 0.85), (0.45, 0.4, 0.12), bisel=0.04))
+    partes.append(caja((0, 0.55, 1.05), (0.45, 0.1, 0.45), bisel=0.04))
+    tinte = marcar(blanco)
+    luz = marcar(focos)
+    o = unir(partes, "Buggy")
+
+    def color(co, n):
+        k = tuple(round(c, 3) for c in co)
+        if k in luz and co.y < -0.18:
+            return lineal("#fff6c8") * 2
+        if k in tinte:
+            return BLANCO
+        return lineal("#23262c")
+    pintar(o, color)
+    return o
+
+
+def futurista():
+    """Nave futurista que flota: cuerpo liso, cúpula y líneas de luz (sin ruedas)."""
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=32, ring_count=16, radius=1, location=(0, 0, 0.55))
+    c = bpy.context.object
+    c.scale = (0.75, 1.4, 0.28)
+    bpy.ops.object.transform_apply(scale=True)
+    for v in c.data.vertices:
+        if v.co.y < 0:
+            v.co.z -= 0.1 * (-v.co.y / 1.4) ** 2
+        v.co.x *= 1 + 0.15 * max(0.0, v.co.y / 1.4)
+    suave(c)
+    aletas = []
+    for sx in (1, -1):
+        a = caja((sx * 0.72, 0.7, 0.6), (0.5, 0.7, 0.06), rot=(0, sx * 0.3, 0), bisel=0.02)
+        aletas.append(a)
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=24, ring_count=12, radius=1, location=(0, 0.05, 0.78))
+    cup = bpy.context.object
+    cup.scale = (0.36, 0.6, 0.26)
+    bpy.ops.object.transform_apply(scale=True)
+    suave(cup)
+    pads = []
+    for sx in (1, -1):
+        for sy in (-0.85, 0.85):
+            pads.append(cilindro((sx * 0.55, sy, 0.3), 0.2, 0.08, v=20))
+    tinte = marcar([c] + aletas)
+    cristal = marcar([cup])
+    luces = marcar(pads)
+    o = unir([c, cup] + aletas + pads, "Futurista")
+
+    def color(co, n):
+        k = tuple(round(x, 3) for x in co)
+        if k in luces:
+            return lineal("#7ff6ff") * 3
+        if k in cristal:
+            return lineal("#1a3c5a")
+        if k in tinte and abs(co.z - 0.55) < 0.025:
+            return lineal("#7ff6ff") * 2.5  # línea de luz alrededor
+        if k in tinte:
+            return BLANCO
+        return lineal("#23262c")
+    pintar(o, color)
+    return o
+
+proto = [coche(), rueda("CocheRueda", R_RUEDA, 0.28), kart(), rueda("KartRueda", 0.13, 0.14, 0.55), casco_manuel(),
+         bolido(), rueda("BolidoRueda", 0.2, 0.26, 0.55), buggy(), rueda("BuggyRueda", 0.36, 0.3, 0.45), futurista()]
 for o in proto:
     print(f"{o.name}: {len(o.data.polygons)} caras")
 
@@ -458,6 +612,77 @@ bpy.ops.export_scene.gltf(filepath=os.path.abspath("coches.glb"), export_format=
 print("Exportado coches.glb")
 
 if os.environ.get("SIN_RENDER") == "1":
+    raise SystemExit
+
+# ---------- FICHAS PARA EL MENÚ (vehiculos.png: una imagen por vehículo, con fondo transparente) ----------
+def fichas():
+    import numpy as np
+    escena = bpy.context.scene
+    escena.render.engine = 'CYCLES'
+    escena.cycles.samples = int(os.environ.get("MUESTRAS", "48"))
+    escena.cycles.use_denoising = False
+    escena.render.film_transparent = True
+    escena.view_settings.view_transform = 'AgX'
+    escena.view_settings.look = 'AgX - Punchy'
+    escena.render.resolution_x, escena.render.resolution_y = 320, 220
+    w = bpy.data.worlds.new("MundoFichas")
+    w.use_nodes = True
+    w.node_tree.nodes["Background"].inputs[0].default_value = (0.9, 0.93, 0.97, 1)
+    escena.world = w
+    bpy.ops.object.light_add(type='SUN', rotation=(math.radians(45), math.radians(10), math.radians(30)))
+    bpy.context.object.data.energy = 3.5
+    bpy.ops.object.camera_add()
+    cam = bpy.context.object
+    escena.camera = cam
+    por = {o.name: o for o in bpy.data.objects if o.type == 'MESH'}
+    tinte = {"Kart": "#2a7ae0", "Bolido": "#e2321f", "Buggy": "#ffb400", "Futurista": "#9a4fe0"}
+    lista = [("Kart", "KartRueda", [(0.62, 0.13, -0.62), (-0.62, 0.13, -0.62), (0.62, 0.13, 0.72), (-0.62, 0.13, 0.72)], 3.6),
+             ("Coche", "CocheRueda", [(0.87, 0.34, -1.45), (-0.87, 0.34, -1.45), (0.87, 0.34, 1.35), (-0.87, 0.34, 1.35)], 8.5),
+             ("Bolido", "BolidoRueda", [(0.62, 0.2, -0.95), (-0.62, 0.2, -0.95), (0.64, 0.22, 0.85), (-0.64, 0.22, 0.85)], 5.0),
+             ("Buggy", "BuggyRueda", [(0.78, 0.36, -0.85), (-0.78, 0.36, -0.85), (0.78, 0.36, 0.85), (-0.78, 0.36, 0.85)], 5.0),
+             ("Futurista", None, [], 5.0)]
+    imgs = []
+    for nombre, rueda_n, ruedas, dist in lista:
+        for o in bpy.data.objects:
+            if o.type == 'MESH':
+                o.hide_render = True
+        cuerpo = por[nombre]
+        cuerpo.hide_render = False
+        cuerpo.location = (0, 0, 0)
+        if nombre in tinte:
+            # pintar lo blanco del color de ejemplo
+            me = cuerpo.data
+            col = me.color_attributes["Col"]
+            t = lineal(tinte[nombre])
+            for d in col.data:
+                if d.color[0] > 0.8 and d.color[1] > 0.8 and d.color[2] > 0.8:
+                    d.color = (t.x, t.y, t.z, 1)
+        copias = []
+        for (x, z, y) in ruedas:
+            r = bpy.data.objects.new("R", por[rueda_n].data)
+            bpy.context.collection.objects.link(r)
+            r.location = (x, y, z)
+            copias.append(r)
+        cam.location = (dist * 0.75, -dist * 0.8, dist * 0.42)
+        direccion = Vector((0, 0, 0.35)) - cam.location
+        cam.rotation_euler = direccion.to_track_quat('-Z', 'Y').to_euler()
+        escena.render.filepath = os.path.abspath(f"ficha_{nombre}.png")
+        bpy.ops.render.render(write_still=True)
+        for r in copias:
+            bpy.data.objects.remove(r)
+        im = bpy.data.images.load(os.path.abspath(f"ficha_{nombre}.png"))
+        imgs.append(np.array(im.pixels[:], dtype=np.float32).reshape(220, 320, 4))
+    tira = np.concatenate(imgs, axis=1)
+    out = bpy.data.images.new("Vehiculos", 320 * len(imgs), 220, alpha=True)
+    out.pixels = tira.ravel()
+    out.filepath_raw = os.path.abspath("vehiculos.png")
+    out.file_format = 'PNG'
+    out.save()
+    print("Guardado vehiculos.png")
+
+
+if os.environ.get("FICHAS") == "1":
+    fichas()
     raise SystemExit
 
 # ---------- VISTA PREVIA ----------
