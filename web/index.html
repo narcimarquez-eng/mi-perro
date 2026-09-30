@@ -5650,6 +5650,32 @@
       arrecife.tortugas.push({ m, r: entre(3, 11), r2: entre(3, 8), w: entre(0.07, 0.16) * (k % 3 ? 1 : -1), fase: entre(0, 6.3), alto: entre(1.2, 4.5) });
     }
 
+    // ---------- Tiburón de puntas negras y delfines ----------
+    // El cuerpo ondula: el tiburón mueve la cola de lado a lado y el delfín de arriba abajo
+    const nadador = (nombre, lateral) => {
+      const m = new THREE.Mesh(arrecife.piezas[nombre].geometry, arrecife.piezas[nombre].material.clone());
+      m.material.side = THREE.DoubleSide;
+      m.material.onBeforeCompile = (sh) => {
+        sh.uniforms.uT = uTiempo;
+        sh.vertexShader = 'uniform float uT;\n' + sh.vertexShader.replace('#include <begin_vertex>', `
+          vec3 transformed = vec3(position);
+          float fase = modelMatrix[3][0] * 0.7;
+          float cola = clamp((0.25 - position.z) / 0.75, 0.0, 1.0);
+          float onda = sin(uT * ${lateral ? '4.0' : '3.2'} + fase - position.z * 6.0) * 0.06 * (0.15 + cola);
+          ${lateral ? 'transformed.x += onda;' : 'transformed.y += onda;'}`);
+      };
+      m.castShadow = true;
+      G.add(m);
+      return m;
+    };
+    arrecife.tiburon = nadador('Tiburon', true);
+    arrecife.tiburon.scale.setScalar(2.4);
+    arrecife.delfines = [0, 1, 2, 3].map((k) => {
+      const m = nadador('Delfin', false);
+      m.scale.setScalar(k === 3 ? 1.4 : 2.3);  // una cría
+      return { m, k, lado: [0, 1.6, -1.6, 0.8][k], atras: [0, 1.4, 1.8, 0.6][k] };
+    });
+
     // ---------- Marcas de las zonas: una columna de luz y burbujas ----------
     const matMarca = new THREE.ShaderMaterial({
       transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
@@ -6031,6 +6057,40 @@
       tt.m.position.set(tx, Math.min(fondoT + tt.alto + Math.sin(t * 0.7 + tt.fase) * 0.3, -1), tz);
       const vx = -Math.sin(a) * tt.r * tt.w, vz = Math.cos(a) * tt.r2 * tt.w;
       tt.m.rotation.set(Math.sin(t * 0.7 + tt.fase) * 0.1, Math.atan2(vx, vz), Math.sin(t * 0.5 + tt.fase) * 0.1);
+    });
+    // Tiburón: patrulla despacio alrededor del arrecife
+    {
+      const a = t * 0.055;
+      const x = ARRECIFE.x - 5 + Math.cos(a) * 28, z = ARRECIFE.z - 8 + Math.sin(a) * 22;
+      // siempre por encima de los corales
+      const fondoS = Math.max(lechoArrecife(x, z), arrecife.alturaTecho(x, z));
+      const sh = arrecife.tiburon;
+      const y = damp(sh.position.y || -5, Math.min(Math.max(-5.5, fondoS + 2.2) + Math.sin(t * 0.3) * 0.8, -1.5), 1.5, dt);
+      const subeS = (y - (sh.position.y || y)) / Math.max(dt, 1e-3);
+      sh.position.set(x, y, z);
+      sh.rotation.set(-Math.atan2(subeS, 1.5) * 0.6, Math.atan2(-Math.sin(a) * 28, Math.cos(a) * 22), Math.sin(t * 0.8) * 0.05, 'YXZ');
+      if (!arrecife.vistoTiburon && distXZ(E.pos, sh.position) < 9) {
+        arrecife.vistoTiburon = true;
+        avisar('¡Un tiburón de puntas negras! Es tranquilo y no ataca', 3000);
+        ninoDice('¡Hala, un tiburón!', 2);
+      }
+    }
+    // Delfines: nadan juntos cerca de la superficie, subiendo y bajando
+    arrecife.delfines.forEach((d) => {
+      const a = t * 0.085 - d.atras * 0.05;
+      const cx = ARRECIFE.x + 8, cz = ARRECIFE.z + 6;
+      const r = 24 + d.lado;
+      const x = cx + Math.cos(a) * r, z = cz + Math.sin(a) * r * 0.8;
+      const fase = t * 1.3 + d.k * 0.9;
+      const y = Math.min(-1.2, -2.6 + Math.sin(fase) * 1.3);
+      const vx = -Math.sin(a) * r, vz = Math.cos(a) * r * 0.8, vy = Math.cos(fase) * 1.3 * 1.3 / 0.085;
+      d.m.position.set(x, y, z);
+      d.m.rotation.set(-Math.atan2(vy, Math.hypot(vx, vz)) * 0.8, Math.atan2(vx, vz), 0, 'YXZ');
+      if (!arrecife.vistosDelfines && d.k === 0 && distXZ(E.pos, d.m.position) < 10) {
+        arrecife.vistosDelfines = true;
+        avisar('¡Delfines! Hablan entre ellos con silbidos', 3000);
+        ninoDice('¡Delfines! ¡Qué bonitos!', 2);
+      }
     });
     // Morenas que asoman y se esconden
     arrecife.morenas.forEach((mo) => {

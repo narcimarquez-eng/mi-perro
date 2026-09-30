@@ -906,6 +906,110 @@ def morena(nombre="Morena"):
     return o
 
 
+def aleta_plana(puntos, grosor=0.012):
+    """Aleta: un polígono plano (lista de vértices 3D) con un poco de grosor."""
+    me = bpy.data.meshes.new("Aleta")
+    me.from_pydata(puntos, [], [tuple(range(len(puntos)))])
+    o = objeto("Aleta", me)
+    so = o.modifiers.new("G", 'SOLIDIFY')
+    so.thickness = grosor
+    so.offset = 0
+    aplicar(o)
+    return o
+
+
+def cuerpo_loft(nombre, largo, alto_fn, ancho_fn, secciones=28, puntos=16, y0=-0.5):
+    """Cuerpo alargado que mira hacia -Y: secciones elípticas de boca a cola."""
+    verts, caras = [], []
+    for i in range(secciones + 1):
+        t = i / secciones
+        y = y0 + t * largo
+        h, w = alto_fn(t), ancho_fn(t)
+        for j in range(puntos):
+            a = j / puntos * math.tau
+            verts.append((math.cos(a) * w, y, math.sin(a) * h))
+    for i in range(secciones):
+        for j in range(puntos):
+            a0 = i * puntos + j
+            a1 = i * puntos + (j + 1) % puntos
+            caras.append((a0, a1, a1 + puntos, a0 + puntos))
+    for extremo, yy in ((0, y0 - 0.005), (secciones, y0 + largo + 0.005)):
+        c = len(verts)
+        verts.append((0, yy, 0))
+        base = extremo * puntos
+        for j in range(puntos):
+            if extremo == 0:
+                caras.append((c, base + (j + 1) % puntos, base + j))
+            else:
+                caras.append((c, base + j, base + (j + 1) % puntos))
+    me = bpy.data.meshes.new(nombre)
+    me.from_pydata(verts, [], caras)
+    o = objeto(nombre, me)
+    suave(o)
+    return o
+
+
+def tiburon(nombre="Tiburon"):
+    """Tiburón de puntas negras (mide 1 de largo, mira hacia -Y)."""
+    perfil = lambda t: math.sin(math.pi * min(1.0, 0.06 + t * 1.05)) ** 0.7
+    cuerpo = cuerpo_loft(nombre, 0.86, lambda t: 0.095 * perfil(t) * (1 - 0.6 * t) + 0.006,
+                         lambda t: 0.08 * perfil(t) * (1 - 0.65 * t) + 0.005, y0=-0.5)
+    for v in cuerpo.data.vertices:  # hocico aplastado y un poco hacia arriba
+        if v.co.y < -0.35:
+            v.co.z *= 0.8
+            v.co.z += 0.01
+    partes = [cuerpo]
+    partes.append(aleta_plana([(0, -0.1, 0.07), (0, 0.04, 0.18), (0, 0.075, 0.175), (0, 0.06, 0.12), (0, 0.1, 0.07)]))  # dorsal
+    partes.append(aleta_plana([(0, 0.2, 0.04), (0, 0.25, 0.08), (0, 0.27, 0.03)]))                           # segunda dorsal
+    for sx in (1, -1):                                                                                       # pectorales
+        partes.append(aleta_plana([(sx * 0.05, -0.18, -0.035), (sx * 0.16, -0.03, -0.1), (sx * 0.13, -0.01, -0.095), (sx * 0.05, -0.08, -0.045)]))
+    partes.append(aleta_plana([(0, 0.33, 0.012), (0, 0.5, 0.16), (0, 0.47, 0.02), (0, 0.45, -0.08), (0, 0.33, -0.012)]))  # cola, con el lóbulo de arriba más largo
+    o = unir(partes, nombre)
+    gris, blanco, negro = lineal("#6f7f8c"), lineal("#eef1f2"), lineal("#141414")
+
+    def color(co, n):
+        if abs(co.y + 0.37) < 0.02 and co.z > 0.0 and abs(co.x) > 0.02:
+            return negro  # ojos
+        punta = (co.z > 0.155) or (abs(co.x) > 0.13) or (co.y > 0.46 and co.z > 0.11) or (co.y > 0.43 and co.z < -0.06)
+        if punta:
+            return negro  # puntas negras de las aletas
+        return mezclar(gris, blanco, max(0.0, min(1.0, 0.5 - co.z * 25)))
+    pintar(o, color, VC_BRILLO)
+    return o
+
+
+def delfin(nombre="Delfin"):
+    """Delfín mular (mide 1 de largo, mira hacia -Y), con su pico, la frente redonda y la cola horizontal."""
+    def cuerpo_d(t):
+        return 0.075 * math.sin(math.pi * min(1.0, 0.25 + (t - 0.18) * 0.95)) ** 0.8 + 0.006
+
+    def alto(t):
+        if t < 0.08:
+            return 0.016 + 0.1 * t        # pico
+        if t < 0.18:
+            k = (t - 0.08) / 0.1           # frente redonda (melón) que se une suave con el cuerpo
+            return 0.024 + (cuerpo_d(0.18) - 0.024) * math.sin(k * math.pi / 2)
+        return cuerpo_d(t)
+
+    def ancho(t):
+        return alto(t) * 0.75
+    cuerpo = cuerpo_loft(nombre, 0.9, alto, ancho, secciones=36, y0=-0.5)
+    partes = [cuerpo]
+    partes.append(aleta_plana([(0, -0.02, 0.06), (0, 0.1, 0.15), (0, 0.13, 0.145), (0, 0.11, 0.1), (0, 0.15, 0.055)]))  # aleta dorsal curvada
+    for sx in (1, -1):
+        partes.append(aleta_plana([(sx * 0.045, -0.2, -0.035), (sx * 0.11, -0.1, -0.08), (sx * 0.09, -0.08, -0.075), (sx * 0.045, -0.14, -0.04)]))
+    partes.append(aleta_plana([(0, 0.37, 0.0), (-0.08, 0.43, 0.0), (-0.16, 0.5, 0.0), (-0.08, 0.48, 0.0), (0, 0.45, 0.0), (0.08, 0.48, 0.0), (0.16, 0.5, 0.0), (0.08, 0.43, 0.0)]))  # cola horizontal
+    o = unir(partes, nombre)
+    gris, claro, negro = lineal("#6d8196"), lineal("#dfe5ea"), lineal("#141414")
+
+    def color(co, n):
+        if abs(co.y + 0.36) < 0.015 and abs(co.x) > 0.03 and abs(co.z) < 0.02:
+            return negro  # ojos
+        return mezclar(gris, claro, max(0.0, min(1.0, 0.45 - co.z * 16)))
+    pintar(o, color, VC_BRILLO)
+    return o
+
+
 # =====================================================================
 # ---------- CREAR TODAS LAS PIEZAS ----------
 # =====================================================================
@@ -938,6 +1042,8 @@ proto.append(barca())
 proto.append(barco_pirata())
 proto.append(cueva())
 proto.append(morena())
+proto.append(tiburon())
+proto.append(delfin())
 for o in proto:
     o.location = (0, 0, 0)
     print(f"{o.name}: {len(o.data.polygons)} caras")
