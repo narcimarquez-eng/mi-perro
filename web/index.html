@@ -475,6 +475,7 @@
   const flotadores = [];  // plataformas flotantes de la prueba del parque (se rellena al construirlo)
   const plataformas = [];  // superficies elevadas: cubierta y pasarela del barco pirata
   function suelo(x, z, yActual) {
+    if (x > 500) return lechoArrecife(x, z);  // el arrecife, mar adentro
     let h = altura(x, -z);
     if (sobreMuelle(x, z) && (yActual === undefined || yActual > MUELLE.y - 0.45)) h = Math.max(h, MUELLE.y);
     for (const pl of plataformas) {
@@ -965,8 +966,9 @@
 
   // Papá y mamá (hechos en Blender con Padres.py); si faltan, se usan los muñecos sencillos
   const cargarOpcional = (n) => cargar(n).catch(() => null);
-  Promise.all([cargar('playa.glb'), cargar('perro.glb'), cargar('nino.glb'), cargarOpcional('papa.glb'), cargarOpcional('mama.glb')])
-    .then(([playa, gPerro, gNino, gPapa, gMama]) => {
+  Promise.all([cargar('playa.glb'), cargar('perro.glb'), cargar('nino.glb'), cargarOpcional('papa.glb'), cargarOpcional('mama.glb'),
+    cargarOpcional('arrecife.glb')])
+    .then(([playa, gPerro, gNino, gPapa, gMama, gArrecife]) => {
     prepararPlaya(playa);
     prepararPerro(gPerro);
     prepararNino(gNino);
@@ -974,6 +976,7 @@
     construirCasa(playa.scene);
     construirParqueBolas();
     construirInterior(gPapa, gMama);
+    construirArrecife(gArrecife);
     parque.toboganes.forEach((t) => {
       if (t.aro) return;
       const aro = new THREE.Mesh(new THREE.RingGeometry(0.4, 0.6, 32), new THREE.MeshBasicMaterial({ color: '#ffd42a', side: THREE.DoubleSide, transparent: true, opacity: 0.85 }));
@@ -1222,6 +1225,8 @@
       // Dentro de casa (el interior está lejos, sobre el mar): no salir del jardín
       pos.x = clamp(pos.x, INT.x - 28, INT.x + 28);
       pos.z = clamp(pos.z, INT.z - 28, INT.z + 28);
+    } else if (pos.x > 500) {
+      // En el arrecife (Manuel bucea con sus propios límites)
     } else {
       pos.x = clamp(pos.x, -LIMITE_X, LIMITE_X);
       pos.z = clamp(pos.z, LIMITE_Z0, LIMITE_Z1);
@@ -1444,7 +1449,7 @@
       }
       animarNino(vel === 0 ? 'idle' : correr ? 'run' : 'walk');
     }
-    if (E.modo !== 'tobogan' && E.modo !== 'descansar' && E.modo !== 'volando' && E.modo !== 'atraccion') {
+    if (E.modo !== 'tobogan' && E.modo !== 'descansar' && E.modo !== 'volando' && E.modo !== 'atraccion' && E.modo !== 'bucear') {
       chocar(E.pos, 0.3, E.pos.y - suelo(E.pos.x, E.pos.z, E.pos.y), true);
       // No pisar al perro
       const dp = distXZ(E.pos, estado.pos);
@@ -1453,7 +1458,7 @@
         E.pos.z = estado.pos.z + (E.pos.z - estado.pos.z) / dp * 0.75;
       }
     }
-    if (!(controlado && E.modo === 'libre') && E.modo !== 'tobogan' && E.modo !== 'descansar' && E.modo !== 'volando' && E.modo !== 'atraccion') {
+    if (!(controlado && E.modo === 'libre') && E.modo !== 'tobogan' && E.modo !== 'descansar' && E.modo !== 'volando' && E.modo !== 'atraccion' && E.modo !== 'bucear') {
       // Pegado al suelo, o flotando si está donde cubre
       const hS = suelo(E.pos.x, E.pos.z, E.pos.y), aguaS = aguaEn(E.pos.x, E.pos.z);
       E.nadando = aguaS - hS > 0.95;
@@ -1468,6 +1473,7 @@
     if (E.modo === 'celebrar' && nino.actual && !nino.actual.isRunning()) E.modo = 'libre';
     if (E.modo === 'celebrar' && E.t > 2) E.modo = 'libre';
     if (E.modo === 'atraccion') actualizarAtraccion(dt);
+    if (E.modo === 'bucear') bucear(dt);
 
     colocarGrupoNino();
     for (const [h, q] of nino.reposo) h.quaternion.copy(q);
@@ -1754,7 +1760,7 @@
   const btnAccion = document.getElementById('btn-guau');
 
   function cambiarJugador() {
-    if (!listo || ninoE.modo === 'pescar' || ninoE.modo === 'tobogan' || ninoE.modo === 'volando') return;
+    if (!listo || ninoE.modo === 'pescar' || ninoE.modo === 'tobogan' || ninoE.modo === 'volando' || ninoE.modo === 'bucear') return;
     if (ninoE.modo === 'atraccion') terminarAtraccion();
     if (ninoE.modo === 'descansar' || estado.descansando) levantarse();
     jugador = jugador === 'perro' ? 'nino' : 'perro';
@@ -1770,6 +1776,7 @@
 
   function saltarNino() {
     const E = ninoE;
+    if (E.modo === 'bucear') { E.aSuperficie = !E.aSuperficie; return; }
     if (E.modo !== 'libre' || !E.enSuelo || E.nadando) return;
     const cama = camaElasticaEn(E.pos.x, E.pos.z, E.pos.y);
     E.vy = cama ? 10 : 5.4;
@@ -1782,6 +1789,10 @@
   function accionNino() {
     const E = ninoE;
     if (E.modo === 'descansar') return { texto: 'Levantarse', hacer: levantarse };
+    if (E.modo === 'bucear') {
+      return cercaDeBarcaMar() ? { texto: 'A la barca', hacer: salirDelAgua } :
+        { texto: 'Burbujas', hacer: () => { soltarBurbujas(14); ninoDice('¡Blub, blub!', 1.2); } };
+    }
     if (E.modo === 'atraccion') {
       if (!E.atr || E.atr.tipo === 'escalar') return null;
       return { texto: E.atr.tipo === 'dormir' ? 'Despertar' : E.atr.sentado ? 'Levantarse' : 'Parar', hacer: terminarAtraccion };
@@ -1804,12 +1815,15 @@
     if (a) a.hacer();
   }
   let textoAccion = '';
+  const btnSaltar = document.getElementById('btn-saltar');
   function actualizarBotonAccion() {
     let t = '¡Guau!';
     if (jugador === 'nino') {
       const a = accionNino();
       t = a ? a.texto : '…';
     }
+    const ts = jugador === 'nino' && ninoE.modo === 'bucear' ? (ninoE.aSuperficie ? 'Bajar' : 'Subir') : 'Saltar';
+    if (btnSaltar.textContent !== ts) btnSaltar.textContent = ts;
     if (t !== textoAccion) {
       textoAccion = t;
       btnAccion.textContent = t;
@@ -1898,7 +1912,8 @@
   function actualizarEstadoNino() {
     const E = ninoE;
     let zona = 'arena', texto;
-    if (E.modo === 'tobogan') { zona = 'agua'; texto = '¡Bajando por el tobogán!'; }
+    if (E.modo === 'bucear') { zona = 'agua'; texto = `Buceando · ${Math.max(0, Math.round(-E.pos.y))} m`; }
+    else if (E.modo === 'tobogan') { zona = 'agua'; texto = '¡Bajando por el tobogán!'; }
     else if (E.modo === 'volando') { zona = 'agua'; texto = '¡Volando!'; }
     else if (E.modo === 'pescar') { zona = 'muelle'; texto = 'Pescando en el muelle'; }
     else if (estaDentro(E.pos)) {
@@ -2610,6 +2625,12 @@
       objetivo: () => (estaDentro(ninoE.pos) ? new V3(INT.x + 5.0, INT.y, INT.z + 3.0) : dentro.puertaFuera) },
     { id: 'dormir', titulo: 'Échate a dormir en tu cama', total: 1, cuenta: 0,
       objetivo: () => (estaDentro(ninoE.pos) ? new V3(INT.x + 6.0, INT.y, INT.z - 4.6) : dentro.puertaFuera) },
+    { id: 'arrecife', titulo: 'Coge la barca del muelle y descubre las 6 zonas del arrecife', total: 6, cuenta: 0,
+      objetivo: () => {
+        if (!enArrecife(ninoE.pos)) return new V3(46.1, MUELLE.y, 27.5);
+        const z = ZONAS_ARRECIFE.find((k) => !arrecife.descubiertas.has(k.id));
+        return z ? z.pos : BARCA_MAR;
+      } },
   ];
   const misionPor = (id) => MISIONES_NINO.find((m) => m.id === id);
   const hechaNino = (id) => { const m = misionPor(id); return m && m.cuenta >= m.total; };
@@ -3647,6 +3668,14 @@
       g.rotation.set(E.giro, E.rumbo, 0, 'YXZ');
       return;
     }
+    if (E.modo === 'bucear') {
+      // Buceando: tumbado, un poco hacia arriba si sube y hacia abajo si baja
+      const inc = clamp(-(E.vyBuceo || 0) * 0.3, -0.45, 0.45);
+      g.rotation.set(1.35 + inc, E.rumbo, Math.sin((E.faseBuceo || 0) * 0.5) * 0.05, 'YXZ');
+      vCad.set(0, alturaCadera(), 0).applyEuler(g.rotation);
+      g.position.set(E.pos.x - vCad.x, E.pos.y - vCad.y, E.pos.z - vCad.z);
+      return;
+    }
     if (E.nadando && E.modo === 'libre') {
       // Nadando: tumbado boca abajo en la superficie, con la cabeza hacia delante
       const agua = aguaEn(E.pos.x, E.pos.z);
@@ -3700,6 +3729,14 @@
       const f = Math.sin(E.atr.t * 6);
       rotarMundo(H.RightArm, ejeLateral, -2.4 + f * 0.4);
       rotarMundo(H.LeftArm, ejeLateral, -2.4 - f * 0.4);
+    } else if (E.modo === 'bucear') {
+      // Patada de buzo: las piernas suben y bajan alternadas, y la cabeza mira hacia delante
+      const a = E.faseBuceo || 0;
+      rotarMundo(H.RightUpLeg, ejeLateral, 0.35 * Math.sin(a));
+      rotarMundo(H.LeftUpLeg, ejeLateral, -0.35 * Math.sin(a));
+      rotarMundo(H.RightLeg, ejeLateral, 0.25 + 0.15 * Math.sin(a + 0.8));
+      rotarMundo(H.LeftLeg, ejeLateral, 0.25 - 0.15 * Math.sin(a + 0.8));
+      rotarMundo(H.Head, ejeLateral, -0.6);
     } else if (E.modo === 'volando') {
       // En el aire: piernas recogidas
       rotarMundo(H.RightUpLeg, ejeLateral, -1.0);
@@ -5073,6 +5110,793 @@
   }
 
 
+  // =====================================================================
+  // ---------- La barca y el arrecife de coral ----------
+  // =====================================================================
+  // El arrecife está lejos, mar adentro (x = 700): la barca del muelle lleva allí a Manuel y a Drako.
+  // Las piezas (corales, rocas, peces, tortuga, cofre y barca) vienen de Arrecife.py (arrecife.glb).
+  const ARRECIFE = new V3(700, 0, 0);
+  const enArrecife = (p) => p.x > 500;
+  const arrecife = {
+    activo: false, grupo: new THREE.Group(), piezas: {}, techo: null, zonas: [], descubiertas: new Set(),
+    barcaMuelle: null, barcaMar: null, cubierta: 0.55, tortuga: null, tapa: null, abriendo: 0,
+    burbujas: null, datosBurbujas: [], nieve: null, rayos: [], superficie: null, mats: [], tiempoBurbuja: 0,
+  };
+  const uNino = { value: new V3(0, -99, 0) };
+  const BARCA_MAR = new V3(ARRECIFE.x + 2, 0, ARRECIFE.z + 32);
+  const BARCA_MUELLE = new V3(48.6, 0, 27.5);
+
+  // Fondo: arena a unos 11 m con montículos donde crece el arrecife
+  const MONTICULOS = [
+    // x, z (respecto al centro), radio, alto
+    [0, -12, 13, 6.2], [-9, -4, 7, 4.5], [10, -6, 8, 4.8], [-30, -26, 11, 5.5], [-22, -38, 8, 4.5], [-38, -14, 7, 4],
+    [26, -22, 9, 3.2], [-24, 12, 10, 5.4], [-34, 20, 7, 4], [2, -42, 8, 4.2], [-8, -48, 6, 5], [12, -46, 6, 4.6],
+    [16, 34, 9, 3.5], [-10, 30, 8, 3.8], [40, 0, 9, 4.5], [34, -40, 8, 3.6],
+  ];
+  function lechoArrecife(x, z) {
+    const lx = x - ARRECIFE.x, lz = z - ARRECIFE.z;
+    let h = -11 + 0.5 * Math.sin(lx * 0.13 + lz * 0.07) + 0.35 * Math.sin(lz * 0.21 - lx * 0.05) + 0.07 * Math.sin(lx * 1.7 + lz * 0.9);
+    for (const m of MONTICULOS) {
+      const d2 = ((lx - m[0]) ** 2 + (lz - m[1]) ** 2) / (m[2] * m[2]);
+      h += m[3] * Math.exp(-d2 * 2);
+    }
+    return h - smoothstep(55, 75, Math.hypot(lx, lz)) * 6;
+  }
+
+  // Cáusticas: la luz del sol, rota por las olas, bailando sobre la arena y los corales
+  const GLSL_CAUSTICAS = `
+    uniform float uTiempo;
+    varying vec3 vPosMundo;
+    float causticas(vec2 p, float t) {
+      vec2 q = p;
+      float c = 0.0;
+      for (int i = 0; i < 3; i++) {
+        q += vec2(sin(q.y * 1.3 + t * 0.9), cos(q.x * 1.1 - t * 0.7)) * 0.45;
+        c += abs(sin(q.x) * sin(q.y));
+      }
+      return pow(1.0 - c / 3.0, 5.0);
+    }`;
+  function conCausticas(mat, fuerza = 1.6) {
+    mat.onBeforeCompile = (sh) => {
+      sh.uniforms.uTiempo = uTiempo;
+      sh.vertexShader = 'varying vec3 vPosMundo;\n' + sh.vertexShader.replace('#include <worldpos_vertex>', `#include <worldpos_vertex>
+        vec4 wpC = vec4(transformed, 1.0);
+        #ifdef USE_INSTANCING
+          wpC = instanceMatrix * wpC;
+        #endif
+        vPosMundo = (modelMatrix * wpC).xyz;`);
+      sh.fragmentShader = GLSL_CAUSTICAS + '\n' + sh.fragmentShader.replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
+        vec3 nMundo = normalize((vec4(normal, 0.0) * viewMatrix).xyz);
+        float luzArriba = clamp(nMundo.y * 0.8 + 0.2, 0.0, 1.0) * smoothstep(-16.0, -2.0, vPosMundo.y);
+        diffuseColor.rgb *= 1.0 + causticas(vPosMundo.xz * 0.9, uTiempo) * ${fuerza.toFixed(2)} * luzArriba;`);
+    };
+    arrecife.mats.push(mat);
+    return mat;
+  }
+
+  // Números al azar siempre iguales (el arrecife sale igual cada vez)
+  let semillaArrecife = 12345;
+  const azarA = () => ((semillaArrecife = (semillaArrecife * 16807) % 2147483647) / 2147483647);
+  const entre = (a, b) => a + (b - a) * azarA();
+  const elegir = (lista) => lista[Math.floor(azarA() * lista.length)];
+
+  // Colores de cada tipo de coral (como en la foto: naranjas, rosas, morados, amarillos y el azul)
+  const PALETA_CORAL = {
+    Cerebro: ['#f2c65a', '#e0a64a', '#a8d46a', '#e9b870'],
+    Cuerno: ['#f0c89c', '#c9a2ea', '#f4b27a', '#e8d6a0'],
+    Arbusto: ['#4f82ff', '#6f90ff', '#8f6cf0', '#5aa0ff'],
+    Dedos: ['#f4a064', '#ecd070', '#f6c9a0', '#ff9a7a'],
+    Mesa: ['#dcb47c', '#eed28e', '#bcd48c'],
+    Mesa2: ['#e4b47c', '#f2d494', '#d8c078'],
+    Gorgonia: ['#d0409e', '#ec543e', '#a040d0', '#ff8e40'],
+    Tubos: ['#9050e0', '#ee5e8e', '#ff9040', '#c050d0'],
+    Coliflor: ['#ff90b2', '#f47ca2', '#ffb2c4', '#ff9a8a'],
+    Anemona: ['#d0a4ff', '#a4e878', '#ff98cc'],
+    Hierba: ['#ffffff'],
+    Roca1: ['#ffffff', '#f0e8e0'], Roca2: ['#ffffff', '#f0e8e0'], Roca3: ['#ffffff'],
+    Estrella: ['#ffffff', '#ffd0a0'], Erizo: ['#ffffff'],
+  };
+  const SOMBRA_CORAL = new Set(['Cerebro', 'Mesa', 'Mesa2', 'Roca1', 'Roca2', 'Roca3', 'Coliflor']);
+
+  // Zonas que hay que descubrir buceando
+  const ZONAS_ARRECIFE = [
+    { id: 'jardin', nombre: 'el jardín de corales', x: 0, z: -12, dato: '¡Los corales son animales, no plantas!' },
+    { id: 'gorgonias', nombre: 'el bosque de gorgonias', x: -30, z: -26, dato: 'Las gorgonias son abanicos que filtran el agua.' },
+    { id: 'anemonas', nombre: 'las anémonas de los peces payaso', x: 26, z: -22, dato: 'El pez payaso vive entre las anémonas sin picarse.' },
+    { id: 'tortuga', nombre: 'la tortuga marina', x: -24, z: 12, dato: '¡Una tortuga! Pueden vivir más de 80 años.' },
+    { id: 'hundida', nombre: 'la barca hundida', x: 26, z: 16, dato: 'En la barca hundida ya crecen corales.' },
+    { id: 'tesoro', nombre: 'el cofre del tesoro', x: 2, z: -44, dato: '¡Un tesoro pirata lleno de monedas!' },
+  ];
+
+  function construirArrecife(gArrecife) {
+    if (!gArrecife) return;
+    gArrecife.scene.traverse((o) => { if (o.isMesh) arrecife.piezas[o.name] = o; });
+    const G = arrecife.grupo;
+    G.visible = false;
+    scene.add(G);
+
+    // Barca del muelle (siempre visible) y barca en el arrecife
+    const hacerBarca = (pos, ry) => {
+      const b = arrecife.piezas.Barca.clone();
+      b.material = arrecife.piezas.Barca.material.clone();
+      b.material.side = THREE.DoubleSide;
+      b.castShadow = b.receiveShadow = true;
+      b.position.copy(pos);
+      b.rotation.y = ry;
+      return b;
+    };
+    arrecife.barcaMuelle = hacerBarca(BARCA_MUELLE, 0);
+    scene.add(arrecife.barcaMuelle);
+    arrecife.barcaMar = hacerBarca(BARCA_MAR, 0.3);
+    G.add(arrecife.barcaMar);
+    // Cabo del ancla, del fondo a la barca
+    const cabo = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 12, 6), new THREE.MeshStandardMaterial({ color: '#d8c8a0' }));
+    cabo.position.set(BARCA_MAR.x - 1.4, -5.5, BARCA_MAR.z - 1.5);
+    cabo.rotation.z = 0.12;
+    G.add(cabo);
+    colisiones.push({ x: BARCA_MUELLE.x, z: BARCA_MUELLE.z, r: 1.2 });
+    puntosAccion.push({ pos: new V3(46.1, MUELLE.y, 27.5), radio: 1.4, texto: 'Bucear', hacer: () => irAlArrecife() });
+
+    // Fondo de arena con ondas
+    const N = 150, T = 150;
+    const geo = new THREE.PlaneGeometry(T, T, N, N);
+    geo.rotateX(-Math.PI / 2);
+    const pos = geo.attributes.position, cols = new Float32Array(pos.count * 3);
+    const cA = new THREE.Color('#c9b98e').convertSRGBToLinear(), cB = new THREE.Color('#8f8364').convertSRGBToLinear(), c = new THREE.Color();
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i) + ARRECIFE.x, z = pos.getZ(i) + ARRECIFE.z;
+      const h = lechoArrecife(x, z);
+      pos.setY(i, h);
+      const ondas = 0.5 + 0.5 * Math.sin(x * 1.3 + Math.sin(z * 0.4) * 2);
+      c.copy(cA).lerp(cB, 0.25 + 0.35 * ondas + 0.25 * smoothstep(-7, -4, h));
+      c.toArray(cols, i * 3);
+    }
+    geo.setAttribute('color', new THREE.BufferAttribute(cols, 3));
+    geo.computeVertexNormals();
+    const fondo = new THREE.Mesh(geo, conCausticas(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 }), 1.3));
+    fondo.position.set(ARRECIFE.x, 0, ARRECIFE.z);
+    fondo.receiveShadow = true;
+    G.add(fondo);
+
+    // Rejilla con la altura de los corales, para que Manuel pase por encima
+    const RJ = 150;
+    arrecife.techo = new Float32Array(RJ * RJ).fill(-99);
+    const marcarTecho = (x, z, r, top) => {
+      const lx = Math.round(x - ARRECIFE.x + RJ / 2), lz = Math.round(z - ARRECIFE.z + RJ / 2), R = Math.ceil(r);
+      for (let i = -R; i <= R; i++) for (let j = -R; j <= R; j++) {
+        const a = lx + i, b = lz + j;
+        if (a < 0 || b < 0 || a >= RJ || b >= RJ || i * i + j * j > r * r + 1) continue;
+        arrecife.techo[b * RJ + a] = Math.max(arrecife.techo[b * RJ + a], top);
+      }
+    };
+    arrecife.alturaTecho = (x, z) => {
+      const a = Math.round(x - ARRECIFE.x + RJ / 2), b = Math.round(z - ARRECIFE.z + RJ / 2);
+      if (a < 0 || b < 0 || a >= RJ || b >= RJ) return -99;
+      return arrecife.techo[b * RJ + a];
+    };
+
+    // ---------- Corales: muchas copias de cada pieza ----------
+    const lista = {};  // tipo -> [{x, y, z, ry, s, rx, rz, color}]
+    const poner = (tipo, x, z, s, extra = {}) => {
+      // si hay una roca debajo, el coral crece encima de ella
+      const y = extra.y !== undefined ? extra.y : Math.max(lechoArrecife(x, z) - 0.08 * s, arrecife.alturaTecho(x, z) - 0.25);
+      (lista[tipo] = lista[tipo] || []).push({ x, y, z, s, ry: entre(0, Math.PI * 2), rx: extra.rx ?? entre(-0.12, 0.12), rz: extra.rz ?? entre(-0.12, 0.12), color: extra.color || elegir(PALETA_CORAL[tipo]) });
+      const g = arrecife.piezas[tipo].geometry;
+      if (!g.boundingBox) g.computeBoundingBox();
+      if (!['Hierba', 'Estrella', 'Erizo', 'Anemona'].includes(tipo)) marcarTecho(x, z, Math.max(g.boundingBox.max.x, g.boundingBox.max.z) * s * 0.8, y + g.boundingBox.max.y * s);
+    };
+    const cerca = (x, z, zona, r) => Math.hypot(x - ARRECIFE.x - zona.x, z - ARRECIFE.z - zona.z) < r;
+    const [zJardin, zGorg, zAnem, zTort, zHund, zTesoro] = ZONAS_ARRECIFE;
+    // Rocas: la base del arrecife
+    for (let k = 0; k < 400 && (lista.Roca1?.length || 0) + (lista.Roca2?.length || 0) + (lista.Roca3?.length || 0) < 50; k++) {
+      const x = ARRECIFE.x + entre(-55, 55), z = ARRECIFE.z + entre(-55, 55);
+      if (lechoArrecife(x, z) < -8.5 || cerca(x, z, zHund, 7)) continue;
+      poner(elegir(['Roca1', 'Roca2', 'Roca3']), x, z, entre(0.9, 1.7), { rx: 0, rz: 0, y: lechoArrecife(x, z) - 0.35 });
+    }
+    // Encima de cada roca crecen unos cuantos corales
+    for (const tipoR of ['Roca1', 'Roca2', 'Roca3']) {
+      for (const r of (lista[tipoR] || []).slice()) {
+        for (let k = 0; k < 4; k++) {
+          const a = entre(0, Math.PI * 2), d = entre(0, 1.1) * r.s;
+          poner(elegir(['Cerebro', 'Coliflor', 'Dedos', 'Cuerno', 'Tubos', 'Arbusto', 'Coliflor']), r.x + Math.cos(a) * d, r.z + Math.sin(a) * d, entre(0.8, 1.4));
+        }
+      }
+    }
+    // Corales por los montículos, según la zona
+    const cuenta = (t) => (lista[t] ? lista[t].length : 0);
+    const MAXIMO = { Cerebro: 120, Cuerno: 45, Arbusto: 36, Dedos: 80, Mesa: 36, Mesa2: 16, Gorgonia: 46, Tubos: 30, Coliflor: 120, Anemona: 18 };
+    for (let k = 0; k < 12000; k++) {
+      const x = ARRECIFE.x + entre(-58, 58), z = ARRECIFE.z + entre(-58, 58);
+      const h = lechoArrecife(x, z);
+      if (h < -10.2 || azarA() > 0.15 + smoothstep(-10, -6.5, h) * 0.85 || cerca(x, z, zHund, 5) || Math.hypot(x - BARCA_MAR.x, z - BARCA_MAR.z) < 4) continue;
+      let bolsa = ['Cerebro', 'Cerebro', 'Cuerno', 'Arbusto', 'Dedos', 'Mesa', 'Coliflor', 'Coliflor', 'Tubos', 'Gorgonia'];
+      if (cerca(x, z, zGorg, 14)) bolsa = ['Gorgonia', 'Gorgonia', 'Gorgonia', 'Tubos', 'Cerebro'];
+      else if (cerca(x, z, zTort, 12)) bolsa = ['Mesa', 'Mesa', 'Mesa2', 'Cuerno', 'Cerebro'];
+      else if (cerca(x, z, zAnem, 9)) bolsa = ['Anemona', 'Anemona', 'Coliflor', 'Dedos'];
+      else if (cerca(x, z, zJardin, 13)) bolsa = ['Cerebro', 'Cuerno', 'Arbusto', 'Arbusto', 'Coliflor', 'Dedos', 'Tubos', 'Mesa2'];
+      const t = elegir(bolsa);
+      if (cuenta(t) >= MAXIMO[t]) continue;
+      poner(t, x, z, entre(1.0, 1.9) * (t === 'Gorgonia' ? 1.4 : t === 'Mesa' || t === 'Mesa2' ? 0.9 : 1));
+    }
+    for (let k = 0; k < 150; k++) {
+      const x = ARRECIFE.x + entre(-60, 60), z = ARRECIFE.z + entre(-60, 60);
+      if (lechoArrecife(x, z) > -9.5) continue;
+      poner('Hierba', x, z, entre(0.8, 1.5));
+    }
+    for (let k = 0; k < 18; k++) {
+      const x = ARRECIFE.x + entre(-50, 50), z = ARRECIFE.z + entre(-50, 50);
+      poner('Estrella', x, z, entre(0.8, 1.4), { rx: 0, rz: 0 });
+    }
+    for (let k = 0; k < 14; k++) {
+      const x = ARRECIFE.x + entre(-45, 45), z = ARRECIFE.z + entre(-45, 45);
+      poner('Erizo', x, z, entre(0.8, 1.3));
+    }
+
+    // ---------- Barca hundida (con corales que crecen en ella) ----------
+    const hundida = arrecife.piezas.Barca.clone();
+    hundida.material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, color: '#a8b8a0', side: THREE.DoubleSide });
+    conCausticas(hundida.material);
+    const hx = ARRECIFE.x + zHund.x, hz = ARRECIFE.z + zHund.z;
+    hundida.position.set(hx, lechoArrecife(hx, hz) - 0.5, hz);
+    hundida.rotation.set(0.12, 0.8, 0.45);
+    hundida.scale.setScalar(1.5);
+    hundida.castShadow = hundida.receiveShadow = true;
+    G.add(hundida);
+    marcarTecho(hx, hz, 3.5, hundida.position.y + 1.6);
+    [[0.6, 0.8], [-0.5, -0.9], [0.2, 1.8], [-0.7, 0.3]].forEach(([dx, dz], i) => {
+      poner(['Coliflor', 'Tubos', 'Anemona', 'Dedos'][i], hx + dx, hz + dz, 0.8, { y: hundida.position.y + 0.9 });
+    });
+
+    // ---------- Cofre del tesoro entre las rocas ----------
+    const tx = ARRECIFE.x + zTesoro.x, tz = ARRECIFE.z + zTesoro.z;
+    const cofre = arrecife.piezas.Cofre.clone();
+    cofre.material = arrecife.piezas.Cofre.material.clone();
+    cofre.position.set(tx, lechoArrecife(tx, tz) - 0.1, tz);
+    cofre.rotation.set(0.05, -0.4, 0.08);
+    cofre.scale.setScalar(1.3);
+    cofre.castShadow = true;
+    const tapa = arrecife.piezas.CofreTapa.clone();
+    tapa.material = cofre.material;
+    // la bisagra está en el origen de la tapa: atrás y arriba de la caja
+    tapa.position.set(0, 0.4, -0.225);
+    cofre.add(tapa);
+    G.add(cofre);
+    arrecife.tapa = tapa;
+    arrecife.cofre = cofre;
+    for (let k = 0; k < 3; k++) {
+      const a = -Math.PI / 2 + (k - 1) * 0.9;  // detrás del cofre, sin taparlo
+      poner(elegir(['Roca1', 'Roca2']), tx + Math.cos(a) * 3.6, tz + Math.sin(a) * 3.6, entre(0.9, 1.2), { rx: 0, rz: 0 });
+    }
+
+    // Crear las InstancedMesh
+    const mTmp = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), s3 = new V3(), p3 = new V3(), col = new THREE.Color();
+    for (const tipo in lista) {
+      const pieza = arrecife.piezas[tipo];
+      const datos = lista[tipo];
+      const mat = pieza.material.clone();
+      mat.vertexColors = true;
+      mat.roughness = tipo.startsWith('Roca') ? 0.95 : 0.7;
+      mat.side = ['Gorgonia', 'Hierba'].includes(tipo) ? THREE.DoubleSide : THREE.FrontSide;
+      // un poco de luz propia: los corales se ven vivos incluso en la sombra
+      if (tipo.startsWith('Roca')) mat.color.set('#ece4d4');
+      conCausticas(mat, tipo.startsWith('Roca') ? 1.4 : 1.1);
+      const im = new THREE.InstancedMesh(pieza.geometry, mat, datos.length);
+      datos.forEach((d, i) => {
+        e.set(d.rx, d.ry, d.rz);
+        q.setFromEuler(e);
+        mTmp.compose(p3.set(d.x, d.y, d.z), q, s3.setScalar(d.s));
+        im.setMatrixAt(i, mTmp);
+        im.setColorAt(i, col.set(d.color).convertSRGBToLinear());
+      });
+      if (!mat.vertexColors) mat.vertexColors = true;
+      im.castShadow = SOMBRA_CORAL.has(tipo);
+      im.receiveShadow = true;
+      G.add(im);
+    }
+    arrecife.lista = lista;
+
+    // ---------- Peces ----------
+    const cimas = [];  // sitios sobre los corales donde se juntan los peces
+    for (const t of ['Cerebro', 'Coliflor', 'Cuerno', 'Arbusto', 'Mesa', 'Dedos']) (lista[t] || []).forEach((d) => cimas.push(d));
+    const crearPeces = (nombre, n, generar, colores, rapidez = 1) => {
+      const pieza = arrecife.piezas[nombre];
+      const geo = pieza.geometry.clone();
+      const aCentro = new Float32Array(n * 3), aMov = new Float32Array(n * 4), aEsc = new Float32Array(n * 2);
+      for (let i = 0; i < n; i++) {
+        const g = generar(i);
+        aCentro.set([g.c.x, g.c.y, g.c.z], i * 3);
+        aMov.set([g.r, g.w, g.fase ?? entre(0, 100), g.a], i * 4);
+        aEsc.set([g.s, g.modo], i * 2);
+      }
+      geo.setAttribute('aCentro', new THREE.InstancedBufferAttribute(aCentro, 3));
+      geo.setAttribute('aMov', new THREE.InstancedBufferAttribute(aMov, 4));
+      geo.setAttribute('aEsc', new THREE.InstancedBufferAttribute(aEsc, 2));
+      const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.35, metalness: 0.1, side: THREE.DoubleSide });
+      mat.emissive = new THREE.Color('#ffffff');
+      mat.emissiveIntensity = 0.08;
+      mat.onBeforeCompile = (sh) => {
+        sh.uniforms.uT = uTiempo;
+        sh.uniforms.uNino = uNino;
+        sh.vertexShader = `
+          attribute vec3 aCentro;
+          attribute vec4 aMov;
+          attribute vec2 aEsc;
+          uniform float uT;
+          uniform vec3 uNino;
+          vec3 posPez(float t) {
+            float th = aMov.z + aMov.y * t;
+            if (aEsc.y < 0.5) return aCentro + vec3(cos(th) * aMov.x, sin(th * 1.7 + aMov.z) * aMov.w, sin(th) * aMov.x * 0.75);
+            return aCentro + vec3(sin(th) * aMov.x, sin(th * 1.3 + aMov.z) * aMov.w, sin(th * 0.7 + 1.3) * aMov.x * 0.8);
+          }
+        ` + sh.vertexShader
+          .replace('#include <beginnormal_vertex>', `
+            vec3 objectNormal = vec3(normal);
+            vec3 pP = posPez(uT);
+            vec3 fP = posPez(uT + 0.1) - pP;
+            fP = normalize(fP + vec3(0.0001, 0.0, 0.0001));
+            fP = normalize(vec3(fP.x, fP.y * 0.4, fP.z));
+            vec3 rP = normalize(cross(vec3(0.0, 1.0, 0.0), fP));
+            vec3 uP = cross(fP, rP);
+            mat3 mP = mat3(rP, uP, fP);
+            // se apartan cuando Manuel se acerca
+            vec3 dN = pP - uNino;
+            float lN = length(dN);
+            if (lN < 2.6) pP += dN / max(lN, 0.001) * (2.6 - lN) * 0.9;
+            objectNormal = mP * objectNormal;`)
+          .replace('#include <begin_vertex>', `
+            vec3 transformed = vec3(position);
+            float atras = 1.0 - smoothstep(-0.5, 0.15, position.z);
+            transformed.x += sin(uT * ${(9 * rapidez).toFixed(1)} + aMov.z * 7.0 - position.z * 6.0) * 0.09 * atras;
+            transformed = mP * (transformed * aEsc.x) + pP;`);
+      };
+      const im = new THREE.InstancedMesh(geo, mat, n);
+      const id = new THREE.Matrix4();
+      for (let i = 0; i < n; i++) {
+        im.setMatrixAt(i, id);
+        im.setColorAt(i, col.set(elegir(colores)).convertSRGBToLinear());
+      }
+      im.frustumCulled = false;
+      G.add(im);
+      return im;
+    };
+    const sobreCima = (alto0, alto1) => {
+      const d = elegir(cimas);
+      return new V3(d.x + entre(-1.5, 1.5), Math.min(d.y + entre(alto0, alto1), -1.2), d.z + entre(-1.5, 1.5));
+    };
+    // Nubes de anthias naranjas y moradas sobre los corales (como en la foto)
+    crearPeces('PezPequeno', 1600, () => ({ c: sobreCima(0.6, 3.5), r: entre(0.4, 1.6), w: entre(0.15, 0.5) * (azarA() < 0.5 ? 1 : -1), a: entre(0.1, 0.5), s: entre(0.14, 0.22), modo: 1 }),
+      ['#ff7a2f', '#ff8a3a', '#ff6424', '#ff9448', '#b35cf0', '#c860f0', '#ff5a8a']);
+    // Bancos de peces azules y verdes dando vueltas
+    const bancos = [[0, -12, -4.5, 7], [-26, 10, -4, 6], [20, -30, -5, 8], [-8, -40, -4.5, 6], [30, 10, -5, 7]];
+    crearPeces('PezPequeno', 500, (i) => {
+      const b = bancos[i % bancos.length];
+      return { c: new V3(ARRECIFE.x + b[0] + entre(-1.5, 1.5), b[2] + entre(-1, 1), ARRECIFE.z + b[1] + entre(-1.5, 1.5)), r: b[3] + entre(-1.5, 1.5), w: 0.22 * (i % 2 ? 1 : 1), a: entre(0.3, 1), s: entre(0.13, 0.17), modo: 0, fase: entre(0, 1.2) + (i % bancos.length) };
+    }, ['#8ee0ff', '#58c8f0', '#58e0c8', '#4a8ad0'], 1.3);
+    // Peces oscuros a lo lejos
+    crearPeces('PezPequeno', 260, (i) => ({ c: new V3(ARRECIFE.x + entre(-30, 30), entre(-7, -2), ARRECIFE.z + entre(-30, 30)), r: entre(14, 22), w: 0.05, a: 1, s: entre(0.12, 0.16), modo: 0, fase: entre(0, 0.8) + (i % 3) * 2 }),
+      ['#2c4870', '#34507a', '#243c60'], 1.3);
+    // Peces cirujano amarillos, mariposa, ángel y loro
+    crearPeces('PezCirujano', 50, () => ({ c: sobreCima(0.6, 2.5), r: entre(2, 5), w: entre(0.08, 0.16), a: 0.4, s: entre(0.2, 0.28), modo: 1 }), ['#ffd21f', '#ffdc3a']);
+    crearPeces('PezMariposa', 30, () => ({ c: sobreCima(0.5, 2), r: entre(1.5, 3), w: entre(0.1, 0.2), a: 0.3, s: entre(0.16, 0.22), modo: 1 }), ['#ffffff']);
+    crearPeces('PezAngel', 16, () => ({ c: sobreCima(0.8, 2.5), r: entre(2, 4), w: entre(0.08, 0.14), a: 0.5, s: entre(0.26, 0.34), modo: 1 }), ['#ffffff'], 0.7);
+    crearPeces('PezLoro', 16, () => ({ c: sobreCima(0.5, 2), r: entre(3, 6), w: entre(0.06, 0.12), a: 0.4, s: entre(0.4, 0.55), modo: 1 }), ['#ffffff'], 0.6);
+    // Peces payaso junto a sus anémonas
+    const anemonas = lista.Anemona || [];
+    crearPeces('PezPayaso', anemonas.length * 2, (i) => {
+      const d = anemonas[Math.floor(i / 2)];
+      return { c: new V3(d.x, d.y + 0.5 * d.s, d.z), r: 0.35, w: entre(0.4, 0.7), a: 0.12, s: 0.12, modo: 1 };
+    }, ['#ffffff'], 1.4);
+
+    // ---------- Tortuga que nada en círculos ----------
+    const tort = arrecife.piezas.Tortuga.clone();
+    tort.material = arrecife.piezas.Tortuga.material.clone();
+    tort.material.onBeforeCompile = (sh) => {
+      sh.uniforms.uT = uTiempo;
+      sh.vertexShader = 'uniform float uT;\n' + sh.vertexShader.replace('#include <begin_vertex>', `
+        vec3 transformed = vec3(position);
+        float lado = abs(position.x) - 0.42;
+        if (lado > 0.0) transformed.y += sin(uT * 1.8 + (position.z > 0.0 ? 0.0 : 1.5)) * lado * (position.z > 0.0 ? 0.9 : 0.4);`);
+    };
+    tort.scale.setScalar(1.4);
+    tort.castShadow = true;
+    G.add(tort);
+    arrecife.tortuga = tort;
+
+    // ---------- Marcas de las zonas: una columna de luz y burbujas ----------
+    const matMarca = new THREE.ShaderMaterial({
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+      uniforms: { uT: uTiempo, uColor: { value: new THREE.Color('#fff2a0') } },
+      vertexShader: `varying vec2 vUv; varying float vBorde;
+        void main() {
+          vUv = uv;
+          vec4 mv = modelViewMatrix * vec4(position, 1.0);
+          vBorde = abs(dot(normalize(normalMatrix * normal), normalize(-mv.xyz)));
+          gl_Position = projectionMatrix * mv;
+        }`,
+      fragmentShader: `uniform float uT; uniform vec3 uColor; varying vec2 vUv; varying float vBorde;
+        void main() {
+          float a = smoothstep(0.0, 0.15, vUv.y) * (1.0 - vUv.y) * pow(vBorde, 2.0) * (0.6 + 0.4 * sin(uT * 3.0 + vUv.y * 8.0)) * 0.35;
+          gl_FragColor = vec4(uColor * a, 1.0);
+        }`,
+    });
+    ZONAS_ARRECIFE.forEach((z) => {
+      const x = ARRECIFE.x + z.x, zz = ARRECIFE.z + z.z;
+      const y0 = Math.max(lechoArrecife(x, zz), arrecife.alturaTecho(x, zz));
+      const col = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1.3, 7, 20, 1, true), matMarca);
+      col.position.set(x, y0 + 3.5, zz);
+      G.add(col);
+      z.marca = col;
+      z.pos = new V3(x, y0 + 1.5, zz);
+    });
+
+    // ---------- Superficie del agua vista desde abajo ----------
+    const sup = new THREE.Mesh(new THREE.PlaneGeometry(400, 400, 1, 1), new THREE.ShaderMaterial({
+      side: THREE.DoubleSide, depthWrite: false, transparent: true,
+      uniforms: { uT: uTiempo, uAgua: { value: new THREE.Color('#0d6f93') } },
+      vertexShader: 'varying vec3 vW; void main() { vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }',
+      fragmentShader: `uniform float uT; uniform vec3 uAgua; varying vec3 vW;
+        float onda(vec2 p) { return sin(p.x * 0.9 + uT * 1.3) * sin(p.y * 0.7 - uT) + 0.5 * sin(p.x * 2.3 - p.y * 1.7 + uT * 2.1); }
+        void main() {
+          vec3 V = normalize(vW - cameraPosition);
+          float dist = length(vW - cameraPosition);
+          float ventana = smoothstep(0.55, 0.95, V.y);          // ventana de Snell: arriba se ve el cielo brillante
+          float brillo = pow(abs(onda(vW.xz * 0.6)), 3.0);
+          vec3 col = mix(vec3(0.25, 0.75, 0.85), vec3(0.85, 1.0, 1.0), ventana) + brillo * 0.35;
+          col = mix(col, uAgua, smoothstep(10.0, 70.0, dist));
+          gl_FragColor = vec4(col, 1.0);
+          #include <tonemapping_fragment>
+          #include <encodings_fragment>
+        }`,
+    }));
+    sup.rotation.x = -Math.PI / 2;
+    sup.position.set(ARRECIFE.x, 0.02, ARRECIFE.z);
+    G.add(sup);
+
+    // ---------- Rayos de sol entrando en el agua ----------
+    const matRayo = new THREE.ShaderMaterial({
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, fog: false,
+      uniforms: { uT: uTiempo },
+      vertexShader: `attribute float aFase; varying vec2 vUv; varying float vFase; varying float vDist;
+        void main() { vUv = uv; vFase = aFase; vec4 w = modelMatrix * vec4(position, 1.0); vDist = length(w.xyz - cameraPosition); gl_Position = projectionMatrix * viewMatrix * w; }`,
+      fragmentShader: `uniform float uT; varying vec2 vUv; varying float vFase; varying float vDist;
+        void main() {
+          float borde = pow(1.0 - abs(vUv.x * 2.0 - 1.0), 2.0);
+          float a = pow(vUv.y, 1.6) * (1.0 - smoothstep(0.85, 1.0, vUv.y)) * borde * (0.55 + 0.45 * sin(uT * 0.6 + vFase * 6.0));
+          a *= exp(-vDist * 0.028) * 0.3;
+          gl_FragColor = vec4(vec3(0.75, 0.97, 1.0) * a, 1.0);
+        }`,
+    });
+    for (let k = 0; k < 26; k++) {
+      const g = new THREE.PlaneGeometry(entre(1.5, 4.5), 22);
+      const fase = new Float32Array(g.attributes.position.count).fill(entre(0, 10));
+      g.setAttribute('aFase', new THREE.BufferAttribute(fase, 1));
+      const r = new THREE.Mesh(g, matRayo);
+      const x = ARRECIFE.x + entre(-45, 45), z = ARRECIFE.z + entre(-45, 45);
+      r.position.set(x, -11, z);
+      r.rotation.set(0, 0, 0.35, 'YXZ');
+      r.userData.inclina = entre(0.25, 0.45);
+      r.frustumCulled = false;
+      G.add(r);
+      arrecife.rayos.push(r);
+    }
+
+    // ---------- Partículas flotando ("nieve marina") ----------
+    const NP = 1800, pn = new Float32Array(NP * 3);
+    for (let i = 0; i < NP; i++) pn.set([entre(0, 40), entre(0, 16), entre(0, 40)], i * 3);
+    const gn = new THREE.BufferGeometry();
+    gn.setAttribute('position', new THREE.BufferAttribute(pn, 3));
+    arrecife.nieve = new THREE.Points(gn, new THREE.ShaderMaterial({
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+      uniforms: { uT: uTiempo, uCam: { value: new V3() } },
+      vertexShader: `uniform float uT; uniform vec3 uCam; varying float vA;
+        void main() {
+          vec3 caja = vec3(40.0, 16.0, 40.0);
+          vec3 p = position + vec3(uT * 0.15, sin(uT * 0.3 + position.x) * 0.3 - uT * 0.05, uT * 0.08);
+          p = mod(p - uCam + caja * 0.5, caja) - caja * 0.5 + uCam;
+          vec4 mv = modelViewMatrix * vec4(p, 1.0);
+          vA = clamp(1.0 - length(mv.xyz) / 20.0, 0.0, 1.0);
+          gl_PointSize = 60.0 / -mv.z;
+          gl_Position = projectionMatrix * mv;
+        }`,
+      fragmentShader: `varying float vA; void main() { float d = length(gl_PointCoord - 0.5); if (d > 0.5) discard; gl_FragColor = vec4(vec3(0.7, 0.9, 1.0) * vA * 0.35 * (1.0 - d * 2.0), 1.0); }`,
+    }));
+    arrecife.nieve.frustumCulled = false;
+    G.add(arrecife.nieve);
+
+    // ---------- Burbujas de Manuel ----------
+    const NB = 80, pb = new Float32Array(NB * 3).fill(-999);
+    const gb = new THREE.BufferGeometry();
+    gb.setAttribute('position', new THREE.BufferAttribute(pb, 3));
+    arrecife.burbujas = new THREE.Points(gb, new THREE.PointsMaterial({ color: '#e8fbff', size: 0.09, transparent: true, opacity: 0.8, depthWrite: false }));
+    arrecife.burbujas.frustumCulled = false;
+    G.add(arrecife.burbujas);
+    for (let i = 0; i < NB; i++) arrecife.datosBurbujas.push({ activa: false, p: new V3(), v: 0, fase: 0 });
+
+    construirEquipoBuceo();
+  }
+
+  function soltarBurbujas(n = 8) {
+    const H = nino.huesos.Head;
+    if (!H) return;
+    H.getWorldPosition(vCad);
+    for (const b of arrecife.datosBurbujas) {
+      if (b.activa) continue;
+      b.activa = true;
+      b.p.set(vCad.x + entre(-0.08, 0.08), vCad.y + entre(0, 0.1), vCad.z + entre(-0.08, 0.08));
+      b.v = entre(0.6, 1.1);
+      b.fase = entre(0, 6);
+      if (--n <= 0) break;
+    }
+  }
+
+  // ---------- Equipo de buzo: botella, gafas, tubo y aletas, pegados a los huesos de Manuel ----------
+  const equipo = [];
+  function construirEquipoBuceo() {
+    const H = nino.huesos;
+    if (!H.Head || !H.Spine1 || !H.LeftFoot) return;
+    // Postura de reposo, con el grupo en el origen, para medir dónde va cada cosa
+    const g = nino.grupo;
+    const antesP = g.position.clone(), antesR = g.rotation.clone();
+    g.position.set(0, 0, 0);
+    g.rotation.set(0, 0, 0);
+    for (const [h, qq] of nino.reposo) h.quaternion.copy(qq);
+    g.updateMatrixWorld(true);
+    const w = (h) => h.getWorldPosition(new V3());
+    const amarillo = new THREE.MeshStandardMaterial({ color: '#ffc81a', roughness: 0.35, metalness: 0.2 });
+    const negro = new THREE.MeshStandardMaterial({ color: '#1c1f24', roughness: 0.5 });
+    const cristal = new THREE.MeshStandardMaterial({ color: '#7fd8ff', roughness: 0.05, metalness: 0.3, transparent: true, opacity: 0.45 });
+    // Pega el objeto al hueso manteniendo la posición y el giro que tiene ahora en el mundo
+    const pegar = (obj, hueso) => {
+      obj.updateMatrixWorld(true);
+      const local = hueso.matrixWorld.clone().invert().multiply(obj.matrixWorld);
+      local.decompose(obj.position, obj.quaternion, obj.scale);
+      hueso.add(obj);
+      obj.visible = false;
+      obj.traverse((m) => { if (m.isMesh) m.castShadow = true; });
+      equipo.push(obj);
+    };
+    const cabeza = w(H.Head), tope = H.HeadTop_End ? w(H.HeadTop_End) : cabeza.clone().add(new V3(0, 0.22, 0));
+    const altoCabeza = tope.y - cabeza.y;
+    const cara = new V3(cabeza.x, cabeza.y + altoCabeza * 0.5, cabeza.z + altoCabeza * 0.42);
+    // Gafas: marco amarillo con cristal
+    const gafas = new THREE.Group();
+    const marco = new THREE.Mesh(new THREE.BoxGeometry(altoCabeza * 0.78, altoCabeza * 0.36, 0.05), negro);
+    const vidrio = new THREE.Mesh(new THREE.BoxGeometry(altoCabeza * 0.68, altoCabeza * 0.27, 0.052), cristal);
+    vidrio.position.z = 0.004;
+    const aro = new THREE.Mesh(new THREE.TorusGeometry(altoCabeza * 0.5, 0.012, 6, 24), negro);
+    aro.rotation.x = Math.PI / 2;
+    aro.position.z = -altoCabeza * 0.42;
+    gafas.add(marco, vidrio, aro);
+    gafas.position.copy(cara);
+    pegar(gafas, H.Head);
+    // Tubo (snorkel) y boquilla del regulador
+    const tubo = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, altoCabeza * 1.2, 8), amarillo);
+    tubo.position.set(cabeza.x - altoCabeza * 0.5, cabeza.y + altoCabeza * 0.75, cabeza.z);
+    pegar(tubo, H.Head);
+    const boquilla = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.026, 0.05, 10), negro);
+    boquilla.rotation.x = Math.PI / 2;
+    boquilla.position.set(cabeza.x, cabeza.y + altoCabeza * 0.12, cabeza.z + altoCabeza * 0.45);
+    pegar(boquilla, H.Head);
+    // Botella en la espalda, con correas
+    const esp = w(H.Spine1);
+    const botella = new THREE.Group();
+    const cuerpoB = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.38, 16), amarillo);
+    const tapaB = new THREE.Mesh(new THREE.SphereGeometry(0.07, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), amarillo);
+    tapaB.position.y = 0.19;
+    const grifo = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.07, 8), negro);
+    grifo.position.y = 0.27;
+    const correa = new THREE.Mesh(new THREE.TorusGeometry(0.13, 0.012, 6, 20), negro);
+    correa.rotation.x = Math.PI / 2;
+    correa.position.set(0, 0.02, 0.1);
+    correa.scale.set(1, 0.85, 1);
+    botella.add(cuerpoB, tapaB, grifo, correa);
+    botella.position.set(esp.x, esp.y, esp.z - 0.13);
+    pegar(botella, H.Spine1);
+    // Aletas, del pie hacia delante
+    for (const [pie, dedo] of [[H.LeftFoot, H.LeftToeBase], [H.RightFoot, H.RightToeBase]]) {
+      const a = w(pie), b = dedo ? w(dedo) : a.clone().add(new V3(0, -0.05, 0.1));
+      const forma = new THREE.Shape();
+      forma.moveTo(-0.05, 0);
+      forma.lineTo(0.05, 0);
+      forma.lineTo(0.09, 0.3);
+      forma.quadraticCurveTo(0, 0.26, -0.09, 0.3);
+      forma.lineTo(-0.05, 0);
+      const geoA = new THREE.ExtrudeGeometry(forma, { depth: 0.015, bevelEnabled: false });
+      geoA.rotateX(Math.PI / 2);  // la aleta crece hacia +z
+      const aleta = new THREE.Mesh(geoA, new THREE.MeshStandardMaterial({ color: '#ffc81a', roughness: 0.4, side: THREE.DoubleSide }));
+      const f = new V3(b.x - a.x, 0, b.z - a.z).normalize();
+      const r = new V3().crossVectors(new V3(0, 1, 0), f).normalize();
+      const u = new V3().crossVectors(f, r);
+      aleta.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(r, u, f));
+      aleta.position.set(a.x, Math.min(a.y, b.y) - 0.02, a.z - 0.02);
+      pegar(aleta, pie);
+    }
+    g.position.copy(antesP);
+    g.rotation.copy(antesR);
+  }
+  const verEquipo = (v) => equipo.forEach((o) => { o.visible = v; });
+
+  // ---------- Cambiar entre "en la playa" y "bajo el agua" ----------
+  const vistaNormal = { niebla: scene.fog };
+  const nieblaAgua = new THREE.FogExp2(new THREE.Color('#0d6f93'), 0.021);
+  const colorAgua = new THREE.Color('#0d6f93');
+  let luzHemi = null;
+  scene.traverse((o) => { if (o.isHemisphereLight) luzHemi = o; });
+  const luzNormal = { hemiCielo: luzHemi ? luzHemi.color.clone() : null, hemiSuelo: luzHemi ? luzHemi.groundColor.clone() : null, hemiI: luzHemi ? luzHemi.intensity : 0, sol: sol.intensity, solColor: sol.color.clone() };
+  function modoSubmarino(on) {
+    arrecife.activo = on;
+    arrecife.grupo.visible = on;
+    cielo.visible = !on;
+    agua.visible = !on;
+    scene.fog = on ? nieblaAgua : vistaNormal.niebla;
+    scene.background = on ? colorAgua : null;
+    camera.far = on ? 110 : 4000;
+    renderer.toneMappingExposure = on ? 0.82 : 0.62;  // bajo el agua, colores más vivos
+    camera.updateProjectionMatrix();
+    if (luzHemi) {
+      luzHemi.color.set(on ? '#a8f0ff' : luzNormal.hemiCielo);
+      luzHemi.groundColor.set(on ? '#1a5a74' : luzNormal.hemiSuelo);
+      luzHemi.intensity = on ? 0.85 : luzNormal.hemiI;
+    }
+    sol.intensity = on ? 2.0 : luzNormal.sol;
+    sol.color.set(on ? '#dffbff' : luzNormal.solColor);
+    verEquipo(on);
+  }
+
+  function irAlArrecife() {
+    if (!arrecife.barcaMar) return;
+    const E = ninoE;
+    fundido(() => {
+      if (balon.estado === 'mano') { balon.estado = 'libre'; balon.pos.set(45.2, MUELLE.y + 0.3, 26.5); balon.vel.set(0, 0, 0); }
+      E.modo = 'bucear';
+      E.pos.set(BARCA_MAR.x + 2.2, -0.6, BARCA_MAR.z);
+      E.rumbo = Math.PI;
+      E.vel = 0;
+      E.vy = 0;
+      E.aSuperficie = false;
+      E.nadando = false;
+      E.atr = null;
+      estado.pos.set(BARCA_MAR.x, arrecife.cubierta, BARCA_MAR.z + 0.6);
+      estado.rumbo = Math.PI / 2;
+      estado.descansando = true;
+      modoSubmarino(true);
+      cam.yaw = 0;
+      cam.pitch = 0.2;
+      cam.dist = 5;
+      cam.objetivo.copy(E.pos);
+      musica.proximo = 'casa';
+      animarNino('idle');
+      avisar('¡A bucear! Busca las 6 zonas del arrecife', 2800);
+      setTimeout(() => ninoDice('¡Qué bonito es el fondo del mar!', 2.4), 1200);
+    });
+  }
+  function salirDelAgua() {
+    const E = ninoE;
+    fundido(() => {
+      E.modo = 'libre';
+      E.pos.set(45.6, MUELLE.y, 27.2);
+      E.rumbo = Math.PI;
+      E.vy = 0;
+      E.enSuelo = true;
+      estado.descansando = false;
+      estado.pos.set(44.6, MUELLE.y, 26.4);
+      modoSubmarino(false);
+      cam.yaw = Math.PI;
+      cam.pitch = 0.36;
+      cam.dist = 6.5;
+      cam.objetivo.copy(E.pos);
+      animarNino('idle');
+      avisar(arrecife.descubiertas.size >= ZONAS_ARRECIFE.length ? '¡Has explorado todo el arrecife!' : `Zonas descubiertas: ${arrecife.descubiertas.size} de ${ZONAS_ARRECIFE.length}`, 2400);
+    });
+  }
+  const cercaDeBarcaMar = () => distXZ(ninoE.pos, BARCA_MAR) < 4;
+
+  // ---------- Bucear ----------
+  const movBuceo = new V3();
+  function bucear(dt) {
+    const E = ninoE;
+    let ix = jugador === 'nino' ? joy.x : 0, iy = jugador === 'nino' ? joy.y : 0;
+    if (autopiloto && misionNino()) {
+      const o = misionNino().objetivo();
+      if (o) [ix, iy] = entradaHacia(o, E.pos, 0.5);
+    }
+    if (teclas.has('KeyW') || teclas.has('ArrowUp')) iy += 1;
+    if (teclas.has('KeyS') || teclas.has('ArrowDown')) iy -= 1;
+    if (teclas.has('KeyD') || teclas.has('ArrowRight')) ix += 1;
+    if (teclas.has('KeyA') || teclas.has('ArrowLeft')) ix -= 1;
+    const fuerza = Math.min(Math.hypot(ix, iy), 1);
+    adelante.set(-Math.sin(cam.yaw), 0, -Math.cos(cam.yaw));
+    derecha.set(Math.cos(cam.yaw), 0, -Math.sin(cam.yaw));
+    movBuceo.set(0, 0, 0).addScaledVector(derecha, ix).addScaledVector(adelante, iy);
+    if (movBuceo.lengthSq() > 0) movBuceo.normalize();
+    const corre = teclas.has('ShiftLeft') || teclas.has('ShiftRight') || fuerza > 0.95;
+    E.vel = damp(E.vel, fuerza * (corre ? 3.4 : 2.0), 3, dt);
+    if (fuerza > 0.05) E.rumbo = angulo(E.rumbo, Math.atan2(movBuceo.x, movBuceo.z), 1 - Math.exp(-5 * dt));
+    E.pos.x += Math.sin(E.rumbo) * E.vel * dt;
+    E.pos.z += Math.cos(E.rumbo) * E.vel * dt;
+    E.pos.x = clamp(E.pos.x, ARRECIFE.x - 62, ARRECIFE.x + 62);
+    E.pos.z = clamp(E.pos.z, ARRECIFE.z - 62, ARRECIFE.z + 62);
+    // Altura: por encima de los corales (o arriba, en la superficie)
+    const fondo = Math.max(lechoArrecife(E.pos.x, E.pos.z), arrecife.alturaTecho(E.pos.x, E.pos.z));
+    const objetivo = E.aSuperficie ? -0.45 : clamp(fondo + 1.1, -10.2, -1.3);
+    const yAntes = E.pos.y;
+    E.pos.y = damp(E.pos.y, Math.max(objetivo, fondo + 0.7), E.aSuperficie ? 1.2 : 1.6, dt);
+    E.vyBuceo = (E.pos.y - yAntes) / Math.max(dt, 1e-3);
+    E.faseBuceo = (E.faseBuceo || 0) + dt * (2.5 + E.vel * 2.5);
+    animarNino('idle');
+    // Burbujas al respirar
+    arrecife.tiempoBurbuja -= dt;
+    if (arrecife.tiempoBurbuja <= 0 && !E.aSuperficie) {
+      arrecife.tiempoBurbuja = 2.6;
+      soltarBurbujas(5);
+    }
+    // ¿Ha llegado a una zona nueva?
+    for (const z of ZONAS_ARRECIFE) {
+      if (arrecife.descubiertas.has(z.id) || !z.pos) continue;
+      if (distXZ(E.pos, z.pos) < 7) {
+        arrecife.descubiertas.add(z.id);
+        avisar(`¡Has descubierto ${z.nombre}! (${arrecife.descubiertas.size} de ${ZONAS_ARRECIFE.length})`, 2600);
+        ninoDice(z.dato, 3.2);
+        sumarNino('arrecife');
+        if (z.id === 'tesoro') arrecife.abriendo = 0.001;
+      }
+    }
+  }
+
+  function actualizarArrecife(dt) {
+    if (arrecife.barcaMuelle) {
+      const t = reloj.elapsedTime;
+      arrecife.barcaMuelle.position.y = BARCA_MUELLE.y + Math.sin(t * 1.3) * 0.05 - 0.1;
+      arrecife.barcaMuelle.rotation.z = Math.sin(t * 1.1) * 0.03;
+    }
+    if (!arrecife.activo) return;
+    const t = reloj.elapsedTime, E = ninoE;
+    uNino.value.copy(E.pos);
+    arrecife.nieve.material.uniforms.uCam.value.copy(camera.position);
+    // Barca en la superficie, meciéndose
+    const b = arrecife.barcaMar;
+    b.position.y = -0.25 + Math.sin(t * 1.2) * 0.06;
+    b.rotation.z = Math.sin(t * 0.9) * 0.04;
+    // Rayos de sol: miran a la cámara (girando en vertical) y van inclinados como el sol
+    arrecife.rayos.forEach((r) => {
+      r.rotation.set(0, Math.atan2(camera.position.x - r.position.x, camera.position.z - r.position.z), r.userData.inclina, 'YXZ');
+    });
+    // Tortuga nadando en círculos en su zona
+    const zt = ZONAS_ARRECIFE[3];
+    const a = t * 0.12;
+    const tx = ARRECIFE.x + zt.x + Math.cos(a) * 7, tz = ARRECIFE.z + zt.z + Math.sin(a) * 5;
+    arrecife.tortuga.position.set(tx, Math.max(lechoArrecife(tx, tz), arrecife.alturaTecho(tx, tz)) + 1.8 + Math.sin(t * 0.7) * 0.3, tz);
+    arrecife.tortuga.rotation.set(Math.sin(t * 0.7) * 0.1, Math.atan2(-Math.sin(a) * 7, Math.cos(a) * 5), Math.sin(t * 0.5) * 0.08);
+    // Cofre abriéndose al descubrirlo
+    if (arrecife.abriendo > 0 && arrecife.abriendo < 1) {
+      arrecife.abriendo = Math.min(1, arrecife.abriendo + dt * 0.6);
+      arrecife.tapa.rotation.x = -smoothstep(0, 1, arrecife.abriendo) * 1.9;
+    }
+    // Marcas de las zonas: se apagan las ya descubiertas
+    ZONAS_ARRECIFE.forEach((z) => {
+      if (!z.marca) return;
+      const objetivo = arrecife.descubiertas.has(z.id) ? 0 : 1;
+      z.marca.scale.y = damp(z.marca.scale.y, objetivo || 0.001, 3, dt);
+      z.marca.visible = z.marca.scale.y > 0.01;
+    });
+    // Burbujas
+    const pb = arrecife.burbujas.geometry.attributes.position;
+    arrecife.datosBurbujas.forEach((bb, i) => {
+      if (bb.activa) {
+        bb.p.y += bb.v * dt;
+        bb.p.x += Math.sin(t * 5 + bb.fase) * 0.2 * dt;
+        if (bb.p.y > 0) bb.activa = false;
+      }
+      pb.setXYZ(i, bb.activa ? bb.p.x : 0, bb.activa ? bb.p.y : -999, bb.activa ? bb.p.z : 0);
+    });
+    pb.needsUpdate = true;
+    // El color del agua: más claro cerca de la superficie
+    const prof = clamp(-camera.position.y / 12, 0, 1);
+    colorAgua.set('#178fbf').lerp(new THREE.Color('#08507e'), prof);
+    nieblaAgua.color.copy(colorAgua);
+  }
+
+
   // ---------- Bucle principal ----------
   const reloj = new THREE.Clock();
   let autopiloto = false;
@@ -5081,6 +5905,8 @@
     window.prueba = {
       activarAutopiloto: () => { autopiloto = true; },
       acelerar: (n) => { pasosPorFotograma = n; },
+      bucear: () => irAlArrecife(),
+      moverBuzo: (lx, lz, y = -4, rumbo = 0) => { ninoE.pos.set(ARRECIFE.x + lx, y, ARRECIFE.z + lz); ninoE.rumbo = rumbo; cam.objetivo.copy(ninoE.pos); },
       estado: () => ({ mision: misionActual() && misionActual().id, cuenta: misionActual() && misionActual().cuenta,
         balon: balon.estado, nino: ninoE.modo, perro: estado.pos.toArray().map((v) => +v.toFixed(1)),
         montones: montones.map((m) => [+m.x.toFixed(1), +m.z.toFixed(1), +m.excavado.toFixed(2), m.vacio]) }),
@@ -5092,7 +5918,7 @@
       camara: (yaw, pitch, dist) => { cam.yaw = yaw; if (pitch !== undefined) cam.pitch = pitch; if (dist) cam.dist = dist; },
       nino: () => ({ modo: ninoE.modo, pos: ninoE.pos.toArray().map((v) => +v.toFixed(2)), nadando: ninoE.nadando,
         enSuelo: ninoE.enSuelo, accion: textoAccion, mision: misionNino() && misionNino().id,
-        atr: ninoE.atr && ninoE.atr.tipo, probadas: [...bolas.probadas].join(','),
+        atr: ninoE.atr && ninoE.atr.tipo, probadas: [...bolas.probadas].join(','), zonas: [...arrecife.descubiertas].join(','),
         cuentas: MISIONES_NINO.map((m) => `${m.id}:${m.cuenta}/${m.total}`).join(' '), puerta: parque.puertaAbierta,
         pesca: pesca.fase, especie: pesca.especie && pesca.especie.id, dist: +pesca.dist.toFixed(1), tension: Math.round(pesca.tension) }),
       completarNino: (id) => { const m = misionPor(id); sumarNino(id, m.total - m.cuenta); if (id === 'entrada' && !parque.puertaAbierta) abrirPuerta(); },
@@ -5229,7 +6055,8 @@
 
   // Drako tumbado junto al banco de casa
   function perroTumbado(dt) {
-    estado.pos.y = suelo(estado.pos.x, estado.pos.z);
+    // En el arrecife, Drako espera tumbado en la barca
+    estado.pos.y = enArrecife(estado.pos) && arrecife.barcaMar ? arrecife.barcaMar.position.y + 0.25 : suelo(estado.pos.x, estado.pos.z);
     perro.position.copy(estado.pos);
     perro.rotation.y = estado.rumbo;
     partes.cuerpo.position.y = damp(partes.cuerpo.position.y, -0.2, 4, dt);
@@ -5260,8 +6087,13 @@
       cam.objetivo.y + Math.sin(cam.pitch) * cam.dist,
       cam.objetivo.z + Math.cos(cam.yaw) * cp * cam.dist
     );
-    const minY = Math.max(suelo(camera.position.x, camera.position.z) + 0.6, 0.5);
-    if (camera.position.y < minY) camera.position.y = minY;
+    if (arrecife.activo) {
+      // Bajo el agua: entre el fondo y la superficie
+      camera.position.y = clamp(camera.position.y, lechoArrecife(camera.position.x, camera.position.z) + 0.5, -0.3);
+    } else {
+      const minY = Math.max(suelo(camera.position.x, camera.position.z) + 0.6, 0.5);
+      if (camera.position.y < minY) camera.position.y = minY;
+    }
     camera.lookAt(cam.objetivo);
     sol.target.position.copy(cam.objetivo);
     sol.position.copy(cam.objetivo).addScaledVector(SOL, 60);
@@ -5305,6 +6137,7 @@
         actualizarCasa(dt);
         actualizarParqueBolas(dt);
         actualizarInterior(dt);
+        actualizarArrecife(dt);
       }
       actualizarSalpicaduras(dt);
       actualizarBotonAccion();
