@@ -784,7 +784,8 @@
     if (x > 500) return lechoArrecife(x, z);  // el arrecife, mar adentro
     if (x < -500) return 0.02;                // el circuito de karts, tierra adentro
     if (z < -400) return 0.02;                // el pueblo de los números, tras las dunas
-    let h = x > 200 && x < 500 && z > -400 && z < 300 ? SUELO_FERIA : altura(x, -z);  // la feria es llana
+    let h = x > 200 && x < 500 && z > -400 && z < 300 ? SUELO_FERIA                  // la feria es llana
+      : x > -480 && x < -200 && z > -40 && z < 280 ? hArroyo(x, z) : altura(x, -z);   // el arroyo mágico
     if (sobreMuelle(x, z) && (yActual === undefined || yActual > MUELLE.y - 0.45)) h = Math.max(h, MUELLE.y);
     for (const pl of plataformas) {
       if (x > pl.x0 && x < pl.x1 && z > pl.z0 && z < pl.z1) {
@@ -1291,6 +1292,7 @@
     try { construirNumeros(gNumeros); } catch (e) { console.error('Pueblo de los números:', e); }
     try { construirJuguetes(gJuguetes); } catch (e) { console.error('Cuarto de las pistas:', e); }
     try { construirFeria(gFeria); } catch (e) { console.error('Feria:', e); }
+    try { construirArroyo(); } catch (e) { console.error('Arroyo mágico:', e); }
     parque.toboganes.forEach((t) => {
       if (t.aro) return;
       const aro = new THREE.Mesh(new THREE.RingGeometry(0.4, 0.6, 32), new THREE.MeshBasicMaterial({ color: '#ffd42a', side: THREE.DoubleSide, transparent: true, opacity: 0.85 }));
@@ -1544,6 +1546,9 @@
     } else if (pos.x < -500) {
       pos.x = clamp(pos.x, CIRC.x - 150, CIRC.x + 150);
       pos.z = clamp(pos.z, CIRC.z - 110, CIRC.z + 160);
+    } else if (enArroyo(pos)) {
+      pos.x = clamp(pos.x, ARROYO.x - 118, ARROYO.x + 118);
+      pos.z = clamp(pos.z, ARROYO.z - 108, ARROYO.z + 124);
     } else if (enFeria(pos)) {
       pos.x = clamp(pos.x, FERIA.x - 75, FERIA.x + 75);
       pos.z = clamp(pos.z, FERIA.z - 75, FERIA.z + 72);
@@ -2249,6 +2254,7 @@
     if (E.modo === 'bucear') { zona = 'agua'; texto = `Buceando · ${Math.max(0, Math.round(-E.pos.y))} m`; }
     else if (E.modo === 'atraccion' && E.atr && E.atr.tipo === 'coche') texto = `Conduciendo · ${Math.round(Math.abs(E.atr.vehiculo.vel) * 3.6)} km/h`;
     else if (enCircuito(E.pos)) texto = circuito.fase === 'carrera' || circuito.fase === 'cuenta' ? `${circuito.pista ? circuito.pista.def.nombre : 'Carrera'} · ${Math.round(Math.abs(circuito.yo ? circuito.yo.vel : 0) * 3.6)} km/h` : 'En el circuito de karts';
+    else if (enArroyo(E.pos)) { zona = E.nadando || E.pos.y < 0.2 ? 'agua' : 'arena'; texto = E.nadando ? 'Nadando en el arroyo' : E.pos.y < 0.2 ? 'Chapoteando en el arroyo' : 'En el arroyo mágico'; }
     else if (enFeria(E.pos)) texto = { noria: 'En la noria', choque: 'En los autos de choque', rusa: '¡En la montaña rusa!', sillas: 'En las sillas voladoras', torre: 'En la torre de caída' }[E.modo === 'atraccion' && E.atr ? E.atr.tipo : ''] || 'En la feria';
     else if (enJuguetes(E.pos)) texto = juguetes.lanzamiento ? `¡Allá va! · ${Math.round(Math.abs(juguetes.lanzamiento.L.v) * 3.6)} km/h` : 'En el cuarto de las pistas';
     else if (enNumeros(E.pos)) texto = numeros.rayuela ? 'Saltando a los números' : numeros.juego ? 'Jugando con los números' : `Pueblo de los números · 🛒 ${numeros.carga.length}/${MAX_CARRITO}`;
@@ -3010,6 +3016,8 @@
         const a = ATRACCIONES_FERIA.find((x) => !feria.montadas.has(x.id));
         return a ? sitios[a.id] : null;
       } },
+    { id: 'arroyo', titulo: 'Entra en el portal mágico de las dunas y mira saltar 5 peces en el arroyo', total: 5, cuenta: 0,
+      objetivo: () => (enArroyo(ninoE.pos) ? null : PORTAL_ARROYO) },
     { id: 'copas', titulo: 'Gana una copa (podio) en los 4 circuitos: verde, ciudad, playa y bosque', total: 4, cuenta: 0,
       objetivo: () => (!enCircuito(ninoE.pos) ? PUERTA_CIRCUITO : circuito.fase === 'paddock' && circuito.amigos[0] ? circuito.amigos[0].grupo.position : null) },
   ];
@@ -3018,6 +3026,7 @@
   let buceando = false;  // bajo el agua, la tarea que se ve es la del arrecife
   const misionNino = () => (buceando && !hechaNino('arrecife') ? misionPor('arrecife') :
     enCircuito(ninoE.pos) && !hechaNino('carrera') ? misionPor('carrera') : enCircuito(ninoE.pos) && !hechaNino('copas') ? misionPor('copas') :
+    enArroyo(ninoE.pos) && !hechaNino('arroyo') ? misionPor('arroyo') :
     enFeria(ninoE.pos) && !hechaNino('feria') ? misionPor('feria') :
     enJuguetes(ninoE.pos) && salaDe(ninoE.pos) === SALAS[1] && !hechaNino('paisajes') ? misionPor('paisajes') :
     enJuguetes(ninoE.pos) && !hechaNino('pistas') ? misionPor('pistas') :
@@ -11541,6 +11550,736 @@
   }
 
 
+  // =====================================================================
+  // ---------- El arroyo mágico: agua cristalina, peces que saltan, hojas que flotan ----------
+  // =====================================================================
+  // Todo se hace aquí con three.js: el terreno, el agua (con su shader), la cascada, los peces, las hojas y las luciérnagas.
+  const ARROYO = new V3(-330, 0, 120);
+  const enArroyo = (p) => p.x > -480 && p.x < -200 && p.z > -40 && p.z < 280;
+  const PORTAL_ARROYO = new V3(8, 0, -40);        // portal en las dunas, entre el parque acuático y la casa
+  const TAM_A = 260, RES_A = 1;                    // terreno: 260 m con una muestra por metro
+  const NA = TAM_A / RES_A;
+  const arroyo = {
+    listo: false, grupo: new THREE.Group(), H: null, cerca: null, curva: null, pts: [], tan: [], anchos: [], largo: 0,
+    peces: [], saltarines: [], hojas: null, hojasDatos: [], luciernagas: null, mariposas: [], rocas: [], espumas: [],
+    ocultos: null, niebla: null, vistos: 0, salto: null, tSalto: 2, tChof: 0, materialAgua: null, cascada: null, bruma: null,
+  };
+  // Alturas del terreno (se rellenan al construir); fuera del arroyo, nunca se usan
+  function hArroyo(x, z) {
+    const H = arroyo.H;
+    if (!H) return 1;
+    const gx = clamp((x - ARROYO.x + TAM_A / 2) / RES_A, 0, NA - 1.001), gz = clamp((z - ARROYO.z + TAM_A / 2) / RES_A, 0, NA - 1.001);
+    const ix = Math.floor(gx), iz = Math.floor(gz), fx = gx - ix, fz = gz - iz, k = iz * (NA + 1) + ix;
+    return (H[k] * (1 - fx) + H[k + 1] * fx) * (1 - fz) + (H[k + NA + 1] * (1 - fx) + H[k + NA + 2] * fx) * fz;
+  }
+  // Índice del punto del arroyo más cercano (para la corriente)
+  function indiceArroyo(x, z) {
+    const gx = clamp(Math.round((x - ARROYO.x + TAM_A / 2) / RES_A), 0, NA), gz = clamp(Math.round((z - ARROYO.z + TAM_A / 2) / RES_A), 0, NA);
+    return arroyo.cerca[gz * (NA + 1) + gx];
+  }
+  const anchoEn = (s) => (s < 0.05 ? 9 - (9 - 4.6) * (s / 0.05) : 4.2 + 1.3 * Math.sin(s * 25) + 0.8 * Math.sin(s * 61));
+  const prado = (x, z) => 1.0 + 0.6 * Math.sin(x * 0.05) * Math.cos(z * 0.04) + 0.35 * Math.sin(x * 0.13 + z * 0.07)
+    + 6 * smoothstep(95, 128, Math.abs(x)) + 6 * smoothstep(105, 128, z);
+
+  function construirArroyo() {
+    const G = arroyo.grupo;
+    G.visible = false;
+    scene.add(G);
+    // ---------- El cauce: una curva que serpentea desde la cascada (norte) hacia el sur ----------
+    const ctrl = [[-20, -104], [-12, -82], [10, -58], [8, -32], [-14, -6], [-20, 20], [2, 44], [22, 68], [12, 94], [-6, 122]];
+    arroyo.curva = new THREE.CatmullRomCurve3(ctrl.map(([x, z]) => new V3(x, 0, z)), false, 'catmullrom', 0.5);
+    const NP = 900;
+    arroyo.pts = arroyo.curva.getSpacedPoints(NP);
+    arroyo.pts.forEach((p, i) => {
+      arroyo.tan.push(arroyo.curva.getTangentAt(i / NP).normalize());
+      arroyo.anchos.push(anchoEn(i / NP));
+    });
+    arroyo.largo = arroyo.curva.getLength();
+    // ---------- Terreno: prado ondulado, acantilado al norte y el cauce excavado ----------
+    const H = new Float32Array((NA + 1) * (NA + 1)), cerca = new Uint16Array((NA + 1) * (NA + 1)), dist = new Float32Array((NA + 1) * (NA + 1));
+    for (let iz = 0; iz <= NA; iz++) for (let ix = 0; ix <= NA; ix++) {
+      const x = ix * RES_A - TAM_A / 2, z = iz * RES_A - TAM_A / 2;
+      let d = Infinity, best = 0;
+      for (let i = 0; i <= NP; i += 3) { const p = arroyo.pts[i], dd = (p.x - x) ** 2 + (p.z - z) ** 2; if (dd < d) { d = dd; best = i; } }
+      for (let i = Math.max(0, best - 3); i <= Math.min(NP, best + 3); i++) { const p = arroyo.pts[i], dd = (p.x - x) ** 2 + (p.z - z) ** 2; if (dd < d) { d = dd; best = i; } }
+      d = Math.sqrt(d);
+      let h = prado(x, z);
+      h = Math.max(h, 7.5 * smoothstep(-107, -113, z));          // acantilado de la cascada
+      const W = arroyo.anchos[best];
+      if (best === 0 || best === NP) {
+        // extremos: el arroyo se mete bajo el acantilado y sale por el sur
+      }
+      if (d < W) h = Math.min(h, -1.0 + (0.35 + 1.0) * (d / W) ** 2);
+      else if (d < W + 5) h = Math.min(h, 0.35 + (h - 0.35) * smoothstep(W, W + 5, d));
+      const k = iz * (NA + 1) + ix;
+      H[k] = h; cerca[k] = best; dist[k] = d;
+    }
+    arroyo.H = H;
+    arroyo.cerca = cerca;
+    // Malla del terreno con colores: hierba, arena y guijarros en la orilla, fondo del cauce
+    const geo = new THREE.PlaneGeometry(TAM_A, TAM_A, NA, NA);
+    geo.rotateX(-Math.PI / 2);
+    const pos = geo.attributes.position, cols = [];
+    const verde = new THREE.Color('#5fae4a'), verde2 = new THREE.Color('#7cc25a'), arena = new THREE.Color('#cdb98c'), fondo = new THREE.Color('#5d6a52'),
+      roca = new THREE.Color('#8d8a84'), tmpC = new THREE.Color();
+    for (let v = 0; v < pos.count; v++) {
+      const x = pos.getX(v), z = pos.getZ(v);
+      const ix = Math.round(x / RES_A + NA / 2), iz = Math.round(z / RES_A + NA / 2), k = iz * (NA + 1) + ix;
+      const h = H[k], d = dist[k], W = arroyo.anchos[cerca[k]];
+      pos.setY(v, h);
+      if (h > 5 && z < -105) tmpC.copy(roca).lerp(verde, smoothstep(7, 7.5, h) * 0.8);
+      else if (d < W) tmpC.copy(fondo).lerp(arena, smoothstep(0.75 * W, W, d)).lerp(new THREE.Color('#7a6a4e'), 0.35 * (0.5 + 0.5 * Math.sin(x * 1.3 + z * 0.9)));
+      else if (d < W + 2.5) tmpC.copy(arena).lerp(verde, smoothstep(W + 0.8, W + 2.5, d));
+      else tmpC.copy(verde).lerp(verde2, 0.5 + 0.5 * Math.sin(x * 0.21 + z * 0.17));
+      tmpC.convertSRGBToLinear();
+      cols.push(tmpC.r, tmpC.g, tmpC.b);
+    }
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
+    geo.computeVertexNormals();
+    const uT = { value: 0 };
+    const matT = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 });
+    // cáusticas: luz que baila en el fondo del agua
+    matT.onBeforeCompile = (sh) => {
+      sh.uniforms.uT = uT;
+      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vPosA;\n')
+        .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvPosA = (modelMatrix * vec4(transformed, 1.0)).xyz;\n');
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
+        varying vec3 vPosA;
+        uniform float uT;
+        float causticaA(vec2 p, float t) {
+          float c = 0.0;
+          vec2 q = p * 0.9;
+          for (int i = 0; i < 3; i++) {
+            q += vec2(sin(q.y * 1.7 + t * 0.9), cos(q.x * 1.5 - t * 0.8)) * 0.6;
+            c += 1.0 / (1.0 + 18.0 * abs(sin(q.x + q.y * 0.6)));
+          }
+          return c / 3.0;
+        }
+`).replace('#include <color_fragment>', `#include <color_fragment>
+        if (vPosA.y < -0.02) {
+          float c = causticaA(vPosA.xz, uT);
+          diffuseColor.rgb *= 0.78 + 1.1 * c * smoothstep(-0.02, -0.3, vPosA.y);
+          diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.25, 0.55, 0.5), smoothstep(-0.1, -1.0, vPosA.y) * 0.35);
+        }
+`);
+    };
+    const terreno = new THREE.Mesh(geo, matT);
+    terreno.position.copy(ARROYO);
+    terreno.receiveShadow = true;
+    G.add(terreno);
+    arroyo.uT = uT;
+    // ---------- Guijarros en el fondo y rocas en la corriente ----------
+    const guij = new THREE.InstancedMesh(new THREE.DodecahedronGeometry(1, 0), new THREE.MeshStandardMaterial({ roughness: 0.6, flatShading: true }), 900);
+    const mm = new THREE.Matrix4(), qq = new THREE.Quaternion(), cc = new THREE.Color();
+    let semA = 11;
+    const az = () => ((semA = (semA * 16807) % 2147483647) / 2147483647);
+    for (let k = 0; k < 900; k++) {
+      const i = Math.floor(az() * NP), p = arroyo.pts[i], t = arroyo.tan[i], W = arroyo.anchos[i];
+      const lat = (az() * 2 - 1) * W * 0.9;
+      const x = p.x - t.z * lat, z = p.z + t.x * lat;
+      const s = 0.06 + az() * 0.16;
+      qq.setFromEuler(new THREE.Euler(az() * 3, az() * 3, az() * 3));
+      mm.compose(new V3(ARROYO.x + x, hArroyo(ARROYO.x + x, ARROYO.z + z) + s * 0.3, ARROYO.z + z), qq, new V3(s * 1.3, s * 0.6, s));
+      guij.setMatrixAt(k, mm);
+      guij.setColorAt(k, cc.set(['#9a9187', '#b8ad9c', '#7f776d', '#c9b89a', '#6f8a8a'][k % 5]));
+    }
+    guij.receiveShadow = true;
+    G.add(guij);
+    // piedras para cruzar saltando (tres pasos)
+    const matRoca = new THREE.MeshStandardMaterial({ color: '#8f8a82', roughness: 0.85, flatShading: true });
+    [0.22, 0.5, 0.78].forEach((u, c) => {
+      const i = Math.floor(u * NP), p = arroyo.pts[i], t = arroyo.tan[i], W = arroyo.anchos[i];
+      for (let n = -2; n <= 2; n++) {
+        const lat = n * W * 0.42;
+        const x = ARROYO.x + p.x - t.z * lat, z = ARROYO.z + p.z + t.x * lat;
+        const r = 0.65 + ((n + c) % 2) * 0.12;
+        const roca2 = new THREE.Mesh(new THREE.DodecahedronGeometry(1, 1), matRoca);
+        roca2.scale.set(r, 0.55, r * 0.9);
+        roca2.position.set(x, 0.0, z);
+        roca2.rotation.y = n + c;
+        roca2.castShadow = roca2.receiveShadow = true;
+        G.add(roca2);
+        plataformas.push({ x0: x - r * 0.7, x1: x + r * 0.7, z0: z - r * 0.65, z1: z + r * 0.65, y: () => 0.45 });
+        arroyo.rocas.push({ x, z, r, i });
+        // anillo de espuma alrededor
+        const esp = new THREE.Mesh(new THREE.RingGeometry(r * 0.85, r * 1.35, 24), new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.55, depthWrite: false }));
+        esp.rotation.x = -Math.PI / 2;
+        esp.position.set(x, 0.035, z);
+        esp.renderOrder = 3;
+        G.add(esp);
+        arroyo.espumas.push({ m: esp, f: n * 1.3 + c });
+      }
+    });
+    // ---------- El agua: una cinta a lo largo del cauce con un shader propio ----------
+    const filas = [], idxA = [], uvA = [], profA = [];
+    const COL = 12;
+    for (let i = 0; i <= NP; i += 2) {
+      const p = arroyo.pts[i], t = arroyo.tan[i], W = arroyo.anchos[i] * 1.02;
+      for (let c = 0; c <= COL; c++) {
+        const u = c / COL, lat = (u * 2 - 1) * W;
+        filas.push(ARROYO.x + p.x - t.z * lat, 0.0, ARROYO.z + p.z + t.x * lat);
+        uvA.push(u, (i / NP) * arroyo.largo / 6);
+        profA.push(Math.max(0, -hArroyo(ARROYO.x + p.x - t.z * lat, ARROYO.z + p.z + t.x * lat)));
+      }
+    }
+    const filasN = filas.length / 3 / (COL + 1);
+    for (let r = 1; r < filasN; r++) for (let c = 0; c < COL; c++) {
+      const a = (r - 1) * (COL + 1) + c, b = r * (COL + 1) + c;
+      idxA.push(a, b, a + 1, a + 1, b, b + 1);
+    }
+    const geoA = new THREE.BufferGeometry();
+    geoA.setAttribute('position', new THREE.Float32BufferAttribute(filas, 3));
+    geoA.setAttribute('uv', new THREE.Float32BufferAttribute(uvA, 2));
+    geoA.setAttribute('prof', new THREE.Float32BufferAttribute(profA, 1));
+    geoA.setIndex(idxA);
+    arroyo.materialAgua = new THREE.ShaderMaterial({
+      transparent: true, depthWrite: false,
+      uniforms: { uT, uSol: { value: SOL.clone() }, uNiebla: { value: new THREE.Color('#cfe8d8') } },
+      vertexShader: `
+        attribute float prof;
+        varying vec2 vUv; varying vec3 vW; varying float vProf;
+        void main() { vUv = uv; vProf = prof; vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
+      fragmentShader: `
+        uniform float uT; uniform vec3 uSol; uniform vec3 uNiebla;
+        varying vec2 vUv; varying vec3 vW; varying float vProf;
+        float onda(vec2 p, float t) {
+          return 0.05 * sin(p.x * 2.1 + p.y * 1.3 - t * 2.4) + 0.035 * sin(p.x * 3.7 - p.y * 4.1 - t * 3.1) + 0.02 * sin(p.y * 7.3 - t * 5.0 + p.x * 2.0);
+        }
+        void main() {
+          // la corriente baja por el cauce: el dibujo se desplaza en "v"
+          vec2 p = vec2(vUv.x * 8.0, vUv.y * 6.0 - uT * 1.1);
+          float e = 0.05, h0 = onda(p, uT);
+          vec2 g = vec2(onda(p + vec2(e, 0.0), uT) - h0, onda(p + vec2(0.0, e), uT) - h0) / e;
+          vec3 N = normalize(vec3(-g.x * 0.6, 1.0, -g.y * 0.6));
+          vec3 V = normalize(cameraPosition - vW);
+          float fres = 0.04 + 0.96 * pow(1.0 - max(dot(N, V), 0.0), 4.0);
+          vec3 R = reflect(-V, N);
+          vec3 cielo = mix(vec3(0.55, 0.78, 0.9), vec3(0.18, 0.42, 0.7), clamp(R.y * 1.4, 0.0, 1.0));
+          // agua cristalina: casi transparente en la orilla y turquesa en lo hondo
+          float hondo = smoothstep(0.0, 1.0, vProf);
+          vec3 col = mix(vec3(0.45, 0.9, 0.85), vec3(0.05, 0.5, 0.6), hondo);
+          float alpha = mix(0.08, 0.55, hondo);
+          col = mix(col, cielo, fres * 0.45);
+          alpha = mix(alpha, 0.8, fres * 0.4);
+          float brillo = pow(max(dot(R, uSol), 0.0), 220.0) * 3.0;
+          col += brillo; alpha = min(1.0, alpha + brillo);
+          // destellos que viajan con la corriente
+          float chispa = smoothstep(0.985, 1.0, sin(p.x * 13.0 + sin(p.y * 3.0) * 2.0) * sin(p.y * 17.0 + uT * 0.5));
+          col += chispa * 0.6; alpha = max(alpha, chispa * 0.6);
+          // espuma en las orillas
+          float borde = min(vUv.x, 1.0 - vUv.x);
+          float espuma = smoothstep(0.1, 0.0, borde - 0.03 * sin(p.y * 4.0 + uT * 2.0));
+          col = mix(col, vec3(1.0), espuma * 0.45); alpha = max(alpha, espuma * 0.4);
+          float dist = length(cameraPosition - vW);
+          float niebla = smoothstep(60.0, 220.0, dist);
+          col = mix(col, uNiebla, niebla);
+          gl_FragColor = vec4(col, alpha);
+          #include <tonemapping_fragment>
+          #include <encodings_fragment>
+        }`,
+    });
+    const aguaA = new THREE.Mesh(geoA, arroyo.materialAgua);
+    aguaA.renderOrder = 2;
+    G.add(aguaA);
+    // ---------- Cascada al norte, con bruma ----------
+    const p0 = arroyo.pts[0];
+    const cascadaMat = new THREE.ShaderMaterial({
+      transparent: true, depthWrite: false, side: THREE.DoubleSide, uniforms: { uT },
+      vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+      fragmentShader: `uniform float uT; varying vec2 vUv;
+        void main() {
+          float r = sin(vUv.x * 60.0 + sin(vUv.x * 13.0) * 3.0) * 0.5 + 0.5;
+          float caida = fract(vUv.y * 3.0 + uT * 1.6 + r * 0.4);
+          float a = 0.45 + 0.4 * smoothstep(0.6, 1.0, caida) * r;
+          a *= smoothstep(0.0, 0.08, vUv.x) * smoothstep(1.0, 0.92, vUv.x);
+          vec3 col = mix(vec3(0.7, 0.92, 0.95), vec3(1.0), smoothstep(0.5, 1.0, caida));
+          gl_FragColor = vec4(col, a);
+        }`,
+    });
+    const cascada = new THREE.Mesh(new THREE.PlaneGeometry(6, 7.8, 1, 1), cascadaMat);
+    cascada.position.set(ARROYO.x + p0.x, 3.7, ARROYO.z - 112.4);
+    cascada.rotation.x = -0.12;
+    G.add(cascada);
+    const rocasC = new THREE.InstancedMesh(new THREE.DodecahedronGeometry(1, 0), new THREE.MeshStandardMaterial({ color: '#7f7b74', roughness: 0.9, flatShading: true }), 22);
+    for (let k = 0; k < 22; k++) {
+      const x = ARROYO.x + p0.x + (k % 2 ? 1 : -1) * (3.6 + az() * 6), z = ARROYO.z - 112 + az() * 2, y = az() * 7;
+      mm.compose(new V3(x, y, z), qq.setFromEuler(new THREE.Euler(az() * 3, az() * 3, 0)), new V3(1.2 + az() * 1.5, 1 + az(), 1 + az()));
+      rocasC.setMatrixAt(k, mm);
+    }
+    rocasC.castShadow = true;
+    G.add(rocasC);
+    arroyo.bruma = { centro: new V3(ARROYO.x + p0.x, 0.2, ARROYO.z - 110.5) };
+    // ---------- Árboles mágicos (otoño y cerezos) ----------
+    const troncos = [], copas = [];
+    for (let k = 0; k < 220 && troncos.length < 70; k++) {
+      const x = (az() * 2 - 1) * 110, z = -100 + az() * 220;
+      const ix = Math.round(x / RES_A + NA / 2), iz = Math.round(z / RES_A + NA / 2), kk = iz * (NA + 1) + ix;
+      if (dist[kk] < arroyo.anchos[cerca[kk]] + 4 || Math.hypot(x - 40, z - 66) < 8) continue;
+      const alto = 4 + az() * 3;
+      troncos.push([x, z, alto]);
+      const n = 4 + Math.floor(az() * 3);
+      const tipo = az();
+      for (let j = 0; j < n; j++) copas.push([x + (az() - 0.5) * 3, alto + az() * 1.6, z + (az() - 0.5) * 3, 1.4 + az() * 1.0, tipo]);
+    }
+    for (let k = 0; k < 18; k++) {
+      const i = 30 + Math.floor(az() * (NP - 60)), p = arroyo.pts[i], tg = arroyo.tan[i], W = arroyo.anchos[i], lado = k % 2 ? 1 : -1, lat = lado * (W + 2.2);
+      const x = p.x - tg.z * lat, z = p.z + tg.x * lat, alto = 4.5 + az() * 2;
+      troncos.push([x, z, alto]);
+      const tipo = az();
+      for (let j = 0; j < 5; j++) {
+        const hacia = 0.3 + j * 0.45;
+        copas.push([x - (-tg.z * lado) * hacia * W * 0.35 + (az() - 0.5) * 1.5, alto + az() * 1.2, z - (tg.x * lado) * hacia * W * 0.35 + (az() - 0.5) * 1.5, 1.3 + az() * 0.8, tipo]);
+      }
+    }
+    const imTr = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.22, 0.35, 1, 8), new THREE.MeshStandardMaterial({ color: '#6b4a32', roughness: 0.9 }), troncos.length);
+    troncos.forEach(([x, z, a], k) => {
+      const y0 = hArroyo(ARROYO.x + x, ARROYO.z + z);
+      mm.compose(new V3(ARROYO.x + x, y0 + a / 2, ARROYO.z + z), qq.identity(), new V3(1, a + 0.4, 1));
+      imTr.setMatrixAt(k, mm);
+      colisiones.push({ x: ARROYO.x + x, z: ARROYO.z + z, r: 0.4 });
+    });
+    imTr.castShadow = true;
+    G.add(imTr);
+    const imCo = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 1), new THREE.MeshStandardMaterial({ roughness: 0.8, flatShading: true }), copas.length);
+    const coloresCopa = [['#e8742a', '#f2a93b', '#d9522b'], ['#ffd34a', '#f6bd2c', '#e6a51f'], ['#f7a8c8', '#ffc2d9', '#ee8fb6'], ['#6fc35a', '#4fa64a', '#8fd36a']];
+    arroyo.copas = [];
+    copas.forEach(([x, y, z, r, tipo], k) => {
+      const y0 = hArroyo(ARROYO.x + x, ARROYO.z + z);
+      mm.compose(new V3(ARROYO.x + x, y0 + y, ARROYO.z + z), qq.identity(), new V3(r, r * 0.85, r));
+      imCo.setMatrixAt(k, mm);
+      const paleta = coloresCopa[tipo < 0.35 ? 0 : tipo < 0.6 ? 1 : tipo < 0.82 ? 2 : 3];
+      imCo.setColorAt(k, cc.set(paleta[k % 3]));
+      arroyo.copas.push(new V3(ARROYO.x + x, y0 + y, ARROYO.z + z));
+    });
+    imCo.castShadow = true;
+    G.add(imCo);
+    // ---------- Setas que brillan, helechos, flores y nenúfares ----------
+    const setas = new THREE.InstancedMesh(new THREE.SphereGeometry(0.35, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#ff7ad9', emissive: '#ff3fbf', emissiveIntensity: 0.6 }), 40);
+    const pies = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.07, 0.09, 0.4, 8), new THREE.MeshStandardMaterial({ color: '#fff3e0', emissive: '#7ff6ff', emissiveIntensity: 0.3 }), 40);
+    for (let k = 0; k < 40; k++) {
+      const t = troncos[k % troncos.length];
+      const x = ARROYO.x + t[0] + (az() - 0.5) * 3, z = ARROYO.z + t[1] + (az() - 0.5) * 3, y = hArroyo(x, z), s = 0.7 + az() * 0.8;
+      mm.compose(new V3(x, y + 0.4 * s, z), qq.identity(), new V3(s, s, s)); setas.setMatrixAt(k, mm);
+      mm.compose(new V3(x, y + 0.2 * s, z), qq.identity(), new V3(s, s, s)); pies.setMatrixAt(k, mm);
+      setas.setColorAt(k, cc.set(['#ff7ad9', '#7ff6ff', '#c58bff'][k % 3]));
+    }
+    G.add(setas, pies);
+    const flores = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(0.12, 0), new THREE.MeshStandardMaterial({ roughness: 0.6 }), 500);
+    for (let k = 0; k < 500; k++) {
+      const x = ARROYO.x + (az() * 2 - 1) * 105, z = ARROYO.z - 95 + az() * 210, y = hArroyo(x, z);
+      mm.compose(new V3(x, y < 0.3 ? -5 : y + 0.12, z), qq.identity(), new V3(1, 1, 1));
+      flores.setMatrixAt(k, mm);
+      flores.setColorAt(k, cc.set(['#ffffff', '#ffd34a', '#ff8fb6', '#b48bff', '#7fd3ff'][k % 5]));
+    }
+    G.add(flores);
+    const helecho = (circuito.piezasPista || {}).Helecho;
+    if (helecho) {
+      const imH = new THREE.InstancedMesh(helecho.geometry, helecho.material, 60);
+      for (let k = 0; k < 60; k++) {
+        const i = Math.floor(az() * NP), p = arroyo.pts[i], t = arroyo.tan[i], W = arroyo.anchos[i], lado = az() < 0.5 ? -1 : 1, lat = lado * (W + 1.5 + az() * 3);
+        const x = ARROYO.x + p.x - t.z * lat, z = ARROYO.z + p.z + t.x * lat;
+        mm.compose(new V3(x, hArroyo(x, z), z), qq.setFromEuler(new THREE.Euler(0, az() * 6, 0)), new V3(1.2, 1.2, 1.2));
+        imH.setMatrixAt(k, mm);
+      }
+      G.add(imH);
+    }
+    // nenúfares en la poza de la cascada
+    for (let k = 0; k < 10; k++) {
+      const a = az() * Math.PI * 2, r = 2 + az() * 5;
+      const hoja = new THREE.Mesh(new THREE.CircleGeometry(0.55, 16, 0.3, Math.PI * 2 - 0.3), new THREE.MeshStandardMaterial({ color: '#3f9a4a', roughness: 0.6, side: THREE.DoubleSide }));
+      hoja.rotation.x = -Math.PI / 2;
+      hoja.position.set(ARROYO.x + p0.x + Math.cos(a) * r, 0.03, ARROYO.z + p0.z + Math.sin(a) * r);
+      G.add(hoja);
+      if (k % 2) { const flor = new THREE.Mesh(new THREE.IcosahedronGeometry(0.18, 0), new THREE.MeshStandardMaterial({ color: '#ff9cc7', emissive: '#ff6fae', emissiveIntensity: 0.3 })); flor.position.copy(hoja.position).setY(0.12); G.add(flor); }
+    }
+    // ---------- Puente de madera sobre el arroyo ----------
+    {
+      let ib = Math.floor(0.36 * NP);
+      for (let i = Math.floor(0.3 * NP); i < Math.floor(0.45 * NP); i++) if (Math.abs(arroyo.tan[i].x) < Math.abs(arroyo.tan[ib].x)) ib = i;
+      const p = arroyo.pts[ib], W = arroyo.anchos[ib] + 3;
+      const bx = ARROYO.x + p.x, bz = ARROYO.z + p.z;
+      const madera = new THREE.MeshStandardMaterial({ color: '#a0703f', roughness: 0.85 });
+      for (let k = 0; k < 2 * W / 0.5; k++) {
+        const x = bx - W + k * 0.5 + 0.25, arco = 0.9 + 0.45 * Math.cos((x - bx) / W * Math.PI / 2);
+        const tabla = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.1, 2.2), madera);
+        tabla.position.set(x, arco, bz);
+        tabla.castShadow = tabla.receiveShadow = true;
+        G.add(tabla);
+      }
+      [-1.05, 1.05].forEach((dz) => {
+        for (let k = 0; k <= 8; k++) {
+          const x = bx - W + k * W / 4, arco = 0.9 + 0.45 * Math.cos((x - bx) / W * Math.PI / 2);
+          const poste = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.9, 6), madera);
+          poste.position.set(x, arco + 0.45, bz + dz);
+          G.add(poste);
+        }
+        const baranda = new THREE.Mesh(new THREE.BoxGeometry(2 * W, 0.08, 0.08), madera);
+        baranda.position.set(bx, 1.75, bz + dz);
+        G.add(baranda);
+      });
+      plataformas.push({ x0: bx - W, x1: bx + W, z0: bz - 1.1, z1: bz + 1.1, y: (x) => 0.95 + 0.45 * Math.cos((x - bx) / W * Math.PI / 2) });
+    }
+    // ---------- Peces del fondo (truchas) ----------
+    const cuerpoPez = new THREE.SphereGeometry(1, 14, 10);
+    cuerpoPez.scale(0.11, 0.1, 0.36);
+    const colaPez = new THREE.ConeGeometry(0.12, 0.22, 4);
+    colaPez.rotateX(-Math.PI / 2);
+    colaPez.scale(0.3, 1, 1);
+    const texPez = lienzo(128, 64, (c, w, h) => {
+      const gr = c.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#5a6b3a'); gr.addColorStop(0.55, '#c9a06a'); gr.addColorStop(1, '#f4ead2');
+      c.fillStyle = gr; c.fillRect(0, 0, w, h);
+      c.fillStyle = 'rgba(255,120,150,0.55)'; c.fillRect(0, h * 0.45, w, h * 0.12);
+      c.fillStyle = '#2f3a20'; for (let i = 0; i < 40; i++) { c.beginPath(); c.arc((i * 37) % w, (i * 13) % (h * 0.5), 2, 0, 7); c.fill(); }
+    });
+    const matPez = new THREE.MeshStandardMaterial({ map: texPez, roughness: 0.45, metalness: 0.15 });
+    for (let k = 0; k < 26; k++) {
+      const i = 40 + Math.floor(az() * (NP - 80)), W = arroyo.anchos[i];
+      const g = new THREE.Group();
+      const c = new THREE.Mesh(cuerpoPez, matPez), cola = new THREE.Mesh(colaPez, matPez);
+      cola.position.z = -0.42;
+      g.add(c, cola);
+      g.scale.setScalar(0.8 + az() * 0.7);
+      G.add(g);
+      arroyo.peces.push({ g, cola, i, lat: (az() * 2 - 1) * W * 0.45, fase: az() * 6, huye: 0, dx: 0 });
+    }
+    // Peces saltarines (plateados con reflejos rosas)
+    const matSalto = new THREE.MeshStandardMaterial({ color: '#d6e3ef', roughness: 0.25, metalness: 0.6, emissive: '#ff8fb6', emissiveIntensity: 0.15 });
+    for (let k = 0; k < 3; k++) {
+      const g = new THREE.Group();
+      g.add(new THREE.Mesh(cuerpoPez, matSalto));
+      const cola = new THREE.Mesh(colaPez, matSalto);
+      cola.position.z = -0.42;
+      g.add(cola);
+      g.scale.setScalar(1.6);
+      g.visible = false;
+      G.add(g);
+      arroyo.saltarines.push({ g, cola, activo: false, p: new V3(), v: new V3(), t: 0 });
+    }
+    // ---------- Hojas que caen y flotan ----------
+    const texHoja = lienzo(64, 64, (c, w, h) => {
+      c.clearRect(0, 0, w, h);
+      c.fillStyle = '#ffffff';
+      c.beginPath(); c.moveTo(32, 4); c.quadraticCurveTo(60, 26, 32, 60); c.quadraticCurveTo(4, 26, 32, 4); c.fill();
+      c.strokeStyle = 'rgba(120,70,20,0.6)'; c.lineWidth = 2; c.beginPath(); c.moveTo(32, 6); c.lineTo(32, 58); c.stroke();
+    });
+    texHoja.wrapS = texHoja.wrapT = THREE.ClampToEdgeWrapping;
+    const NH = 90;
+    const hojas = new THREE.InstancedMesh(new THREE.PlaneGeometry(0.32, 0.32), new THREE.MeshStandardMaterial({ map: texHoja, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.7 }), NH);
+    for (let k = 0; k < NH; k++) {
+      hojas.setColorAt(k, cc.set(['#e8742a', '#f2b33b', '#d9452b', '#c9862f', '#f7a8c8'][k % 5]));
+      const h = { estado: 'cae', p: new V3(), v: new V3(), rot: new THREE.Euler(), giro: new V3(az() * 3, az() * 3, az() * 3), t: 0, fase: az() * 6 };
+      soltarHoja(h, true);
+      arroyo.hojasDatos.push(h);
+    }
+    hojas.castShadow = true;
+    G.add(hojas);
+    arroyo.hojas = hojas;
+    // ---------- Luciérnagas y mariposas ----------
+    const NL = 90, posL = new Float32Array(NL * 3);
+    arroyo.lucesDatos = [];
+    for (let k = 0; k < NL; k++) {
+      const i = Math.floor(az() * NP), p = arroyo.pts[i], lat = (az() * 2 - 1) * 14;
+      const base = new V3(ARROYO.x + p.x - arroyo.tan[i].z * lat, 0.6 + az() * 2.5, ARROYO.z + p.z + arroyo.tan[i].x * lat);
+      arroyo.lucesDatos.push({ base, f: az() * 6 });
+    }
+    const geoL = new THREE.BufferGeometry();
+    geoL.setAttribute('position', new THREE.BufferAttribute(posL, 3));
+    const sprite = lienzo(64, 64, (c, w, h) => {
+      const g = c.createRadialGradient(32, 32, 0, 32, 32, 32);
+      g.addColorStop(0, 'rgba(255,255,220,1)'); g.addColorStop(0.3, 'rgba(220,255,140,0.8)'); g.addColorStop(1, 'rgba(180,255,120,0)');
+      c.fillStyle = g; c.fillRect(0, 0, w, h);
+    });
+    arroyo.luciernagas = new THREE.Points(geoL, new THREE.PointsMaterial({ map: sprite, size: 0.45, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, color: '#e8ff9a' }));
+    arroyo.luciernagas.frustumCulled = false;
+    G.add(arroyo.luciernagas);
+    const alaGeo = new THREE.PlaneGeometry(0.22, 0.16);
+    alaGeo.translate(0.11, 0, 0);
+    for (let k = 0; k < 10; k++) {
+      const m = new THREE.MeshBasicMaterial({ color: ['#ff9cc7', '#7fd3ff', '#ffd34a', '#c58bff'][k % 4], side: THREE.DoubleSide });
+      const g = new THREE.Group(), a1 = new THREE.Mesh(alaGeo, m), a2 = new THREE.Mesh(alaGeo, m);
+      a2.scale.x = -1;
+      g.add(a1, a2);
+      G.add(g);
+      const i = Math.floor(az() * NP);
+      arroyo.mariposas.push({ g, a1, a2, c: new V3(ARROYO.x + arroyo.pts[i].x + 6, 1.5, ARROYO.z + arroyo.pts[i].z), f: az() * 6 });
+    }
+    // Rayos de luz entre los árboles
+    const rayoTex = lienzo(64, 256, (c, w, h) => { const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, 'rgba(255,250,210,0.0)'); g.addColorStop(0.3, 'rgba(255,250,210,0.35)'); g.addColorStop(1, 'rgba(255,250,210,0.0)'); c.fillStyle = g; c.fillRect(0, 0, w, h); });
+    for (let k = 0; k < 8; k++) {
+      const i = Math.floor(az() * NP), p = arroyo.pts[i];
+      const rayo = new THREE.Mesh(new THREE.PlaneGeometry(3, 16), new THREE.MeshBasicMaterial({ map: rayoTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
+      rayo.position.set(ARROYO.x + p.x + (az() - 0.5) * 10, 7, ARROYO.z + p.z);
+      rayo.rotation.set(0, az() * 3, 0.45);
+      G.add(rayo);
+    }
+    // ---------- El portal de vuelta (y el de la playa) ----------
+    const portalAqui = crearPortal();
+    portalAqui.position.set(ARROYO.x + 40, hArroyo(ARROYO.x + 40, ARROYO.z + 66), ARROYO.z + 66);
+    portalAqui.rotation.y = Math.PI * 0.8;
+    G.add(portalAqui);
+    puntosAccion.push({ pos: portalAqui.position.clone(), radio: 2, alto: 3, texto: 'A la playa', hacer: volverDelArroyo, visible: () => enArroyo(ninoE.pos) && ninoE.modo === 'libre' });
+    const yP = suelo(PORTAL_ARROYO.x, PORTAL_ARROYO.z);
+    const portalPlaya = crearPortal();
+    portalPlaya.position.set(PORTAL_ARROYO.x, yP, PORTAL_ARROYO.z);
+    scene.add(portalPlaya);
+    arroyo.portales = [portalAqui, portalPlaya];
+    puntosAccion.push({ pos: new V3(PORTAL_ARROYO.x, yP, PORTAL_ARROYO.z), radio: 2, alto: 3, texto: 'Arroyo mágico', hacer: irAlArroyo });
+    const cartelP = cartel('ARROYO MÁGICO', 3.6, 0.7);
+    cartelP.position.set(PORTAL_ARROYO.x, yP + 4.3, PORTAL_ARROYO.z);
+    scene.add(cartelP);
+    arroyo.listo = true;
+  }
+  // Portal mágico: anillo de luz con un remolino dentro
+  function crearPortal() {
+    const g = new THREE.Group();
+    const aro = new THREE.Mesh(new THREE.TorusGeometry(1.5, 0.18, 12, 48), new THREE.MeshStandardMaterial({ color: '#7ff6ff', emissive: '#7ff6ff', emissiveIntensity: 0.9 }));
+    aro.position.y = 1.8;
+    const disco = new THREE.Mesh(new THREE.CircleGeometry(1.45, 48), new THREE.ShaderMaterial({
+      transparent: true, side: THREE.DoubleSide, depthWrite: false, uniforms: { uT: arroyo.uT || { value: 0 } },
+      vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+      fragmentShader: `uniform float uT; varying vec2 vUv;
+        void main() {
+          vec2 p = vUv - 0.5; float r = length(p) * 2.0, a = atan(p.y, p.x);
+          float espiral = sin(a * 3.0 + r * 10.0 - uT * 4.0) * 0.5 + 0.5;
+          vec3 col = mix(vec3(0.5, 0.2, 0.9), vec3(0.4, 1.0, 0.95), espiral);
+          col = mix(col, vec3(1.0, 0.85, 1.0), smoothstep(0.35, 0.0, r));
+          gl_FragColor = vec4(col, (0.75 + 0.25 * espiral) * smoothstep(1.0, 0.85, r));
+        }`,
+    }));
+    disco.position.y = 1.8;
+    g.add(aro, disco);
+    [-1, 1].forEach((l) => {
+      const piedra = new THREE.Mesh(new THREE.DodecahedronGeometry(0.5, 0), new THREE.MeshStandardMaterial({ color: '#8f8a82', flatShading: true }));
+      piedra.position.set(l * 1.6, 0.3, 0);
+      g.add(piedra);
+    });
+    g.userData.disco = disco;
+    return g;
+  }
+  // Una hoja nueva cae de un árbol cualquiera
+  function soltarHoja(h, alAzar) {
+    if (Math.random() < 0.65) {
+      // de las ramas que cuelgan sobre el arroyo
+      const NP = arroyo.pts.length - 1, i = 20 + Math.floor(Math.random() * (NP - 60)), p = arroyo.pts[i], t = arroyo.tan[i], lat = (Math.random() * 2 - 1) * arroyo.anchos[i] * 0.8;
+      const alto = 4 + Math.random() * 3;
+      h.p.set(ARROYO.x + p.x - t.z * lat, alAzar ? Math.random() * alto : alto, ARROYO.z + p.z + t.x * lat);
+    } else {
+      const c = arroyo.copas[Math.floor(Math.random() * arroyo.copas.length)];
+      h.p.set(c.x + (Math.random() - 0.5) * 3, c.y + (alAzar ? -Math.random() * c.y : 0), c.z + (Math.random() - 0.5) * 3);
+    }
+    h.v.set(0, 0, 0);
+    h.estado = 'cae';
+    h.t = 0;
+  }
+
+  // ---------- Ir y volver ----------
+  function irAlArroyo() {
+    if (!arroyo.listo) return;
+    fundido(() => {
+      if (ninoE.modo === 'atraccion') terminarAtraccion();
+      if (balon.estado === 'mano') { balon.estado = 'libre'; balon.pos.set(PORTAL_ARROYO.x + 2, suelo(PORTAL_ARROYO.x + 2, PORTAL_ARROYO.z + 3) + 0.5, PORTAL_ARROYO.z + 3); balon.vel.set(0, 0, 0); }
+      ninoE.modo = 'libre';
+      const x = ARROYO.x + 30, z = ARROYO.z + 57;
+      ninoE.pos.set(x, hArroyo(x, z) + 0.05, z);
+      ninoE.rumbo = -Math.PI * 0.6;
+      ninoE.vy = 0;
+      estado.pos.set(x + 1.5, hArroyo(x + 1.5, z + 1) + 0.05, z + 1);
+      estado.descansando = false;
+      cam.yaw = Math.PI * 0.4;
+      cam.pitch = 0.3;
+      cam.dist = 8;
+      cam.objetivo.copy(ninoE.pos);
+      if (numeros.carrito && numeros.tieneCarrito) colocarCarritoDetras();
+      ocultarParaArroyo(true);
+      musica.proximo = 'casa';
+      setTimeout(pintarTarea, 50);
+      setTimeout(() => { avisar('¡El arroyo mágico!', 2400); hablar('¡Qué bonito! Un arroyo mágico. Mira los peces'); }, 500);
+    });
+  }
+  function volverDelArroyo() {
+    fundido(() => {
+      ocultarParaArroyo(false);
+      ninoE.modo = 'libre';
+      ninoE.pos.set(PORTAL_ARROYO.x, 0, PORTAL_ARROYO.z + 3);
+      ninoE.pos.y = suelo(ninoE.pos.x, ninoE.pos.z);
+      ninoE.rumbo = 0;
+      estado.pos.set(PORTAL_ARROYO.x + 1.5, 0, PORTAL_ARROYO.z + 3.5);
+      estado.pos.y = suelo(estado.pos.x, estado.pos.z);
+      cam.yaw = Math.PI;
+      cam.pitch = 0.36;
+      cam.dist = 6.5;
+      cam.objetivo.copy(ninoE.pos);
+      if (numeros.carrito && numeros.tieneCarrito) colocarCarritoDetras();
+    });
+  }
+  function ocultarParaArroyo(dentroA) {
+    arroyo.grupo.visible = dentroA;
+    agua.visible = !dentroA;  // el mar (que llega hasta aquí, aunque no se vea) no debe asomar en el arroyo
+    if (dentroA) {
+      arroyo.niebla = { color: scene.fog.color.clone(), near: scene.fog.near, far: scene.fog.far };
+      scene.fog.color.set('#cfe8d8');
+      scene.fog.near = 50;
+      scene.fog.far = 220;
+    } else if (arroyo.niebla) {
+      scene.fog.color.copy(arroyo.niebla.color);
+      scene.fog.near = arroyo.niebla.near;
+      scene.fog.far = arroyo.niebla.far;
+      arroyo.niebla = null;
+    }
+    if (!dentroA) {
+      (arroyo.ocultos || []).forEach((o) => { o.visible = true; });
+      arroyo.ocultos = null;
+      return;
+    }
+    if (arroyo.ocultos) return;
+    const quedan = new Set([arroyo.grupo, nino.grupo, perro, agua, numeros.carrito && numeros.carrito.g]);
+    const c3 = new THREE.Box3();
+    arroyo.ocultos = [];
+    scene.children.forEach((o) => {
+      if (!o.visible || quedan.has(o) || o.isLight || o.isCamera || o.isPoints) return;
+      c3.setFromObject(o);
+      if (!c3.isEmpty() && c3.max.x - c3.min.x < 900) { o.visible = false; arroyo.ocultos.push(o); }
+    });
+  }
+
+  // ---------- Cada fotograma ----------
+  const _f = new V3();
+  // Corriente en un punto del agua (hacia el sur, más rápida en el centro)
+  function corriente(x, z, out) {
+    const i = indiceArroyo(x, z), t = arroyo.tan[i], p = arroyo.pts[i], W = arroyo.anchos[i];
+    const d = Math.hypot(ARROYO.x + p.x - x, ARROYO.z + p.z - z);
+    const vel = i < 30 ? 0.25 : 1.1 * (1 - Math.min(1, d / W) ** 2) + 0.15;
+    return out.set(t.x * vel, 0, t.z * vel);
+  }
+  function actualizarArroyo(dt) {
+    if (!arroyo.listo) return;
+    const t = reloj.elapsedTime;
+    arroyo.portales.forEach((p) => { p.children[0].rotation.z = t * 0.6; });
+    arroyo.uT.value = t;
+    if (!arroyo.grupo.visible) return;
+    const NP = arroyo.pts.length - 1;
+    // espuma de las rocas: late con la corriente; de vez en cuando, una gota salta
+    arroyo.espumas.forEach((e) => { const s = 1 + 0.08 * Math.sin(t * 3 + e.f); e.m.scale.set(s, s, 1); e.m.material.opacity = 0.4 + 0.2 * Math.sin(t * 2.3 + e.f); });
+    arroyo.tChof -= dt;
+    if (arroyo.tChof <= 0) {
+      arroyo.tChof = 0.25;
+      const r = arroyo.rocas[Math.floor(Math.random() * arroyo.rocas.length)], tg = arroyo.tan[r.i];
+      salpicar(new V3(r.x - tg.x * r.r, 0.05, r.z - tg.z * r.r), 2);
+    }
+    // bruma al pie de la cascada
+    if (Math.random() < dt * 14) salpicar(arroyo.bruma.centro.clone().add(new V3((Math.random() - 0.5) * 4, 0, (Math.random() - 0.5) * 1.5)), 2);
+    // peces del fondo: nadan contra la corriente, mueven la cola y huyen de Manuel
+    arroyo.peces.forEach((f) => {
+      const p = arroyo.pts[f.i], tg = arroyo.tan[f.i];
+      const x = ARROYO.x + p.x - tg.z * (f.lat + f.dx), z = ARROYO.z + p.z + tg.x * (f.lat + f.dx);
+      const cerca = Math.hypot(ninoE.pos.x - x, ninoE.pos.z - z) < 3 && ninoE.pos.y < 0.6;
+      if (cerca && f.huye <= 0) f.huye = 1.6;
+      f.huye = Math.max(0, f.huye - dt);
+      const paso = f.huye > 0 ? 9 * dt : Math.sin(t * 0.3 + f.fase) * 0.4 * dt;
+      f.i = Math.max(40, Math.min(NP - 30, f.i - Math.round(paso * 3)));
+      f.dx = Math.sin(t * 0.5 + f.fase) * 0.4;
+      const y = Math.max(hArroyo(x, z) + 0.18, -0.85);
+      f.g.position.set(x, Math.min(y, -0.2), z);
+      f.g.rotation.y = Math.atan2(-tg.x, -tg.z) + Math.sin(t * (f.huye > 0 ? 14 : 3) + f.fase) * 0.12;
+      f.cola.rotation.y = Math.sin(t * (f.huye > 0 ? 22 : 7) + f.fase) * 0.5;
+    });
+    // un pez salta cada pocos segundos
+    arroyo.tSalto -= dt;
+    if (arroyo.tSalto <= 0) {
+      arroyo.tSalto = 2.5 + Math.random() * 3;
+      const s = arroyo.saltarines.find((q) => !q.activo);
+      if (s) {
+        const i = 60 + Math.floor(Math.random() * (NP - 120)), p = arroyo.pts[i], tg = arroyo.tan[i];
+        // mejor cerca de Manuel, para que lo vea
+        const iN = indiceArroyo(ninoE.pos.x, ninoE.pos.z);
+        const j = enArroyo(ninoE.pos) && Math.random() < 0.7 ? Math.max(60, Math.min(NP - 60, iN + Math.floor((Math.random() - 0.5) * 60))) : i;
+        const q = arroyo.pts[j], tq = arroyo.tan[j], lat = (Math.random() - 0.5) * arroyo.anchos[j] * 0.6;
+        s.p.set(ARROYO.x + q.x - tq.z * lat, -0.3, ARROYO.z + q.z + tq.x * lat);
+        s.v.set(-tq.x * 2.2 + (Math.random() - 0.5), 5.5 + Math.random() * 1.5, -tq.z * 2.2 + (Math.random() - 0.5));
+        s.activo = true;
+        s.g.visible = true;
+        s.salido = false;
+      }
+    }
+    arroyo.saltarines.forEach((s) => {
+      if (!s.activo) return;
+      s.v.y -= 9.8 * dt;
+      s.p.addScaledVector(s.v, dt);
+      s.g.position.copy(s.p);
+      s.g.lookAt(s.p.x + s.v.x, s.p.y + s.v.y, s.p.z + s.v.z);
+      s.cola.rotation.y = Math.sin(t * 25) * 0.6;
+      if (!s.salido && s.p.y > 0) {
+        s.salido = true;
+        salpicar(new V3(s.p.x, 0.05, s.p.z), 14);
+        if (enArroyo(ninoE.pos) && s.p.distanceTo(ninoE.pos) < 18) {
+          arroyo.vistos++;
+          sumarNino('arroyo');
+          if (arroyo.vistos <= 5) ninoDice(['¡Un pez ha saltado!', '¡Mira, otro!', '¡Qué alto salta!', '¡Hala, otro pez!', '¡Brilla mucho!'][(arroyo.vistos - 1) % 5], 1.6);
+        }
+      }
+      if (s.salido && s.p.y < 0 && s.v.y < 0) {
+        salpicar(new V3(s.p.x, 0.05, s.p.z), 18);
+        notas([[300, 0, 0.12], [180, 0.05, 0.15]], 'sine', 0.05);
+        s.activo = false;
+        s.g.visible = false;
+      }
+    });
+    // hojas: caen bailando, flotan y la corriente se las lleva; en el suelo descansan un rato
+    const H = arroyo.hojas, mm = new THREE.Matrix4(), qq = new THREE.Quaternion(), esc = new V3(1, 1, 1);
+    arroyo.hojasDatos.forEach((h, k) => {
+      h.t += dt;
+      if (h.estado === 'cae') {
+        h.p.x += Math.sin(t * 1.7 + h.fase) * 0.9 * dt + 0.3 * dt;
+        h.p.z += Math.cos(t * 1.3 + h.fase) * 0.7 * dt;
+        h.p.y -= (0.7 + 0.3 * Math.sin(t * 2 + h.fase)) * dt;
+        h.rot.set(Math.sin(t * h.giro.x + h.fase) * 1.2, t * h.giro.y, Math.cos(t * h.giro.z + h.fase) * 0.9);
+        const suelo0 = hArroyo(h.p.x, h.p.z);
+        if (h.p.y <= Math.max(0.02, suelo0 + 0.02)) {
+          if (suelo0 < 0) { h.estado = 'flota'; h.p.y = 0.03; h.t = 0; }
+          else { h.estado = 'suelo'; h.p.y = suelo0 + 0.03; h.t = 0; h.rot.set(-Math.PI / 2, h.fase, 0); }
+        }
+      } else if (h.estado === 'flota') {
+        corriente(h.p.x, h.p.z, _f);
+        // las rocas apartan las hojas
+        for (const r of arroyo.rocas) { const dx = h.p.x - r.x, dz = h.p.z - r.z, d = Math.hypot(dx, dz); if (d < r.r * 1.4) { _f.x += dx / d * 1.2; _f.z += dz / d * 1.2; } }
+        h.p.x += (_f.x + Math.sin(t + h.fase) * 0.15) * dt;
+        h.p.z += (_f.z + Math.cos(t * 0.8 + h.fase) * 0.15) * dt;
+        h.p.y = 0.03 + Math.sin(t * 2.5 + h.fase) * 0.015;
+        h.rot.set(-Math.PI / 2 + Math.sin(t * 2 + h.fase) * 0.08, 0, t * 0.3 + h.fase);
+        const i = indiceArroyo(h.p.x, h.p.z);
+        if (i >= NP - 4 || hArroyo(h.p.x, h.p.z) > 0.05 || h.t > 120) soltarHoja(h);
+      } else if (h.t > 10) soltarHoja(h);
+      qq.setFromEuler(h.rot);
+      mm.compose(h.p, qq, esc);
+      H.setMatrixAt(k, mm);
+    });
+    H.instanceMatrix.needsUpdate = true;
+    // luciérnagas
+    const posL = arroyo.luciernagas.geometry.attributes.position;
+    arroyo.lucesDatos.forEach((l, k) => {
+      posL.setXYZ(k, l.base.x + Math.sin(t * 0.7 + l.f) * 1.2, l.base.y + Math.sin(t * 1.3 + l.f * 2) * 0.4, l.base.z + Math.cos(t * 0.6 + l.f) * 1.2);
+    });
+    posL.needsUpdate = true;
+    arroyo.luciernagas.material.size = 0.35 + 0.1 * Math.sin(t * 3);
+    // mariposas
+    arroyo.mariposas.forEach((b) => {
+      const a = t * 0.4 + b.f;
+      b.g.position.set(b.c.x + Math.cos(a) * 4 + Math.sin(a * 2.3) * 1.5, hArroyo(b.c.x, b.c.z) + 1.2 + Math.sin(a * 3) * 0.5, b.c.z + Math.sin(a) * 4);
+      b.g.rotation.y = -a;
+      const ala = Math.sin(t * 18 + b.f) * 1.1;
+      b.a1.rotation.y = ala;
+      b.a2.rotation.y = -ala;
+    });
+    // al andar por el agua, Manuel y Drako salpican
+    arroyo.tPasos = (arroyo.tPasos || 0) - dt;
+    if (arroyo.tPasos <= 0) {
+      arroyo.tPasos = 0.22;
+      if (enArroyo(ninoE.pos) && hArroyo(ninoE.pos.x, ninoE.pos.z) < -0.05 && ninoE.pos.y < 0.35 && (ninoE.vel || 0) > 0.4) salpicar(new V3(ninoE.pos.x, 0.05, ninoE.pos.z), 4);
+      if (enArroyo(estado.pos) && hArroyo(estado.pos.x, estado.pos.z) < -0.05 && estado.pos.y < 0.3) salpicar(new V3(estado.pos.x, 0.05, estado.pos.z), 2);
+    }
+  }
+
+
   // ---------- Bucle principal ----------
   const reloj = new THREE.Clock();
   let autopiloto = false;
@@ -11556,6 +12295,10 @@
       irNumeros: () => irANumeros(),
       irPistas: () => irAJuguetes(),
       irFeria: () => irAFeria(),
+      irArroyo: () => irAlArroyo(),
+      arroyo: () => ({ vistos: arroyo.vistos, pos: ninoE.pos.toArray().map((v) => +v.toFixed(2)), nadando: ninoE.nadando, h: +hArroyo(ninoE.pos.x, ninoE.pos.z).toFixed(2),
+        flotando: arroyo.hojasDatos.filter((h) => h.estado === 'flota').length, cayendo: arroyo.hojasDatos.filter((h) => h.estado === 'cae').length,
+        saltando: arroyo.saltarines.filter((q) => q.activo).length }),
       feria: () => ({ montadas: [...feria.montadas], modo: ninoE.modo, atr: ninoE.atr && ninoE.atr.tipo, choques: feria.choque && feria.choque.choques,
         rusa: feria.rusa && feria.rusa.viaje && { s: +feria.rusa.s.toFixed(1), v: +feria.rusa.v.toFixed(1) }, torre: feria.torre && feria.torre.viaje && feria.torre.viaje.fase,
         pos: ninoE.pos.toArray().map((v) => +v.toFixed(1)) }),
@@ -11831,6 +12574,7 @@
         actualizarNumeros(dt);
         actualizarJuguetes(dt);
         actualizarFeria(dt);
+        actualizarArroyo(dt);
       }
       actualizarSalpicaduras(dt);
       actualizarBotonAccion();
