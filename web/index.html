@@ -514,6 +514,92 @@
     .fichas.coches { grid-template-columns: repeat(2, 1fr); }
     .fichas.pistas { grid-template-columns: repeat(2, 1fr); }
   }
+  /* ---------- Pueblo de los números ---------- */
+  body.en-mates .acciones, body.en-mates .joystick, body.en-mates .ayuda { display: none; }
+  .mates {
+    position: fixed;
+    left: 50%;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    transform: translateX(-50%);
+    width: min(520px, calc(100% - 32px));
+    max-height: calc(100vh - 24px);
+    overflow-y: auto;
+    display: grid;
+    gap: 8px;
+    padding: 12px 16px 16px;
+    border-radius: 22px;
+    background: var(--cristal);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 28px rgba(18, 59, 74, 0.28);
+  }
+  .mates[hidden], .mates-banner[hidden] { display: none; }
+  .mates-cab { display: flex; align-items: center; gap: 8px; }
+  .mates-cab strong { flex: 1; font: 800 21px/1.1 "Baloo 2", "Nunito", system-ui, sans-serif; }
+  .mates-voz, .mates-salir {
+    border: 0;
+    border-radius: 999px;
+    padding: 6px 12px;
+    font: 700 15px "Nunito", system-ui, sans-serif;
+    color: var(--tinta);
+    background: var(--arena);
+    cursor: pointer;
+  }
+  .mates-cuerpo { display: grid; gap: 10px; }
+  .mates-ayuda, .mates-carrito { margin: 0; font-size: 15px; color: var(--tinta-suave); text-align: center; }
+  .mates-niveles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .mates-nivel {
+    display: grid;
+    gap: 2px;
+    justify-items: center;
+    padding: 12px 6px;
+    border: 0;
+    border-radius: 16px;
+    color: #fffdf6;
+    font: 600 13px "Nunito", system-ui, sans-serif;
+    cursor: pointer;
+  }
+  .mates-nivel strong { font: 800 22px "Baloo 2", "Nunito", sans-serif; }
+  .mates-nivel em { font-style: normal; font-size: 16px; letter-spacing: 1px; }
+  .mates-nivel.n1 { background: #3dbe4a; box-shadow: 0 4px 0 #278a33; }
+  .mates-nivel.n2 { background: #ff8c1a; box-shadow: 0 4px 0 #c46a0e; }
+  .mates-nivel.n3 { background: #e8322a; box-shadow: 0 4px 0 #a8200f; }
+  .mates-progreso { display: flex; justify-content: center; gap: 6px; }
+  .mates-progreso i { width: 14px; height: 14px; border-radius: 50%; background: #d8cdb3; }
+  .mates-progreso i.hecha { background: var(--hecho); }
+  .mates-progreso i.actual { background: var(--coral); }
+  .mates-pregunta, .mates-final { margin: 0; text-align: center; font: 800 28px/1.15 "Baloo 2", "Nunito", sans-serif; }
+  .mates-final { font-size: 34px; color: var(--hecho); }
+  .mates-estrellas { margin: 0; text-align: center; font-size: 40px; }
+  .mates-dibujo { width: 100%; height: auto; aspect-ratio: 440 / 200; border-radius: 16px; background: #fffdf7; }
+  .mates-opciones { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .mates-opciones.o2 { grid-template-columns: repeat(2, 1fr); }
+  .mates-opciones.o3 { grid-template-columns: repeat(3, 1fr); }
+  .mates-opcion, .mates-botones button {
+    min-height: 64px;
+    border: 0;
+    border-radius: 16px;
+    font: 800 32px "Baloo 2", "Nunito", sans-serif;
+    color: #fffdf6;
+    background: var(--mar);
+    box-shadow: 0 4px 0 var(--mar-osc);
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .mates-opcion:active { transform: translateY(3px); box-shadow: none; }
+  .mates-opcion.bien { background: var(--hecho); box-shadow: 0 4px 0 #1f6e49; }
+  .mates-opcion.mal { background: #c9c2b2; box-shadow: none; animation: temblar 0.3s; }
+  @keyframes temblar { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+  @media (prefers-reduced-motion: reduce) { .mates-opcion.mal { animation: none; } }
+  .mates-botones { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .mates-botones button { font-size: 20px; }
+  .mates-botones .mates-cambiar { color: var(--tinta); background: var(--arena); box-shadow: 0 4px 0 #c9bfa6; }
+  .mates-voz:focus-visible, .mates-salir:focus-visible, .mates-nivel:focus-visible, .mates-opcion:focus-visible, .mates-botones button:focus-visible { outline: 3px solid var(--tinta); outline-offset: 2px; }
+  .mates-banner { top: 34% !important; font-size: 24px !important; }
+  @media (max-width: 520px) {
+    .mates-pregunta { font-size: 24px; }
+    .mates-opcion { min-height: 56px; font-size: 28px; }
+  }
 </style>
 
 <canvas id="escena" aria-label="Playa en 3D con Drako, un perro bretón, y Manuel, que juegan con un balón"></canvas>
@@ -645,6 +731,7 @@
   function suelo(x, z, yActual) {
     if (x > 500) return lechoArrecife(x, z);  // el arrecife, mar adentro
     if (x < -500) return 0.02;                // el circuito de karts, tierra adentro
+    if (z < -400) return 0.02;                // el pueblo de los números, tras las dunas
     let h = altura(x, -z);
     if (sobreMuelle(x, z) && (yActual === undefined || yActual > MUELLE.y - 0.45)) h = Math.max(h, MUELLE.y);
     for (const pl of plataformas) {
@@ -1136,9 +1223,9 @@
   // Papá y mamá (hechos en Blender con Padres.py); si faltan, se usan los muñecos sencillos
   const cargarOpcional = (n) => cargar(n).catch(() => null);
   Promise.all([cargar('playa.glb'), cargar('perro.glb'), cargar('nino.glb'), cargarOpcional('papa.glb'), cargarOpcional('mama.glb'),
-    cargarOpcional('arrecife.glb'), cargarOpcional('coches.glb'), cargarOpcional('pistas.glb'),
+    cargarOpcional('arrecife.glb'), cargarOpcional('coches.glb'), cargarOpcional('pistas.glb'), cargarOpcional('numeros.glb'),
     cargarOpcional('amigo1.glb'), cargarOpcional('amigo2.glb'), cargarOpcional('amigo3.glb'), cargarOpcional('amigo4.glb')])
-    .then(([playa, gPerro, gNino, gPapa, gMama, gArrecife, gCoches, gPistas, ...gAmigos]) => {
+    .then(([playa, gPerro, gNino, gPapa, gMama, gArrecife, gCoches, gPistas, gNumeros, ...gAmigos]) => {
     prepararPlaya(playa);
     prepararPerro(gPerro);
     prepararNino(gNino);
@@ -1149,6 +1236,7 @@
     construirArrecife(gArrecife);
     construirCoche(gCoches);
     if (gCoches && gPistas) construirCircuito(gAmigos, gPistas);
+    try { construirNumeros(gNumeros); } catch (e) { console.error('Pueblo de los números:', e); }
     parque.toboganes.forEach((t) => {
       if (t.aro) return;
       const aro = new THREE.Mesh(new THREE.RingGeometry(0.4, 0.6, 32), new THREE.MeshBasicMaterial({ color: '#ffd42a', side: THREE.DoubleSide, transparent: true, opacity: 0.85 }));
@@ -1402,6 +1490,10 @@
     } else if (pos.x < -500) {
       pos.x = clamp(pos.x, CIRC.x - 150, CIRC.x + 150);
       pos.z = clamp(pos.z, CIRC.z - 110, CIRC.z + 160);
+    } else if (pos.z < -400) {
+      // En el pueblo de los números
+      const dx = pos.x - NUM.x, dz = pos.z - NUM.z, d = Math.hypot(dx, dz);
+      if (d > 46) { pos.x = NUM.x + dx / d * 46; pos.z = NUM.z + dz / d * 46; }
     } else {
       pos.x = clamp(pos.x, -LIMITE_X, LIMITE_X);
       pos.z = clamp(pos.z, LIMITE_Z0, LIMITE_Z1);
@@ -2095,6 +2187,7 @@
     if (E.modo === 'bucear') { zona = 'agua'; texto = `Buceando · ${Math.max(0, Math.round(-E.pos.y))} m`; }
     else if (E.modo === 'atraccion' && E.atr && E.atr.tipo === 'coche') texto = `Conduciendo · ${Math.round(Math.abs(E.atr.vehiculo.vel) * 3.6)} km/h`;
     else if (enCircuito(E.pos)) texto = circuito.fase === 'carrera' || circuito.fase === 'cuenta' ? `${circuito.pista ? circuito.pista.def.nombre : 'Carrera'} · ${Math.round(Math.abs(circuito.yo ? circuito.yo.vel : 0) * 3.6)} km/h` : 'En el circuito de karts';
+    else if (enNumeros(E.pos)) texto = numeros.rayuela ? 'Saltando a los números' : numeros.juego ? 'Jugando con los números' : `Pueblo de los números · 🛒 ${numeros.carga.length}/${MAX_CARRITO}`;
     else if (E.modo === 'tobogan') { zona = 'agua'; texto = '¡Bajando por el tobogán!'; }
     else if (E.modo === 'volando') { zona = 'agua'; texto = '¡Volando!'; }
     else if (E.modo === 'pescar') { zona = 'muelle'; texto = 'Pescando en el muelle'; }
@@ -2817,6 +2910,22 @@
       objetivo: () => (coches.conduciendo || !coches.coche ? PUERTA_CIRCUITO : new V3(coches.coche.x, coches.coche.y, coches.coche.z)) },
     { id: 'carrera', titulo: 'Corre con tus amigos y queda entre los 3 primeros', total: 1, cuenta: 0,
       objetivo: () => (!enCircuito(ninoE.pos) ? PUERTA_CIRCUITO : circuito.fase === 'paddock' && circuito.amigos[0] ? circuito.amigos[0].grupo.position : null) },
+    { id: 'mates', titulo: 'Ve al pueblo de los números (arco junto a la casa) y supera los 11 juegos', total: 11, cuenta: 0,
+      objetivo: () => {
+        if (!enNumeros(ninoE.pos)) return PUERTA_NUMEROS;
+        const p = numeros.puestos.find((q) => !mejorEstrella(q.juego.id));
+        return p ? p.sitio : !mejorEstrella('rayuela') ? new V3(NUM.x, 0, NUM.z) : null;
+      } },
+    { id: 'regalos', titulo: 'Gana regalos y lleva 9 juguetes a tu cuarto en el carrito (caben 3)', total: 9, cuenta: 0,
+      objetivo: () => {
+        if (numeros.carga.length >= MAX_CARRITO || (numeros.carga.length && !enNumeros(ninoE.pos))) {
+          if (enNumeros(ninoE.pos)) return new V3(NUM.x, 0, NUM.z + 42.5);
+          return estaDentro(ninoE.pos) ? new V3(INT.x + 6.6, INT.y, INT.z - 0.3) : dentro.puertaFuera;
+        }
+        if (!enNumeros(ninoE.pos)) return PUERTA_NUMEROS;
+        const p = numeros.puestos[numeros.guardados.length % numeros.puestos.length];
+        return p.sitio;
+      } },
     { id: 'copas', titulo: 'Gana una copa (podio) en los 4 circuitos: verde, ciudad, playa y bosque', total: 4, cuenta: 0,
       objetivo: () => (!enCircuito(ninoE.pos) ? PUERTA_CIRCUITO : circuito.fase === 'paddock' && circuito.amigos[0] ? circuito.amigos[0].grupo.position : null) },
   ];
@@ -2824,7 +2933,8 @@
   const hechaNino = (id) => { const m = misionPor(id); return m && m.cuenta >= m.total; };
   let buceando = false;  // bajo el agua, la tarea que se ve es la del arrecife
   const misionNino = () => (buceando && !hechaNino('arrecife') ? misionPor('arrecife') :
-    enCircuito(ninoE.pos) && !hechaNino('carrera') ? misionPor('carrera') : enCircuito(ninoE.pos) && !hechaNino('copas') ? misionPor('copas') : MISIONES_NINO.find((m) => m.cuenta < m.total) || null);
+    enCircuito(ninoE.pos) && !hechaNino('carrera') ? misionPor('carrera') : enCircuito(ninoE.pos) && !hechaNino('copas') ? misionPor('copas') :
+    enNumeros(ninoE.pos) && !hechaNino('mates') ? misionPor('mates') : enNumeros(ninoE.pos) && !hechaNino('regalos') ? misionPor('regalos') : MISIONES_NINO.find((m) => m.cuenta < m.total) || null);
   function masCercanoA(lista, desde) {
     let mejor = null, d = Infinity;
     for (const p of lista) {
@@ -7274,7 +7384,7 @@
       return;
     }
     if (circuito.ocultos) return;
-    const quedan = new Set([circuito.paddock, ...Object.values(circuito.pistas).map((q) => q.grupo), ...circuito.amigos.map((p) => p.grupo)]);
+    const quedan = new Set([nino.grupo, perro, circuito.paddock, ...Object.values(circuito.pistas).map((q) => q.grupo), ...circuito.amigos.map((p) => p.grupo)]);
     const caja = new THREE.Box3();
     circuito.ocultos = [];
     scene.children.forEach((o) => {
@@ -7910,6 +8020,1203 @@
 
 
 
+  // =====================================================================
+  // ---------- El pueblo de los números: juegos de matemáticas y regalos ----------
+  // =====================================================================
+  // Personajes de bloques, juguetes, regalos, carrito y decoración: Numeros.py (numeros.glb)
+  const NUM = new V3(0, 0, -700);              // el pueblo está lejos, tras las dunas
+  const enNumeros = (p) => p.z < -400 && p.x > -500 && p.x < 500;
+  const PUERTA_NUMEROS = new V3(25, 0, -45);   // arco en las dunas, al lado de la casa
+  const LLEGADA_NUMEROS = new V3(NUM.x, 0, NUM.z + 36);
+  const MAX_CARRITO = 3;
+  const COLOR_NUMERO = ['#ffffff', '#ee3b33', '#ff8c1a', '#ffd21f', '#3dbe4a', '#2cb7e6', '#6b52d9', '#8e4fd6', '#e64aa6', '#8f9aa6', '#e8322a'];
+  const ARCOIRIS_N = ['#ee3b33', '#ff8c1a', '#ffd21f', '#3dbe4a', '#2cb7e6', '#3a64d8', '#8e4fd6'];
+  const FORMAS_N = { 1: [1, 1], 2: [1, 2], 3: [1, 3], 4: [1, 4], 5: [1, 5], 6: [2, 3], 7: [1, 7], 8: [2, 4], 9: [3, 3], 10: [2, 5] };
+  const JUGUETES = [
+    { id: 'Pelota', nombre: 'una pelota', nivel: 1 }, { id: 'Patito', nombre: 'un patito', nivel: 1 },
+    { id: 'Peonza', nombre: 'una peonza', nivel: 1 }, { id: 'Tambor', nombre: 'un tambor', nivel: 1 },
+    { id: 'Xilofono', nombre: 'un xilófono', nivel: 1 }, { id: 'Cochecito', nombre: 'un cochecito', nivel: 1 },
+    { id: 'Osito', nombre: 'un osito', nivel: 2 }, { id: 'Tren', nombre: 'un tren', nivel: 2 },
+    { id: 'Barquito', nombre: 'un barquito', nivel: 2 }, { id: 'Avion', nombre: 'un avión', nivel: 2 },
+    { id: 'CuboMagico', nombre: 'un cubo mágico', nivel: 2 }, { id: 'Robot', nombre: 'un robot', nivel: 3 },
+    { id: 'Cohete', nombre: 'un cohete', nivel: 3 }, { id: 'Dinosaurio', nombre: 'un dinosaurio', nivel: 3 },
+    { id: 'Trofeo', nombre: 'una copa de oro', nivel: 3 },
+  ];
+  const NIVELES = [
+    { n: 1, nombre: 'Fácil', detalle: 'hasta 5' },
+    { n: 2, nombre: 'Medio', detalle: 'hasta 10' },
+    { n: 3, nombre: 'Difícil', detalle: 'hasta 20' },
+  ];
+  const numeros = {
+    listo: false, piezas: {}, grupo: new THREE.Group(), puestos: [], paseantes: [], globos: [], carrito: null,
+    tieneCarrito: false, carga: [], guardados: [], estrellas: {}, juego: null, rayuela: null, regalos: [], voz: true,
+    estantes: [], ocultos: null,
+  };
+
+  // ---------- Utilidades de azar y de números ----------
+  const azarEntre = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+  const barajar = (l) => { for (let i = l.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [l[i], l[j]] = [l[j], l[i]]; } return l; };
+  function opcionesNum(bien, cuantas, min, max) {
+    const s = new Set([bien]);
+    const cerca = barajar([bien - 1, bien + 1, bien - 2, bien + 2, bien + 3, bien - 3]);
+    for (const v of cerca) { if (s.size >= cuantas) break; if (v >= min && v <= max) s.add(v); }
+    while (s.size < cuantas) s.add(azarEntre(min, max));
+    return barajar([...s]);
+  }
+
+  // ---------- Dibujos en el lienzo de la pregunta ----------
+  // Un personaje de bloques de n (hasta 10); devuelve su ancho
+  function torre2D(c, n, x, base, t, opciones = {}) {
+    const [cols, filas] = FORMAS_N[n];
+    for (let f = 0; f < filas; f++) for (let k = 0; k < cols; k++) {
+      const i = f * cols + k;
+      const col = n === 7 ? ARCOIRIS_N[f] : n === 10 ? '#f6f6f2' : COLOR_NUMERO[n];
+      const X = x + k * t, Y = base - (f + 1) * t;
+      const tachado = opciones.quitar && i >= n - opciones.quitar;
+      c.globalAlpha = tachado ? 0.28 : 1;
+      c.fillStyle = col;
+      c.fillRect(X + 1, Y + 1, t - 2, t - 2);
+      c.lineWidth = Math.max(2, t * 0.12);
+      c.strokeStyle = n === 10 ? '#e8322a' : 'rgba(0,0,0,0.28)';
+      c.strokeRect(X + 2, Y + 2, t - 4, t - 4);
+      if (tachado) {
+        c.globalAlpha = 0.9;
+        c.strokeStyle = '#e8322a';
+        c.lineWidth = 3;
+        c.beginPath(); c.moveTo(X + 4, Y + 4); c.lineTo(X + t - 4, Y + t - 4); c.moveTo(X + t - 4, Y + 4); c.lineTo(X + 4, Y + t - 4); c.stroke();
+      }
+    }
+    c.globalAlpha = 1;
+    // cara en el bloque de arriba
+    const ancho = cols * t, cy = base - filas * t + t * 0.45, cx = x + ancho / 2;
+    [-1, 1].forEach((l) => {
+      c.fillStyle = '#fff';
+      c.beginPath(); c.ellipse(cx + l * t * 0.2, cy, t * 0.14, t * 0.17, 0, 0, Math.PI * 2); c.fill();
+      c.fillStyle = '#1a1d24';
+      c.beginPath(); c.arc(cx + l * t * 0.2, cy + t * 0.03, t * 0.08, 0, Math.PI * 2); c.fill();
+    });
+    c.strokeStyle = '#7a1e22';
+    c.lineWidth = Math.max(1.5, t * 0.06);
+    c.beginPath(); c.arc(cx, cy + t * 0.12, t * 0.13, 0.15 * Math.PI, 0.85 * Math.PI); c.stroke();
+    return ancho;
+  }
+  // Números de más de 10: un diez y lo que sobra
+  function torreGrande(c, n, x, base, t) {
+    let w = 0;
+    if (n > 10) { w += torre2D(c, 10, x, base, t) + t * 0.4; n -= 10; }
+    if (n > 0) w += torre2D(c, n, x + w, base, t);
+    return w;
+  }
+  function anchoTorre(n, t) {
+    if (n > 10) return 2 * t + t * 0.4 + FORMAS_N[n - 10][0] * t;
+    return FORMAS_N[n][0] * t;
+  }
+  function textoGrande(c, txt, x, y, tam, col = '#123b4a') {
+    c.fillStyle = col;
+    c.font = `800 ${tam}px "Baloo 2", "Nunito", sans-serif`;
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.fillText(txt, x, y);
+  }
+  // Varios dibujos en fila, centrados (cada uno: {w, pinta(x)})
+  function enFila(c, W, piezas, sep = 18) {
+    const total = piezas.reduce((s, p) => s + p.w, 0) + sep * (piezas.length - 1);
+    let x = (W - total) / 2;
+    piezas.forEach((p) => { p.pinta(x); x += p.w + sep; });
+  }
+  const pTorre = (c, n, base, t, o) => ({ w: n > 10 ? anchoTorre(n, t) : FORMAS_N[n][0] * t, pinta: (x) => (n > 10 ? torreGrande(c, n, x, base, t) : torre2D(c, n, x, base, t, o)) });
+  const pTexto = (c, txt, y, tam, col) => { c.font = `800 ${tam}px "Baloo 2", sans-serif`; return { w: c.measureText(txt).width, pinta: (x) => { textoGrande(c, txt, x + c.measureText(txt).width / 2, y, tam, col); } }; };
+  function dibujarCosas(c, W, H, n, emoji) {
+    const filas = n > 10 ? 4 : n > 5 ? 2 : 1, porFila = Math.ceil(n / filas) > 5 && n <= 10 ? 5 : n > 10 ? 5 : n;
+    const tam = n > 10 ? 26 : 38;
+    c.font = `${tam}px sans-serif`;
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    const grupos = Math.ceil(n / 5);
+    for (let i = 0; i < n; i++) {
+      let gx, gy;
+      if (n <= 5) { gx = (i - (n - 1) / 2) * (tam + 14); gy = 0; }
+      else if (n <= 10) { gx = ((i % 5) - 2) * (tam + 12); gy = (Math.floor(i / 5) - 0.5) * (tam + 14); }
+      else { const g = Math.floor(i / 5), k = i % 5; gx = ((g % 2) - 0.5) * (5 * (tam + 4) + 24) + (k - 2) * (tam + 4); gy = (Math.floor(g / 2) - (Math.ceil(grupos / 2) - 1) / 2) * (tam + 10); }
+      c.fillText(emoji, W / 2 + gx, H / 2 + gy);
+    }
+    return porFila + filas;
+  }
+  function marco10(c, x, y, total, llenos, t) {
+    const cols = 5, filas = total / 5;
+    for (let i = 0; i < total; i++) {
+      const X = x + (i % cols) * t + (i >= 10 ? 0 : 0), f = Math.floor(i / cols), Y = y + f * t + (f >= 2 ? t * 0.35 : 0);
+      c.fillStyle = '#fffdf7';
+      c.fillRect(X, Y, t, t);
+      c.strokeStyle = '#123b4a';
+      c.lineWidth = 2;
+      c.strokeRect(X, Y, t, t);
+      if (i < llenos) {
+        c.fillStyle = COLOR_NUMERO[5];
+        c.beginPath(); c.arc(X + t / 2, Y + t / 2, t * 0.36, 0, Math.PI * 2); c.fill();
+      }
+    }
+    return filas;
+  }
+  function moneda(c, x, y, v) {
+    const r = v >= 10 ? 26 : v >= 5 ? 23 : v >= 2 ? 20 : 17;
+    c.fillStyle = v >= 5 ? '#d9b44a' : '#e8c35a';
+    c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = '#a67c1a';
+    c.lineWidth = 3;
+    c.stroke();
+    textoGrande(c, String(v), x, y + 1, r * 1.05, '#6b4a00');
+    return r;
+  }
+
+  // ---------- Los juegos ----------
+  // Cada juego genera preguntas según el nivel: { texto, dibujo(c, W, H), opciones, bien, etiqueta? }
+  const EMOJIS = ['🍎', '⭐', '🐟', '🌸', '🐞', '🎈', '🍓', '🐥', '🍪', '🦋'];
+  const JUEGOS = [
+    { id: 'contar', nombre: 'Cuenta conmigo', host: 1, icono: '🍎', ayuda: 'Cuenta las cosas',
+      generar: (nv) => {
+        const n = nv === 1 ? azarEntre(1, 5) : nv === 2 ? azarEntre(4, 10) : azarEntre(10, 20);
+        const e = EMOJIS[azarEntre(0, EMOJIS.length - 1)];
+        return { texto: '¿Cuántos hay?', dibujo: (c, W, H) => dibujarCosas(c, W, H, n, e), opciones: opcionesNum(n, nv === 1 ? 3 : 4, 1, 20), bien: n };
+      } },
+    { id: 'quien', nombre: '¿Quién soy?', host: 2, icono: '🧱', ayuda: 'Mira los bloques y di el número',
+      generar: (nv) => {
+        const n = nv === 1 ? azarEntre(1, 5) : nv === 2 ? azarEntre(1, 10) : azarEntre(11, 20);
+        return { texto: '¿Qué número es?', dibujo: (c, W, H) => enFila(c, W, [pTorre(c, n, H - 8, nv === 3 ? 24 : 26)]), opciones: opcionesNum(n, nv === 1 ? 3 : 4, 1, 20), bien: n };
+      } },
+    { id: 'sumar', nombre: 'Juntamos bloques', host: 3, icono: '➕', ayuda: 'Suma los dos números',
+      generar: (nv) => {
+        const tot = nv === 1 ? azarEntre(2, 5) : nv === 2 ? azarEntre(5, 10) : azarEntre(11, 18);
+        const a = nv === 3 ? azarEntre(tot - 9, 9) : azarEntre(1, tot - 1), b = tot - a;
+        return { texto: `${a} + ${b} = ?`, voz: `¿Cuánto es ${a} más ${b}?`,
+          dibujo: (c, W, H) => enFila(c, W, [pTorre(c, a, H - 8, 22), pTexto(c, '+', H / 2, 46), pTorre(c, b, H - 8, 22)]),
+          opciones: opcionesNum(tot, 4, 1, 20), bien: tot };
+      } },
+    { id: 'restar', nombre: 'Se van bloques', host: 4, icono: '➖', ayuda: 'Quita y cuenta los que quedan',
+      generar: (nv) => {
+        const a = nv === 1 ? azarEntre(2, 5) : nv === 2 ? azarEntre(4, 10) : azarEntre(11, 19);
+        const b = nv === 3 ? azarEntre(2, 9) : azarEntre(1, a - 1);
+        const r = a - b;
+        return { texto: `${a} − ${b} = ?`, voz: `¿Cuánto es ${a} menos ${b}?`,
+          dibujo: (c, W, H) => (a <= 10 ? enFila(c, W, [pTorre(c, a, H - 8, 24, { quitar: b })]) :
+            enFila(c, W, [pTorre(c, a, H - 8, 20), pTexto(c, '−', H / 2, 46, '#e8322a'), pTexto(c, String(b), H / 2, 52, '#e8322a')])),
+          opciones: opcionesNum(r, 4, 0, 20), bien: r };
+      } },
+    { id: 'amigos', nombre: 'Amigos del 10', host: 5, icono: '🤝', ayuda: '¿Cuántos faltan para llenar?',
+      generar: (nv) => {
+        const N = nv === 1 ? 5 : nv === 2 ? 10 : 20, k = azarEntre(nv === 3 ? 6 : 1, N - 1);
+        return { texto: `¿Cuántos faltan para ${N}?`, voz: `Hay ${k}. ¿Cuántos faltan para ${N}?`,
+          dibujo: (c, W, H) => { const t = N === 20 ? 30 : 38; marco10(c, (W - 5 * t) / 2, N === 5 ? H / 2 - t / 2 : N === 10 ? H / 2 - t : 8, N, k, t); },
+          opciones: opcionesNum(N - k, 4, 0, 20), bien: N - k };
+      } },
+    { id: 'mayor', nombre: '¿Cuál es más grande?', host: 6, icono: '⚖️', ayuda: 'Compara los números',
+      generar: (nv) => {
+        let a = nv === 1 ? azarEntre(1, 5) : nv === 2 ? azarEntre(1, 10) : azarEntre(10, 50), b;
+        do { b = nv === 1 ? azarEntre(1, 5) : nv === 2 ? azarEntre(1, 10) : azarEntre(10, 50); } while (b === a);
+        const grande = Math.random() < 0.6;
+        const bien = grande ? Math.max(a, b) : Math.min(a, b);
+        return { texto: grande ? '¿Cuál es más grande?' : '¿Cuál es más pequeño?',
+          dibujo: (c, W, H) => (nv < 3 ? enFila(c, W, [pTorre(c, a, H - 8, 22), pTexto(c, '?', H / 2, 40, '#8f9aa6'), pTorre(c, b, H - 8, 22)], 40) :
+            enFila(c, W, [pTexto(c, String(a), H / 2, 80, COLOR_NUMERO[(a % 9) + 1]), pTexto(c, String(b), H / 2, 80, COLOR_NUMERO[((b + 4) % 9) + 1])], 70)),
+          opciones: [a, b], bien };
+      } },
+    { id: 'falta', nombre: '¿Qué número falta?', host: 7, icono: '🔢', ayuda: 'Completa la fila de números',
+      generar: (nv) => {
+        const paso = nv === 3 ? [2, 5, 10][azarEntre(0, 2)] : 1;
+        const baja = nv === 2 && Math.random() < 0.35;
+        const inicio = nv === 1 ? azarEntre(1, 2) : nv === 2 ? azarEntre(0, 6) : paso * azarEntre(0, 3);
+        let fila = [0, 1, 2, 3, 4].map((i) => inicio + i * paso);
+        if (baja) fila = fila.reverse();
+        const hueco = azarEntre(1, 3);
+        const bien = fila[hueco];
+        return { texto: '¿Qué número falta?', voz: paso > 1 ? `Contamos de ${paso} en ${paso}. ¿Qué número falta?` : '¿Qué número falta?',
+          dibujo: (c, W, H) => {
+            const t = 58, x0 = (W - 5 * t - 4 * 8) / 2;
+            fila.forEach((v, i) => {
+              const x = x0 + i * (t + 8), y = H / 2 - t / 2;
+              c.fillStyle = i === hueco ? '#fffdf7' : ARCOIRIS_N[i % 7];
+              c.fillRect(x, y, t, t);
+              c.strokeStyle = '#123b4a';
+              c.lineWidth = 3;
+              if (i === hueco) c.setLineDash([6, 5]);
+              c.strokeRect(x, y, t, t);
+              c.setLineDash([]);
+              textoGrande(c, i === hueco ? '?' : String(v), x + t / 2, y + t / 2 + 2, 34, i === hueco ? '#e8322a' : '#fff');
+            });
+          },
+          opciones: paso > 1 ? barajar([...new Set([bien, bien + paso, Math.abs(bien - paso), bien + 1])]) : opcionesNum(bien, 4, 0, 20), bien };
+      } },
+    { id: 'dobles', nombre: 'Dobles y mitades', host: 8, icono: '👯', ayuda: 'Dos iguales, o partir en dos',
+      generar: (nv) => {
+        const mitad = nv > 1 && Math.random() < 0.4;
+        if (mitad) {
+          const h = nv === 2 ? azarEntre(1, 5) : azarEntre(3, 10);
+          return { texto: `¿Cuál es la mitad de ${2 * h}?`, voz: `¿Cuál es la mitad de ${2 * h}?`,
+            dibujo: (c, W, H) => enFila(c, W, [pTorre(c, 2 * h, H - 8, nv === 3 ? 20 : 22)]),
+            opciones: opcionesNum(h, 4, 1, 20), bien: h };
+        }
+        const d = nv === 1 ? azarEntre(1, 3) : nv === 2 ? azarEntre(1, 5) : azarEntre(5, 10);
+        return { texto: `${d} y ${d} son…`, voz: `El doble de ${d}. ¿Cuánto es ${d} más ${d}?`,
+          dibujo: (c, W, H) => enFila(c, W, [pTorre(c, d, H - 8, 22), pTexto(c, '+', H / 2, 46), pTorre(c, d, H - 8, 22)]),
+          opciones: opcionesNum(2 * d, 4, 1, 20), bien: 2 * d };
+      } },
+    { id: 'pares', nombre: 'Pares y nones', host: 9, icono: '🧦', ayuda: 'Si todos tienen pareja, es par',
+      generar: (nv) => {
+        const n = nv === 1 ? azarEntre(1, 6) : nv === 2 ? azarEntre(1, 10) : azarEntre(11, 30);
+        return { texto: `¿El ${n} es par o impar?`, voz: `¿El ${n} es par o impar?`,
+          dibujo: (c, W, H) => {
+            if (nv === 3) { textoGrande(c, String(n), W / 2, H / 2 + 4, 96, COLOR_NUMERO[(n % 9) + 1]); return; }
+            const pares = Math.ceil(n / 2), t = 34, x0 = (W - pares * (t + 10)) / 2;
+            for (let i = 0; i < n; i++) {
+              const x = x0 + Math.floor(i / 2) * (t + 10) + t / 2, y = H / 2 + (i % 2 ? t * 0.6 : -t * 0.6);
+              c.fillStyle = i % 2 ? COLOR_NUMERO[8] : COLOR_NUMERO[5];
+              c.beginPath(); c.arc(x, y, t * 0.4, 0, Math.PI * 2); c.fill();
+            }
+          },
+          opciones: ['Par', 'Impar'], bien: n % 2 === 0 ? 'Par' : 'Impar' };
+      } },
+    { id: 'tienda', nombre: 'La tienda de monedas', host: 10, icono: '🪙', ayuda: 'Cuenta el dinero',
+      generar: (nv) => {
+        const valores = nv === 1 ? [1] : nv === 2 ? [1, 2] : [1, 2, 5, 10];
+        const tope = nv === 1 ? 5 : nv === 2 ? 10 : 20;
+        const monedas = [];
+        let suma = 0;
+        const cuantas = nv === 1 ? azarEntre(1, 5) : azarEntre(2, 5);
+        for (let i = 0; i < cuantas; i++) {
+          const v = valores[azarEntre(0, valores.length - 1)];
+          if (suma + v > tope) break;
+          monedas.push(v); suma += v;
+        }
+        if (!monedas.length) { monedas.push(1); suma = 1; }
+        monedas.sort((a, b) => b - a);
+        return { texto: '¿Cuánto dinero hay?', etiqueta: (v) => `${v} €`,
+          dibujo: (c, W, H) => { const sep = 62, x0 = W / 2 - (monedas.length - 1) * sep / 2; monedas.forEach((v, i) => moneda(c, x0 + i * sep, H / 2, v)); },
+          opciones: opcionesNum(suma, 4, 1, 20), bien: suma };
+      } },
+    { id: 'rayuela', nombre: 'Salta al número', host: 0, icono: '🦘', ayuda: 'Salta a la baldosa con la respuesta', tresD: true,
+      generar: (nv) => {
+        if (nv === 1) { const n = azarEntre(1, 5); return { texto: `Salta al ${'●'.repeat(n)}`, voz: `Salta al número que tiene ${n === 1 ? 'un punto' : n + ' puntos'}`, bien: n }; }
+        if (nv === 2) { const a = azarEntre(1, 6), b = azarEntre(1, 10 - a); return { texto: `Salta al ${a} + ${b}`, voz: `Salta al ${a} más ${b}`, bien: a + b }; }
+        if (Math.random() < 0.5) { const a = azarEntre(4, 10), b = azarEntre(1, a - 1); return { texto: `Salta al ${a} − ${b}`, voz: `Salta al ${a} menos ${b}`, bien: a - b }; }
+        const k = azarEntre(1, 9); return { texto: `${k} + ? = 10`, voz: `¿Cuánto le falta al ${k} para llegar a 10? Salta a ese número`, bien: 10 - k };
+      } },
+  ];
+  const PREGUNTAS_RONDA = 5;
+
+  // ---------- Guardar (juguetes del cuarto, carrito y estrellas) ----------
+  function guardarNumeros() {
+    try {
+      localStorage.setItem('playa-del-perro-numeros', JSON.stringify({ g: numeros.guardados, c: numeros.carga.map((j) => j.id), e: numeros.estrellas, k: numeros.tieneCarrito }));
+    } catch (e) { /* sin guardar */ }
+  }
+  function cargarGuardado() {
+    try {
+      const d = JSON.parse(localStorage.getItem('playa-del-perro-numeros') || '{}');
+      return { g: Array.isArray(d.g) ? d.g.filter((id) => JUGUETES.some((j) => j.id === id)) : [], c: Array.isArray(d.c) ? d.c.filter((id) => JUGUETES.some((j) => j.id === id)).slice(0, MAX_CARRITO) : [],
+        e: d.e && typeof d.e === 'object' ? d.e : {}, k: !!d.k };
+    } catch (e) { return { g: [], c: [], e: {}, k: false }; }
+  }
+
+  // ---------- Sonidos y voz ----------
+  function notas(lista, tipo = 'triangle', vol = 0.09) {
+    try {
+      const ac = new (window.AudioContext || window.webkitAudioContext)();
+      lista.forEach(([f, t0, d]) => {
+        const o = ac.createOscillator(), g = ac.createGain();
+        o.type = tipo;
+        o.frequency.value = f;
+        g.gain.setValueAtTime(vol, ac.currentTime + t0);
+        g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + t0 + d);
+        o.connect(g).connect(ac.destination);
+        o.start(ac.currentTime + t0);
+        o.stop(ac.currentTime + t0 + d + 0.02);
+      });
+      setTimeout(() => ac.close(), 1500);
+    } catch (e) { /* sin sonido */ }
+  }
+  const sonAcierto = () => notas([[523, 0, 0.15], [659, 0.1, 0.15], [784, 0.2, 0.25]]);
+  const sonFallo = () => notas([[220, 0, 0.18], [196, 0.14, 0.25]], 'sine', 0.08);
+  const sonPremio = () => notas([[523, 0, 0.12], [659, 0.1, 0.12], [784, 0.2, 0.12], [1047, 0.3, 0.4]], 'triangle', 0.1);
+  function hablar(texto) {
+    if (!numeros.voz || !window.speechSynthesis) return;
+    try {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(texto.replace(/−/g, 'menos').replace(/●+/g, ''));
+      u.lang = 'es-ES';
+      u.rate = 0.95;
+      u.pitch = 1.1;
+      speechSynthesis.speak(u);
+    } catch (e) { /* sin voz */ }
+  }
+
+  // ---------- Construcción del pueblo ----------
+  function insignia(n) {
+    const l = document.createElement('canvas');
+    l.width = l.height = 128;
+    const c = l.getContext('2d');
+    c.fillStyle = n === 7 ? '#8e4fd6' : n === 10 ? '#ffffff' : COLOR_NUMERO[n];
+    c.beginPath(); c.arc(64, 64, 58, 0, Math.PI * 2); c.fill();
+    c.lineWidth = 8;
+    c.strokeStyle = n === 10 ? '#e8322a' : '#ffffff';
+    c.stroke();
+    textoGrande(c, String(n), 64, 70, 78, n === 10 || n === 3 ? '#123b4a' : '#ffffff');
+    const t = new THREE.CanvasTexture(l);
+    t.encoding = THREE.sRGBEncoding;
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, toneMapped: false }));
+    s.scale.setScalar(0.6);
+    return s;
+  }
+  function copiaPieza(nombre, color) {
+    const p = numeros.piezas[nombre];
+    if (!p) return new THREE.Group();
+    const mat = color ? p.material.clone() : p.material;
+    if (color) mat.color.set(color);
+    const m = new THREE.Mesh(p.geometry, mat);
+    m.castShadow = true;
+    m.receiveShadow = true;
+    return m;
+  }
+  function personajeNum(n) {
+    const g = new THREE.Group();
+    const cuerpo = copiaPieza(`Bloque${n}`);
+    g.add(cuerpo);
+    const alto = 0.18 + FORMAS_N[n][1] * 0.5;
+    const ins = insignia(n);
+    ins.position.y = alto + 0.45;
+    g.add(ins);
+    return { g, cuerpo, n, alto, salto: 0, fase: Math.random() * 6 };
+  }
+  function construirNumeros(gNum) {
+    if (!gNum) return;
+    gNum.scene.traverse((o) => { if (o.isMesh) numeros.piezas[o.name] = o; });
+    const G = numeros.grupo;
+    G.visible = false;
+    scene.add(G);
+    const cx = NUM.x, cz = NUM.z;
+    // Suelo: prado, plaza de colores y camino de los puestos
+    const prado = new THREE.Mesh(new THREE.CircleGeometry(70, 64), new THREE.MeshStandardMaterial({ color: '#86cf5e', roughness: 1 }));
+    prado.rotation.x = -Math.PI / 2;
+    prado.position.set(cx, 0, cz);
+    prado.receiveShadow = true;
+    G.add(prado);
+    const texPlaza = lienzo(512, 512, (c, w, h) => {
+      const k = 8, t = w / k;
+      for (let i = 0; i < k; i++) for (let j = 0; j < k; j++) {
+        c.fillStyle = ['#ffd9d6', '#ffe8c2', '#fff4b8', '#d8f3d0', '#d3f0fb', '#e3dcfb'][(i + j * 2) % 6];
+        c.fillRect(i * t, j * t, t, t);
+        c.strokeStyle = '#ffffff';
+        c.lineWidth = 6;
+        c.strokeRect(i * t, j * t, t, t);
+      }
+    });
+    texPlaza.repeat.set(4, 4);
+    const plaza = new THREE.Mesh(new THREE.CircleGeometry(15, 64), new THREE.MeshStandardMaterial({ map: texPlaza, roughness: 0.8 }));
+    plaza.rotation.x = -Math.PI / 2;
+    plaza.position.set(cx, 0.01, cz);
+    plaza.receiveShadow = true;
+    G.add(plaza);
+    const camino = new THREE.Mesh(new THREE.RingGeometry(20.5, 27.5, 80), new THREE.MeshStandardMaterial({ color: '#f6e6c4', roughness: 0.95 }));
+    camino.rotation.x = -Math.PI / 2;
+    camino.position.set(cx, 0.012, cz);
+    camino.receiveShadow = true;
+    G.add(camino);
+    const entrada = new THREE.Mesh(new THREE.PlaneGeometry(5, 22), camino.material);
+    entrada.rotation.x = -Math.PI / 2;
+    entrada.position.set(cx, 0.011, cz + 30);
+    G.add(entrada);
+    // Arco de la entrada y el aro para volver a la playa
+    const arco = copiaPieza('Arco');
+    arco.position.set(cx, 0, cz + 40);
+    G.add(arco);
+    [-3, 3].forEach((dx) => colisiones.push({ x: cx + dx, z: cz + 40, r: 0.45 }));
+    const letrero = cartel('PUEBLO DE LOS NÚMEROS', 6.5, 1.0);
+    letrero.position.set(cx, 5.25, cz + 40.3);
+    G.add(letrero);
+    const aro = new THREE.Mesh(new THREE.RingGeometry(0.9, 1.25, 40), new THREE.MeshBasicMaterial({ color: '#ffd42a', transparent: true, opacity: 0.8, side: THREE.DoubleSide }));
+    aro.rotation.x = -Math.PI / 2;
+    aro.position.set(cx, 0.03, cz + 42.5);
+    G.add(aro);
+    puntosAccion.push({ pos: new V3(cx, 0.02, cz + 42.5), radio: 1.8, texto: 'A la playa', hacer: volverDeNumeros, visible: () => enNumeros(ninoE.pos) });
+    // Puestos de juego en corro, de cara a la plaza (dejando libre la entrada)
+    const R = 24;
+    JUEGOS.filter((j) => !j.tresD).forEach((j, k) => {
+      const a = THREE.MathUtils.degToRad(-140 + k * (280 / 9)) + Math.PI;
+      const P = new V3(cx + Math.sin(a) * R, 0, cz + Math.cos(a) * R);
+      const ry = Math.atan2(cx - P.x, cz - P.z);  // de cara al centro
+      const frente = new V3(Math.sin(ry), 0, Math.cos(ry)), derecha = new V3(Math.cos(ry), 0, -Math.sin(ry));
+      const color = j.host === 7 ? '#8e4fd6' : j.host === 10 ? '#e8322a' : COLOR_NUMERO[j.host];
+      const puesto = new THREE.Group();
+      puesto.add(copiaPieza('Puesto'), copiaPieza('PuestoToldoBlanco'), copiaPieza('PuestoToldo', color));
+      puesto.position.copy(P);
+      puesto.rotation.y = ry;
+      G.add(puesto);
+      const titulo = cartel(`${j.icono} ${j.nombre}`, 3.2, 0.62);
+      titulo.position.set(0, 3.45, 0.02);
+      puesto.add(titulo);
+      [-0.9, 0, 0.9].forEach((d) => colisiones.push({ x: P.x + derecha.x * d - frente.x * 0.2, z: P.z + derecha.z * d - frente.z * 0.2, r: 0.75 }));
+      const host = personajeNum(j.host);
+      host.g.position.copy(P).addScaledVector(frente, 1.1).addScaledVector(derecha, 1.95);
+      host.g.rotation.y = ry;
+      host.base = host.g.position.clone();
+      G.add(host.g);
+      colisiones.push({ x: host.g.position.x, z: host.g.position.z, r: 0.45 * FORMAS_N[j.host][0] });
+      const sitio = P.clone().addScaledVector(frente, 2.0);
+      const marca = new THREE.Mesh(new THREE.RingGeometry(0.45, 0.65, 32), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.85, side: THREE.DoubleSide }));
+      marca.rotation.x = -Math.PI / 2;
+      marca.position.set(sitio.x, 0.03, sitio.z);
+      G.add(marca);
+      // Estrellas conseguidas, sobre el mostrador
+      const est = textoEstrellas(j.id);
+      est.m.position.set(0, 1.45, 0.45);
+      puesto.add(est.m);
+      const p = { juego: j, pos: P, ry, frente, derecha, host, sitio, estrellas: est, color };
+      numeros.puestos.push(p);
+      puntosAccion.push({ pos: sitio, radio: 1.6, texto: 'Jugar', hacer: () => abrirJuego(p), visible: () => !numeros.juego && !numeros.rayuela });
+    });
+    construirRayuela();
+    // Decoración: piruletas, dados, ábaco, globos y montañas de bloques al fondo
+    for (let k = 0; k < 14; k++) {
+      const a = (k + 0.5) / 14 * Math.PI * 2;
+      if (Math.abs(Math.atan2(Math.sin(a), Math.cos(a))) < 0.35) continue;
+      const r = 32 + (k % 3) * 2.5;
+      const t = copiaPieza('ArbolPiruleta', ['#ffffff', '#fff3a8', '#d8f3ff'][k % 3]);
+      t.position.set(cx + Math.sin(a) * r, 0, cz + Math.cos(a) * r);
+      t.rotation.y = a;
+      t.scale.setScalar(0.9 + (k % 4) * 0.15);
+      G.add(t);
+      colisiones.push({ x: t.position.x, z: t.position.z, r: 0.25 });
+    }
+    [[-9, 33, 0.3], [10, 31, 1.2], [-36, 8, 0.6], [37, -6, 2.1], [-20, -34, 0.2], [22, -33, 1.0], [-40, -18, 1.7], [41, 16, 0.9]].forEach(([x, z, r], k) => {
+      const d = copiaPieza('Dado');
+      d.position.set(cx + x, 0, cz + z);
+      d.rotation.y = r;
+      d.scale.setScalar(1 + (k % 3) * 0.4);
+      G.add(d);
+      colisiones.push({ x: cx + x, z: cz + z, r: 0.7 * d.scale.x });
+    });
+    const abaco = copiaPieza('Abaco');
+    abaco.position.set(cx - 7, 0, cz + 31);
+    abaco.rotation.y = 0.5;
+    G.add(abaco);
+    colisiones.push({ x: cx - 7, z: cz + 31, r: 1.3 });
+    for (let k = 0; k < 18; k++) {
+      const a = k / 18 * Math.PI * 2 + 0.2;
+      const r = 16.5 + (k % 2) * 1.2;
+      const gl = copiaPieza('Globo', ARCOIRIS_N[k % 7]);
+      gl.material.roughness = 0.3;
+      gl.position.set(cx + Math.sin(a) * r, 3.4 + (k % 3) * 0.5, cz + Math.cos(a) * r);
+      G.add(gl);
+      numeros.globos.push({ m: gl, y0: gl.position.y, f: k });
+    }
+    // Montañas de bloques alrededor (se ven de lejos)
+    const cubo = new THREE.BoxGeometry(1, 1, 1);
+    const montes = [];
+    for (let k = 0; k < 46; k++) {
+      const a = k / 46 * Math.PI * 2;
+      if (Math.abs(Math.atan2(Math.sin(a), Math.cos(a))) < 0.18) continue;
+      const r = 52 + (k * 37 % 9);
+      const alto = 2 + (k * 7 % 6);
+      const lado = 2.2 + (k % 3) * 0.6;
+      for (let f = 0; f < alto; f++) montes.push({ x: cx + Math.sin(a) * r, z: cz + Math.cos(a) * r, y: lado / 2 + f * lado, s: lado, col: ARCOIRIS_N[(k + f) % 7] });
+    }
+    const im = new THREE.InstancedMesh(cubo, new THREE.MeshStandardMaterial({ roughness: 0.6 }), montes.length);
+    const mm = new THREE.Matrix4(), cc = new THREE.Color();
+    montes.forEach((b, i) => {
+      mm.compose(new V3(b.x, b.y, b.z), new THREE.Quaternion(), new V3(b.s * 0.96, b.s * 0.96, b.s * 0.96));
+      im.setMatrixAt(i, mm);
+      im.setColorAt(i, cc.set(b.col));
+    });
+    im.castShadow = true;
+    G.add(im);
+    // Paseantes: unos bloques pequeños que van dando saltitos por la plaza
+    [1, 2, 3, 5].forEach((n, k) => {
+      const p = personajeNum(n);
+      const a = k * 1.6;
+      p.g.position.set(cx + Math.sin(a) * 11, 0.02, cz + Math.cos(a) * 11);
+      p.destino = p.g.position.clone();
+      G.add(p.g);
+      numeros.paseantes.push(p);
+    });
+    // El arco de las dunas, al lado de la casa
+    const yP = suelo(PUERTA_NUMEROS.x, PUERTA_NUMEROS.z);
+    const arcoPlaya = copiaPieza('Arco');
+    arcoPlaya.scale.setScalar(0.8);
+    arcoPlaya.position.set(PUERTA_NUMEROS.x, yP - 0.1, PUERTA_NUMEROS.z);
+    scene.add(arcoPlaya);
+    [-2.4, 2.4].forEach((dx) => colisiones.push({ x: PUERTA_NUMEROS.x + dx, z: PUERTA_NUMEROS.z, r: 0.4 }));
+    const letreroP = cartel('NÚMEROS', 3.2, 0.7);
+    letreroP.position.set(PUERTA_NUMEROS.x, yP + 4.2, PUERTA_NUMEROS.z + 0.25);
+    scene.add(letreroP);
+    const aroP = new THREE.Mesh(new THREE.RingGeometry(0.9, 1.25, 40), aro.material);
+    aroP.rotation.x = -Math.PI / 2;
+    aroP.position.set(PUERTA_NUMEROS.x, yP + 0.06, PUERTA_NUMEROS.z);
+    scene.add(aroP);
+    const porteros = [personajeNum(1), personajeNum(2)];
+    porteros.forEach((p, k) => {
+      const x = PUERTA_NUMEROS.x + (k ? 3.5 : -3.5), z = PUERTA_NUMEROS.z + 1.2;
+      p.g.position.set(x, suelo(x, z), z);
+      p.base = p.g.position.clone();
+      scene.add(p.g);
+      numeros.porteros = porteros;
+    });
+    puntosAccion.push({ pos: new V3(PUERTA_NUMEROS.x, yP, PUERTA_NUMEROS.z), radio: 1.8, alto: 2, texto: 'Ir a los números', hacer: irANumeros });
+    construirCarrito();
+    construirCuartoJuguetes();
+    // Lo guardado de otras veces
+    const d = cargarGuardado();
+    numeros.estrellas = d.e;
+    numeros.tieneCarrito = d.k;
+    d.g.forEach((id) => ponerEnEstante(id, false));
+    d.c.forEach((id) => meterEnCarrito(id, false));
+    numeros.puestos.forEach((p) => pintarEstrellas(p.estrellas, p.juego.id));
+    pintarEstrellas(numeros.rayuelaEstrellas, 'rayuela');
+    const mm2 = misionPor('mates'), mr = misionPor('regalos');
+    if (mm2) mm2.cuenta = Math.min(mm2.total, JUEGOS.filter((j) => mejorEstrella(j.id) > 0).length);
+    if (mr) mr.cuenta = Math.min(mr.total, numeros.guardados.length);
+    crearPanelMates();
+    numeros.banner = Object.assign(document.createElement('div'), { className: 'brujula carrera mates-banner', hidden: true });
+    document.body.appendChild(numeros.banner);
+    numeros.listo = true;
+  }
+  const mejorEstrella = (id) => Math.max(0, ...[1, 2, 3].map((nv) => numeros.estrellas[`${id}-${nv}`] || 0));
+  function textoEstrellas() {
+    const l = document.createElement('canvas');
+    l.width = 256;
+    l.height = 64;
+    const t = new THREE.CanvasTexture(l);
+    t.encoding = THREE.sRGBEncoding;
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.4), new THREE.MeshBasicMaterial({ map: t, transparent: true, toneMapped: false }));
+    return { m, l, t };
+  }
+  function pintarEstrellas(e, id) {
+    if (!e) return;
+    const c = e.l.getContext('2d');
+    c.clearRect(0, 0, 256, 64);
+    [1, 2, 3].forEach((nv, k) => {
+      const s = numeros.estrellas[`${id}-${nv}`] || 0;
+      c.font = '44px sans-serif';
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      c.globalAlpha = s ? 1 : 0.3;
+      c.fillText(s ? '⭐' : '☆', 48 + k * 80, 34);
+    });
+    c.globalAlpha = 1;
+    e.t.needsUpdate = true;
+  }
+
+  // ---------- Rayuela: baldosas del 0 al 10 en la plaza ----------
+  function construirRayuela() {
+    const cx = NUM.x, cz = NUM.z - 3;
+    numeros.baldosas = [];
+    for (let n = 0; n <= 10; n++) {
+      const tex = lienzo(256, 256, (c, w, h) => {
+        c.fillStyle = n === 0 ? '#ffffff' : n === 7 ? '#8e4fd6' : n === 10 ? '#ffffff' : COLOR_NUMERO[n];
+        c.fillRect(0, 0, w, h);
+        c.lineWidth = 18;
+        c.strokeStyle = n === 10 ? '#e8322a' : '#ffffff';
+        c.strokeRect(9, 9, w - 18, h - 18);
+        textoGrande(c, String(n), w / 2, h / 2 + 10, 170, n === 0 || n === 10 || n === 3 ? '#123b4a' : '#ffffff');
+      });
+      tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+      const m = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.08, 1.5), [null, null, new THREE.MeshStandardMaterial({ map: tex, roughness: 0.6 }), null, null, null].map((x) => x || new THREE.MeshStandardMaterial({ color: '#ffffff' })));
+      const x = cx + (n - 5) * 1.75;
+      m.position.set(x, 0.04, cz);
+      m.receiveShadow = true;
+      numeros.grupo.add(m);
+      numeros.baldosas.push({ n, m, x, z: cz, brillo: 0, color: '#ffffff' });
+    }
+    // Cartel grande con la pregunta, detrás de las baldosas
+    const l = document.createElement('canvas');
+    l.width = 1024;
+    l.height = 320;
+    const t = new THREE.CanvasTexture(l);
+    t.encoding = THREE.sRGBEncoding;
+    const pantalla = new THREE.Mesh(new THREE.PlaneGeometry(9, 2.8), new THREE.MeshBasicMaterial({ map: t, toneMapped: false }));
+    pantalla.position.set(cx, 3.4, cz - 3.2);
+    numeros.grupo.add(pantalla);
+    [-4.6, 4.6].forEach((dx) => {
+      const poste = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 4.8, 12), new THREE.MeshStandardMaterial({ color: '#ffd21f' }));
+      poste.position.set(cx + dx, 2.4, cz - 3.25);
+      numeros.grupo.add(poste);
+      colisiones.push({ x: cx + dx, z: cz - 3.25, r: 0.2 });
+    });
+    numeros.pantalla = { l, t };
+    pintarPantalla('🦘 Salta al número', '¡Ponte en la estrella para jugar!');
+    const estrella = new THREE.Mesh(new THREE.CircleGeometry(0.8, 5), new THREE.MeshBasicMaterial({ color: '#ffd21f', side: THREE.DoubleSide }));
+    estrella.rotation.x = -Math.PI / 2;
+    estrella.position.set(cx, 0.03, cz + 3);
+    numeros.grupo.add(estrella);
+    const est = textoEstrellas();
+    est.m.position.set(cx, 1.6, cz - 3.15);
+    numeros.grupo.add(est.m);
+    numeros.rayuelaEstrellas = est;
+    const juego = JUEGOS.find((j) => j.tresD);
+    puntosAccion.push({ pos: new V3(cx, 0.02, cz + 3), radio: 1.5, texto: 'Jugar', hacer: () => abrirJuego({ juego, rayuela: true, host: null }),
+      visible: () => !numeros.juego && !numeros.rayuela });
+  }
+  function pintarPantalla(arriba, abajo) {
+    const { l, t } = numeros.pantalla, c = l.getContext('2d');
+    c.fillStyle = '#123b4a';
+    c.fillRect(0, 0, l.width, l.height);
+    c.strokeStyle = '#ffd21f';
+    c.lineWidth = 16;
+    c.strokeRect(8, 8, l.width - 16, l.height - 16);
+    c.fillStyle = '#ffffff';
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    let tam = 120;
+    c.font = `800 ${tam}px "Baloo 2", "Nunito", sans-serif`;
+    while (c.measureText(arriba).width > l.width - 80 && tam > 40) { tam -= 6; c.font = `800 ${tam}px "Baloo 2", "Nunito", sans-serif`; }
+    c.fillText(arriba, l.width / 2, abajo ? 130 : 165);
+    if (abajo) {
+      c.font = '700 54px "Nunito", sans-serif';
+      c.fillStyle = '#ffd21f';
+      c.fillText(abajo, l.width / 2, 245);
+    }
+    t.needsUpdate = true;
+  }
+
+  // ---------- El carrito ----------
+  const HUECOS_CARRITO = [[-0.14, 0.25, -0.22], [0.14, 0.25, 0.02], [-0.06, 0.25, 0.26]];
+  function construirCarrito() {
+    const g = new THREE.Group();
+    g.add(copiaPieza('Carrito'));
+    const ruedas = [];
+    [[-0.34, 0.11, -0.33], [0.34, 0.11, -0.33], [-0.34, 0.11, 0.33], [0.34, 0.11, 0.33]].forEach(([x, y, z]) => {
+      const r = copiaPieza('CarritoRueda');
+      r.position.set(x, y, z);
+      g.add(r);
+      ruedas.push(r);
+    });
+    g.visible = false;
+    scene.add(g);
+    numeros.carrito = { g, ruedas, x: 0, y: 0, z: 0, rumbo: 0, juguetes: [] };
+  }
+  function darCarrito() {
+    if (numeros.tieneCarrito) return;
+    numeros.tieneCarrito = true;
+    colocarCarritoDetras();
+    guardarNumeros();
+    setTimeout(() => { avisar(`¡Tienes un carrito! Caben ${MAX_CARRITO} juguetes`, 2600); ninoDice('¡Un carrito para mis juguetes!', 2.2); }, 900);
+  }
+  function colocarCarritoDetras() {
+    const C = numeros.carrito, E = ninoE;
+    C.rumbo = E.rumbo;
+    C.x = E.pos.x - Math.sin(E.rumbo) * 1.4;
+    C.z = E.pos.z - Math.cos(E.rumbo) * 1.4;
+    C.y = suelo(C.x, C.z, E.pos.y + 0.3);
+  }
+  function meterEnCarrito(id, guardar = true) {
+    const C = numeros.carrito;
+    const j = JUGUETES.find((x) => x.id === id);
+    const m = copiaPieza(id);
+    const h = HUECOS_CARRITO[numeros.carga.length];
+    m.position.set(h[0], h[1], h[2]);
+    m.rotation.y = numeros.carga.length * 1.3;
+    C.g.add(m);
+    numeros.carga.push({ id, m, nombre: j.nombre });
+    if (guardar) guardarNumeros();
+  }
+  function actualizarCarrito(dt) {
+    const C = numeros.carrito, E = ninoE;
+    if (!C) return;
+    const lejos = E.pos.x > 500 || E.pos.x < -500 || ninoE.modo === 'bucear';
+    C.g.visible = numeros.tieneCarrito && !lejos;
+    if (!C.g.visible) return;
+    if (E.modo === 'libre' || (E.modo === 'atraccion' && E.atr && E.atr.tipo === 'mates')) {
+      // El enganche, justo detrás de Manuel; el carrito va detrás como un remolque
+      const hx = E.pos.x - Math.sin(E.rumbo) * 0.45, hz = E.pos.z - Math.cos(E.rumbo) * 0.45;
+      if (Math.hypot(hx - C.x, hz - C.z) > 5 || Math.abs(C.y - E.pos.y) > 3) colocarCarritoDetras();
+      let dx = hx - C.x, dz = hz - C.z;
+      const d = Math.hypot(dx, dz) || 1;
+      dx /= d; dz /= d;
+      const antes = new V3(C.x, 0, C.z);
+      C.x = hx - dx * 0.85;
+      C.z = hz - dz * 0.85;
+      C.rumbo = Math.atan2(dx, dz);
+      const avance = distXZ(antes, new V3(C.x, 0, C.z));
+      C.ruedas.forEach((r) => { r.rotation.x += avance / 0.11; });
+      const yS = suelo(C.x, C.z, E.pos.y + 0.3);
+      C.y = E.nadando ? aguaEn(C.x, C.z) - 0.2 : yS;
+    }
+    C.g.position.set(C.x, C.y, C.z);
+    C.g.rotation.y = C.rumbo;
+    C.juguetes = numeros.carga;
+    numeros.carga.forEach((j, k) => { j.m.position.y = HUECOS_CARRITO[k][1] + Math.abs(Math.sin(reloj.elapsedTime * 3 + k)) * 0.02 * Math.min(1, E.vel); });
+  }
+
+  // ---------- Los juguetes en el cuarto de Manuel ----------
+  function construirCuartoJuguetes() {
+    const cx = INT.x, cz = INT.z, Yi = INT.y;
+    [-2.4, -0.3, 1.8].forEach((dz) => {
+      const e = copiaPieza('Estanteria');
+      e.position.set(cx + 7.75, Yi, cz + dz);
+      e.rotation.y = -Math.PI / 2;
+      scene.add(e);
+      cajas.push({ x0: cx + 7.5, x1: cx + 8, z0: cz + dz - 0.95, z1: cz + dz + 0.95, activa: true });
+      numeros.estantes.push({ x: cx + 7.75, z: cz + dz });
+    });
+    const baul = copiaPieza('Baul');
+    baul.position.set(cx + 4.4, Yi, cz + 5.4);
+    scene.add(baul);
+    const tapa = copiaPieza('BaulTapa');
+    tapa.position.set(cx + 4.4, Yi + 0.5, cz + 5.4 + 0.275);
+    tapa.rotation.x = -0.35;
+    scene.add(tapa);
+    cajas.push({ x0: cx + 3.9, x1: cx + 4.9, z0: cz + 5.1, z1: cz + 5.75, activa: true });
+    numeros.baul = { x: cx + 4.4, z: cz + 5.4, y: Yi, dentro: [], cartel: null };
+    const c = textoEstrellas();
+    c.m.position.set(cx + 4.4, Yi + 1.35, cz + 5.35);
+    c.m.rotation.y = Math.PI;  // de cara al cuarto
+    scene.add(c.m);
+    numeros.baul.cartel = c;
+    puntosAccion.push({ pos: new V3(cx + 6.6, Yi, cz - 0.3), radio: 1.7, texto: 'Guardar', hacer: guardarJuguetes,
+      visible: () => numeros.carga.length > 0 });
+  }
+  const NIVELES_ESTANTE = [0.07, 0.6, 1.13, 1.66];
+  function sitioEstante(i) {
+    const porEstante = NIVELES_ESTANTE.length * 5;
+    const e = numeros.estantes[Math.floor(i / porEstante)];
+    if (!e) return null;
+    const k = i % porEstante, nivel = Math.floor(k / 5), hueco = k % 5;
+    return new V3(e.x, INT.y + NIVELES_ESTANTE[nivel], e.z - 0.72 + hueco * 0.36);
+  }
+  function ponerEnEstante(id, guardar = true) {
+    const i = numeros.guardados.length;
+    numeros.guardados.push(id);
+    const p = sitioEstante(i);
+    if (p) {
+      const m = copiaPieza(id);
+      m.position.copy(p);
+      m.rotation.y = -Math.PI / 2 + (i % 3 - 1) * 0.25;
+      m.scale.setScalar(0.85);
+      scene.add(m);
+      return m;
+    }
+    // Cuando las estanterías están llenas, al baúl
+    const B = numeros.baul;
+    if (B.dentro.length < 6) {
+      const m = copiaPieza(id);
+      m.position.set(B.x - 0.3 + (B.dentro.length % 3) * 0.3, B.y + 0.38, B.z - 0.1 + Math.floor(B.dentro.length / 3) * 0.2);
+      m.rotation.set(0.3, B.dentro.length, 0.2);
+      m.scale.setScalar(0.8);
+      scene.add(m);
+      B.dentro.push(m);
+    }
+    pintarBaul();
+    if (guardar) guardarNumeros();
+    return null;
+  }
+  function pintarBaul() {
+    const B = numeros.baul, extra = Math.max(0, numeros.guardados.length - numeros.estantes.length * NIVELES_ESTANTE.length * 5);
+    const e = B.cartel, c = e.l.getContext('2d');
+    c.clearRect(0, 0, 256, 64);
+    if (extra) textoGrande(c, `🧸 ${extra} en el baúl`, 128, 34, 34, '#123b4a');
+    e.t.needsUpdate = true;
+  }
+  function guardarJuguetes() {
+    if (!numeros.carga.length) return;
+    const lista = numeros.carga.splice(0);
+    lista.forEach((j, k) => {
+      setTimeout(() => {
+        numeros.carrito.g.remove(j.m);
+        const m = ponerEnEstante(j.id);
+        if (m) { m.scale.setScalar(0.01); numeros.regalos.push({ tipo: 'crecer', m, t: 0 }); }
+        notas([[600 + k * 120, 0, 0.15]]);
+        sumarNino('regalos');
+        if (k === lista.length - 1) {
+          guardarNumeros();
+          avisar(`¡Ya tienes ${numeros.guardados.length} juguetes en tu cuarto!`, 2400);
+          ninoCelebra('¡Mis juguetes!');
+        }
+      }, k * 450);
+    });
+  }
+
+  // ---------- Ir y volver del pueblo ----------
+  function irANumeros() {
+    if (!numeros.listo) return;
+    fundido(() => {
+      if (balon.estado === 'mano') { balon.estado = 'libre'; balon.pos.set(PUERTA_NUMEROS.x + 2, suelo(PUERTA_NUMEROS.x + 2, PUERTA_NUMEROS.z + 3) + 0.5, PUERTA_NUMEROS.z + 3); balon.vel.set(0, 0, 0); }
+      ninoE.modo = 'libre';
+      ninoE.pos.set(LLEGADA_NUMEROS.x, 0.02, LLEGADA_NUMEROS.z);
+      ninoE.rumbo = Math.PI;
+      ninoE.vy = 0;
+      estado.pos.set(LLEGADA_NUMEROS.x - 2, 0.02, LLEGADA_NUMEROS.z + 1);
+      estado.descansando = false;
+      cam.yaw = 0;
+      cam.pitch = 0.32;
+      cam.dist = 7.5;
+      cam.objetivo.copy(ninoE.pos);
+      colocarCarritoDetras();
+      ocultarLejos(true);
+      musica.proximo = 'playa';
+      setTimeout(pintarTarea, 50);
+      setTimeout(() => {
+        avisar('¡Bienvenido al pueblo de los números!', 2400);
+        hablar('¡Bienvenido al pueblo de los números!');
+      }, 500);
+      if (!numeros.tieneCarrito) darCarrito();
+    });
+  }
+  function volverDeNumeros() {
+    cerrarJuego();
+    terminarRayuela();
+    fundido(() => {
+      ocultarLejos(false);
+      ninoE.modo = 'libre';
+      ninoE.pos.set(PUERTA_NUMEROS.x, 0, PUERTA_NUMEROS.z + 3);
+      ninoE.pos.y = suelo(ninoE.pos.x, ninoE.pos.z);
+      ninoE.rumbo = 0;
+      estado.pos.set(PUERTA_NUMEROS.x + 1.5, 0, PUERTA_NUMEROS.z + 3.5);
+      estado.pos.y = suelo(estado.pos.x, estado.pos.z);
+      cam.yaw = Math.PI;
+      cam.pitch = 0.36;
+      cam.dist = 6.5;
+      cam.objetivo.copy(ninoE.pos);
+      colocarCarritoDetras();
+      if (numeros.carga.length >= MAX_CARRITO) setTimeout(() => avisar('Lleva los juguetes a tu cuarto: entra en casa', 2600), 600);
+    });
+  }
+  // En el pueblo no se dibuja la playa (está lejos), y en la playa no se dibuja el pueblo
+  function ocultarLejos(enPueblo) {
+    numeros.grupo.visible = enPueblo;
+    if (!enPueblo) {
+      (numeros.ocultos || []).forEach((o) => { o.visible = true; });
+      numeros.ocultos = null;
+      return;
+    }
+    if (numeros.ocultos) return;
+    const quedan = new Set([numeros.grupo, numeros.carrito.g, nino.grupo, perro]);
+    const caja3 = new THREE.Box3();
+    numeros.ocultos = [];
+    scene.children.forEach((o) => {
+      if (!o.visible || quedan.has(o) || o.isLight || o.isCamera) return;
+      caja3.setFromObject(o);
+      if (!caja3.isEmpty() && caja3.max.z > -400 && caja3.min.z > -400 && caja3.min.x > -500 && caja3.max.x < 500) { o.visible = false; numeros.ocultos.push(o); }
+    });
+  }
+
+  // ---------- El panel de los juegos ----------
+  function crearPanelMates() {
+    const p = document.createElement('div');
+    p.className = 'mates';
+    p.hidden = true;
+    p.innerHTML = `
+      <div class="mates-cab"><strong class="mates-titulo"></strong>
+        <button type="button" class="mates-voz" aria-label="Leer en voz alta">🔊</button>
+        <button type="button" class="mates-salir">Salir</button></div>
+      <div class="mates-cuerpo"></div>`;
+    document.body.appendChild(p);
+    numeros.panel = p;
+    p.querySelector('.mates-salir').addEventListener('click', () => { cerrarJuego(); terminarRayuela(); });
+    p.querySelector('.mates-voz').addEventListener('click', () => {
+      const J = numeros.juego;
+      if (J && J.pregunta) hablar(J.pregunta.voz || J.pregunta.texto);
+      else if (numeros.rayuela && numeros.rayuela.pregunta) hablar(numeros.rayuela.pregunta.voz || numeros.rayuela.pregunta.texto);
+    });
+  }
+  function abrirJuego(puesto) {
+    const enCamino = numeros.regalos.filter((r) => r.tipo === 'regalo').length;
+    if (numeros.carga.length + enCamino >= MAX_CARRITO) {
+      const msg = '¡Tu carrito está lleno! Lleva los juguetes a tu cuarto y vuelve a por más';
+      avisar(msg, 3200);
+      hablar(msg);
+      if (puesto.host) puesto.host.salto = 0.6;
+      return;
+    }
+    numeros.juego = { puesto, fase: 'niveles' };
+    if (!puesto.rayuela) {
+      empezarAtraccion({ tipo: 'mates', pos: puesto.sitio.clone(), ry: puesto.ry + Math.PI, fijo: true,
+        accion: () => ({ texto: 'Salir', hacer: cerrarJuego }) });
+      puesto.host.salto = 0.5;
+    }
+    document.body.classList.add('en-mates');
+    if (!puesto.rayuela) { cam.yaw = puesto.ry; cam.pitch = 0.32; cam.dist = 6; }
+    pintarNiveles();
+    hablar(`${puesto.juego.nombre}. Elige un nivel.`);
+  }
+  function pintarNiveles() {
+    const J = numeros.juego, j = J.puesto.juego, P = numeros.panel;
+    P.hidden = false;
+    P.querySelector('.mates-titulo').textContent = `${j.icono} ${j.nombre}`;
+    const cuerpo = P.querySelector('.mates-cuerpo');
+    cuerpo.innerHTML = `<p class="mates-ayuda">${j.ayuda}. Elige el nivel:</p>
+      <div class="mates-niveles">${NIVELES.map((nv) => {
+        const s = numeros.estrellas[`${j.id}-${nv.n}`] || 0;
+        return `<button type="button" class="mates-nivel n${nv.n}" data-n="${nv.n}"><strong>${nv.nombre}</strong><span>${nv.detalle}</span><em>${'⭐'.repeat(s)}${'☆'.repeat(3 - s)}</em></button>`;
+      }).join('')}</div>
+      <p class="mates-carrito">🛒 Carrito: ${numeros.carga.length} de ${MAX_CARRITO} juguetes</p>`;
+    cuerpo.querySelectorAll('.mates-nivel').forEach((b) => b.addEventListener('click', () => empezarRonda(+b.dataset.n)));
+  }
+  function empezarRonda(nv) {
+    const J = numeros.juego;
+    Object.assign(J, { nivel: nv, fase: 'pregunta', aciertos: 0, fallos: 0, pregunta: null });
+    if (J.puesto.rayuela) {
+      numeros.panel.hidden = true;
+      document.body.classList.remove('en-mates');
+      numeros.juego = null;
+      empezarRayuela(nv);
+      return;
+    }
+    siguientePregunta();
+  }
+  function siguientePregunta() {
+    const J = numeros.juego, j = J.puesto.juego;
+    let q;
+    do { q = j.generar(J.nivel); } while (J.pregunta && q.texto === J.pregunta.texto && String(q.bien) === String(J.pregunta.bien));
+    J.pregunta = q;
+    J.fallosPregunta = 0;
+    const cuerpo = numeros.panel.querySelector('.mates-cuerpo');
+    cuerpo.innerHTML = `<div class="mates-progreso">${Array.from({ length: PREGUNTAS_RONDA }, (_, i) => `<i class="${i < J.aciertos ? 'hecha' : i === J.aciertos ? 'actual' : ''}"></i>`).join('')}</div>
+      <p class="mates-pregunta">${q.texto}</p>
+      <canvas class="mates-dibujo" width="440" height="200"></canvas>
+      <div class="mates-opciones o${q.opciones.length}">${q.opciones.map((o) => `<button type="button" class="mates-opcion" data-v="${o}">${q.etiqueta ? q.etiqueta(o) : o}</button>`).join('')}</div>`;
+    const cv = cuerpo.querySelector('canvas'), c = cv.getContext('2d');
+    c.clearRect(0, 0, cv.width, cv.height);
+    q.dibujo(c, cv.width, cv.height);
+    cuerpo.querySelectorAll('.mates-opcion').forEach((b) => b.addEventListener('click', () => responder(b)));
+    hablar(q.voz || q.texto);
+  }
+  function responder(b) {
+    const J = numeros.juego;
+    if (!J || J.fase !== 'pregunta' || J.esperando) return;
+    const bien = String(b.dataset.v) === String(J.pregunta.bien);
+    if (bien) {
+      b.classList.add('bien');
+      J.aciertos++;
+      J.esperando = true;
+      sonAcierto();
+      J.puesto.host.salto = 0.55;
+      const frases = ['¡Muy bien!', '¡Genial!', '¡Correcto!', '¡Eso es!', '¡Fenomenal!'];
+      const f = frases[azarEntre(0, frases.length - 1)];
+      ninoDice(f, 1.2);
+      setTimeout(() => {
+        J.esperando = false;
+        if (numeros.juego !== J) return;
+        if (J.aciertos >= PREGUNTAS_RONDA) terminarRonda();
+        else siguientePregunta();
+      }, 900);
+    } else {
+      b.classList.add('mal');
+      b.disabled = true;
+      J.fallos++;
+      J.fallosPregunta++;
+      sonFallo();
+      hablar(J.fallosPregunta > 1 ? '¡Casi! Mira bien y cuenta despacio' : '¡Casi! Prueba otra vez');
+    }
+  }
+  const estrellasPor = (fallos) => (fallos === 0 ? 3 : fallos <= 2 ? 2 : fallos <= 3 ? 1 : 0);
+  function terminarRonda() {
+    const J = numeros.juego, j = J.puesto.juego;
+    const s = estrellasPor(J.fallos);
+    J.fase = 'fin';
+    const cuerpo = numeros.panel.querySelector('.mates-cuerpo');
+    if (!s) {
+      cuerpo.innerHTML = `<p class="mates-final">¡Casi lo tienes!</p><p class="mates-ayuda">Has tenido ${J.fallos} fallos. Con 3 o menos ganas un regalo.</p>
+        <div class="mates-botones"><button type="button" class="mates-otra">Otra vez</button><button type="button" class="mates-cambiar">Cambiar nivel</button></div>`;
+      hablar('¡Casi lo tienes! Inténtalo otra vez');
+      cuerpo.querySelector('.mates-otra').addEventListener('click', () => empezarRonda(J.nivel));
+      cuerpo.querySelector('.mates-cambiar').addEventListener('click', pintarNiveles);
+      return;
+    }
+    premiar(j.id, J.nivel, s, J.puesto);
+    cuerpo.innerHTML = `<p class="mates-final">¡Superado!</p><p class="mates-estrellas">${'⭐'.repeat(s)}${'☆'.repeat(3 - s)}</p><p class="mates-ayuda">¡Has ganado un regalo!</p>`;
+    setTimeout(() => { if (numeros.juego === J) cerrarJuego(); }, 1600);
+  }
+  function premiar(id, nivel, s, puesto) {
+    const clave = `${id}-${nivel}`;
+    const nuevo = !mejorEstrella(id);
+    numeros.estrellas[clave] = Math.max(numeros.estrellas[clave] || 0, s);
+    if (nuevo) sumarNino('mates');
+    if (puesto && puesto.estrellas) pintarEstrellas(puesto.estrellas, id);
+    if (id === 'rayuela') pintarEstrellas(numeros.rayuelaEstrellas, 'rayuela');
+    sonPremio();
+    hablar('¡Superado! ¡Has ganado un regalo!');
+    // Un juguete de su nivel (más probable) o de niveles más fáciles
+    const bolsa = [];
+    JUGUETES.forEach((t) => { if (t.nivel <= nivel) for (let k = 0; k < (t.nivel === nivel ? 3 : 1); k++) bolsa.push(t); });
+    const premio = bolsa[azarEntre(0, bolsa.length - 1)];
+    const donde = puesto && puesto.pos ? puesto.pos.clone().addScaledVector(puesto.frente, 0.35).setY(1.08) :
+      new V3(ninoE.pos.x + Math.sin(ninoE.rumbo) * 1.2, 0.02, ninoE.pos.z + Math.cos(ninoE.rumbo) * 1.2);
+    soltarRegalo(premio, donde, puesto ? puesto.color : '#ff5fa2');
+    guardarNumeros();
+  }
+  function cerrarJuego() {
+    const J = numeros.juego;
+    numeros.juego = null;
+    numeros.panel.hidden = true;
+    document.body.classList.remove('en-mates');
+    try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) { /* sin voz */ }
+    if (J && ninoE.modo === 'atraccion' && ninoE.atr && ninoE.atr.tipo === 'mates') terminarAtraccion();
+  }
+
+  // ---------- Regalos: aparece la caja, se abre y el juguete salta al carrito ----------
+  function soltarRegalo(juguete, pos, color) {
+    const g = new THREE.Group();
+    const cajaR = copiaPieza('RegaloCaja', color), cinta = copiaPieza('RegaloCinta', '#ffd21f');
+    const tapa = new THREE.Group();
+    tapa.add(copiaPieza('RegaloTapa', color), copiaPieza('RegaloLazo', '#ffd21f'));
+    g.add(cajaR, cinta, tapa);
+    g.position.copy(pos);
+    g.scale.setScalar(0.01);
+    (enNumeros(pos) ? numeros.grupo : scene).add(g);
+    const m = copiaPieza(juguete.id);
+    m.visible = false;
+    scene.add(m);
+    numeros.regalos.push({ tipo: 'regalo', g, tapa, m, juguete, t: 0, pos: pos.clone() });
+  }
+  function actualizarRegalos(dt) {
+    for (let i = numeros.regalos.length - 1; i >= 0; i--) {
+      const r = numeros.regalos[i];
+      r.t += dt;
+      if (r.tipo === 'crecer') {
+        r.m.scale.setScalar(0.85 * Math.min(1, r.t * 3) * (1 + Math.sin(Math.min(1, r.t * 3) * Math.PI) * 0.3));
+        if (r.t > 0.4) numeros.regalos.splice(i, 1);
+        continue;
+      }
+      const t = r.t;
+      r.g.scale.setScalar(Math.min(1.3, t * 4) * (t < 0.4 ? 1 : 1 + Math.sin(t * 12) * 0.04 * Math.max(0, 1.2 - t)));
+      if (t > 1.0) {
+        const k = Math.min(1, (t - 1.0) * 2.5);
+        r.tapa.position.y = k * 0.6;
+        r.tapa.rotation.z = k * 0.9;
+        r.m.visible = true;
+        const sube = Math.min(1, (t - 1.0) * 1.5);
+        r.m.position.set(r.pos.x, r.pos.y + 0.2 + sube * 1.1, r.pos.z);
+        r.m.rotation.y = t * 4;
+        r.m.scale.setScalar(0.6 + sube * 0.9);
+        if (!r.dicho && t > 1.4) { r.dicho = true; avisar(`¡Has ganado ${r.juguete.nombre}!`, 2400); ninoDice('¡Hala!', 1.2); }
+      }
+      if (t > 2.6) {
+        // vuela al carrito
+        const C = numeros.carrito;
+        const k = Math.min(1, (t - 2.6) / 0.7);
+        const destino = new V3(C.x, C.y + 0.6, C.z);
+        r.m.position.lerpVectors(new V3(r.pos.x, r.pos.y + 1.3, r.pos.z), destino, k);
+        r.m.position.y += Math.sin(k * Math.PI) * 1.2;
+        r.m.scale.setScalar(1.5 - k * 0.5);
+        r.g.scale.setScalar(Math.max(0.01, 1.3 * (1 - k)));
+        if (k >= 1) {
+          scene.remove(r.m);
+          r.g.parent && r.g.parent.remove(r.g);
+          numeros.regalos.splice(i, 1);
+          if (numeros.carga.length < MAX_CARRITO) meterEnCarrito(r.juguete.id);
+          if (numeros.carga.length >= MAX_CARRITO) setTimeout(() => { avisar('¡Carrito lleno! Llévalo a tu cuarto', 2800); hablar('¡Carrito lleno! Lleva los juguetes a tu cuarto'); }, 600);
+        }
+      }
+    }
+  }
+
+  // ---------- La rayuela, en 3D ----------
+  function empezarRayuela(nv) {
+    numeros.rayuela = { nivel: nv, aciertos: 0, fallos: 0, pregunta: null, baldosa: -1, espera: 0 };
+    numeros.banner.hidden = false;
+    nuevaPreguntaRayuela();
+  }
+  function nuevaPreguntaRayuela() {
+    const R = numeros.rayuela, j = JUEGOS.find((x) => x.tresD);
+    let q;
+    do { q = j.generar(R.nivel); } while (R.pregunta && q.bien === R.pregunta.bien);
+    R.pregunta = q;
+    numeros.banner.textContent = `${q.texto}  ·  ${R.aciertos}/${PREGUNTAS_RONDA}`;
+    pintarPantalla(q.texto, `${'⭐'.repeat(R.aciertos)}${'·'.repeat(PREGUNTAS_RONDA - R.aciertos)}`);
+    hablar(q.voz || q.texto);
+  }
+  function terminarRayuela() {
+    if (!numeros.rayuela) return;
+    numeros.rayuela = null;
+    numeros.banner.hidden = true;
+    pintarPantalla('🦘 Salta al número', '¡Ponte en la estrella para jugar!');
+    numeros.baldosas.forEach((b) => { b.brillo = 0; });
+  }
+  function actualizarRayuela(dt) {
+    const R = numeros.rayuela;
+    numeros.baldosas.forEach((b) => {
+      b.brillo = Math.max(0, b.brillo - dt * 1.5);
+      const mat = b.m.material[2];
+      mat.emissive.set(b.color);
+      mat.emissiveIntensity = b.brillo * 0.8;
+      b.m.position.y = 0.04 + b.brillo * 0.08;
+    });
+    if (!R) return;
+    const E = ninoE;
+    if (distXZ(E.pos, new V3(NUM.x, 0, NUM.z - 3)) > 16) { avisar('Has salido de la rayuela', 1600); terminarRayuela(); return; }
+    R.espera = Math.max(0, R.espera - dt);
+    let encima = -1;
+    for (const b of numeros.baldosas) if (Math.abs(E.pos.x - b.x) < 0.8 && Math.abs(E.pos.z - b.z) < 0.8) encima = b.n;
+    if (encima !== R.baldosa && encima >= 0 && E.enSuelo && R.espera <= 0) {
+      const b = numeros.baldosas[encima];
+      if (encima === R.pregunta.bien) {
+        b.color = '#3dff6a';
+        b.brillo = 1;
+        R.aciertos++;
+        R.espera = 0.8;
+        sonAcierto();
+        ninoDice('¡Bien!', 1);
+        if (R.aciertos >= PREGUNTAS_RONDA) {
+          const s = estrellasPor(R.fallos);
+          const nv = R.nivel;
+          terminarRayuela();
+          if (s) {
+            pintarPantalla('¡Superado!', '⭐'.repeat(s) + '☆'.repeat(3 - s));
+            premiar('rayuela', nv, s, null);
+          } else {
+            pintarPantalla('¡Casi lo tienes!', 'Vuelve a la estrella para probar otra vez');
+            hablar('¡Casi lo tienes! Inténtalo otra vez');
+          }
+        } else setTimeout(() => { if (numeros.rayuela === R) nuevaPreguntaRayuela(); }, 700);
+      } else {
+        b.color = '#ff3b30';
+        b.brillo = 1;
+        R.fallos++;
+        R.espera = 0.6;
+        sonFallo();
+        ninoDice('¡Ese no!', 1);
+      }
+    }
+    R.baldosa = encima;
+  }
+
+  // ---------- Cada fotograma ----------
+  function actualizarNumeros(dt) {
+    if (!numeros.listo) return;
+    actualizarCarrito(dt);
+    actualizarRegalos(dt);
+    const t = reloj.elapsedTime;
+    if (numeros.porteros) numeros.porteros.forEach((p) => animarBloque(p, dt, t, ninoE.pos));
+    if (!enNumeros(ninoE.pos) && !numeros.regalos.length) return;
+    numeros.puestos.forEach((p) => animarBloque(p.host, dt, t, ninoE.pos));
+    numeros.globos.forEach((g) => { g.m.position.y = g.y0 + Math.sin(t * 1.2 + g.f) * 0.15; g.m.rotation.z = Math.sin(t * 0.9 + g.f) * 0.08; });
+    numeros.paseantes.forEach((p) => {
+      const g = p.g;
+      if (distXZ(g.position, p.destino) < 0.4) {
+        const a = Math.random() * Math.PI * 2, r = 6 + Math.random() * 8;
+        p.destino.set(NUM.x + Math.sin(a) * r, 0, NUM.z + Math.cos(a) * r);
+        if (Math.abs(p.destino.z - (NUM.z - 3)) < 2.5 && Math.abs(p.destino.x - NUM.x) < 10) p.destino.z += 5;
+      }
+      const dx = p.destino.x - g.position.x, dz = p.destino.z - g.position.z, d = Math.hypot(dx, dz);
+      const v = 1.3 * dt;
+      g.position.x += dx / d * Math.min(v, d);
+      g.position.z += dz / d * Math.min(v, d);
+      g.rotation.y = angulo(g.rotation.y, Math.atan2(dx, dz), 1 - Math.exp(-6 * dt));
+      const fase = t * 6 + p.fase;
+      p.cuerpo.position.y = Math.abs(Math.sin(fase)) * 0.25;
+      p.cuerpo.scale.set(1, 1 - Math.max(0, -Math.cos(fase * 2)) * 0.06, 1);
+    });
+    actualizarRayuela(dt);
+  }
+  function animarBloque(p, dt, t, mira) {
+    const g = p.g;
+    p.salto = Math.max(0, (p.salto || 0) - dt);
+    const s = p.salto > 0 ? Math.sin((0.55 - p.salto) / 0.55 * Math.PI) : 0;
+    p.cuerpo.position.y = Math.max(0, s) * 0.6;
+    p.cuerpo.scale.set(1 + Math.sin(t * 2.4 + p.fase) * 0.015, 1 + Math.sin(t * 2.4 + p.fase + 1.5) * 0.025, 1);
+    p.cuerpo.rotation.z = Math.sin(t * 1.3 + p.fase) * 0.04;
+    if (mira && distXZ(g.position, mira) < 9) g.rotation.y = angulo(g.rotation.y, Math.atan2(mira.x - g.position.x, mira.z - g.position.z), 1 - Math.exp(-3 * dt));
+  }
+
+
   // ---------- Bucle principal ----------
   const reloj = new THREE.Clock();
   let autopiloto = false;
@@ -7922,6 +9229,17 @@
       conducir: () => subirAlCoche(),
       irCircuito: () => irAlCircuito(),
       correr: () => aCorrer(),
+      irNumeros: () => irANumeros(),
+      numeros: () => ({ juego: numeros.juego && { id: numeros.juego.puesto.juego.id, fase: numeros.juego.fase, aciertos: numeros.juego.aciertos, fallos: numeros.juego.fallos,
+        pregunta: numeros.juego.pregunta && numeros.juego.pregunta.texto, bien: numeros.juego.pregunta && numeros.juego.pregunta.bien },
+        rayuela: numeros.rayuela && { aciertos: numeros.rayuela.aciertos, bien: numeros.rayuela.pregunta.bien, texto: numeros.rayuela.pregunta.texto },
+        carga: numeros.carga.map((j) => j.id), guardados: numeros.guardados.length, estrellas: numeros.estrellas, regalos: numeros.regalos.length,
+        carrito: numeros.carrito && [+numeros.carrito.x.toFixed(1), +numeros.carrito.y.toFixed(1), +numeros.carrito.z.toFixed(1), numeros.carrito.g.visible] }),
+      jugarNum: (k) => { const p = numeros.puestos[k]; ninoE.pos.copy(p.sitio); abrirJuego(p); },
+      responderBien: () => { const b = [...document.querySelectorAll('.mates-opcion')].find((x) => String(x.dataset.v) === String(numeros.juego.pregunta.bien)); if (b) b.click(); },
+      responderMal: () => { const b = [...document.querySelectorAll('.mates-opcion')].find((x) => !x.disabled && String(x.dataset.v) !== String(numeros.juego.pregunta.bien)); if (b) b.click(); },
+      saltarBaldosa: (n) => { const b = numeros.baldosas[n]; ninoE.pos.set(b.x, 0.02, b.z); },
+      irCuarto: () => { ninoE.pos.set(INT.x + 6.4, INT.y, INT.z - 0.3); },
       elegir: (vehiculo = 'kart', pista = 'verde') => { circuito.eleccion = { vehiculo, pista }; circuito.menu.hidden = true; empezarCarreraElegida(); },
       carrera: () => ({ fase: circuito.fase, pista: circuito.pista && circuito.pista.def.id, karts: circuito.corredores.map((v) => [+v.x.toFixed(1), +v.z.toFixed(1), v.vuelta, +v.vel.toFixed(1), v.objeto]), puesto: circuito.puestoManuel, copas: [...circuito.copas] }),
       moverBuzo: (lx, lz, y = -4, rumbo = 0) => { ninoE.pos.set(ARRECIFE.x + lx, y, ARRECIFE.z + lz); ninoE.rumbo = rumbo; cam.objetivo.copy(ninoE.pos); },
@@ -8164,6 +9482,7 @@
         actualizarInterior(dt);
         actualizarArrecife(dt);
         actualizarCircuito(dt);
+        actualizarNumeros(dt);
       }
       actualizarSalpicaduras(dt);
       actualizarBotonAccion();
