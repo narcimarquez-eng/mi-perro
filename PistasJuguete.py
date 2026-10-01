@@ -399,6 +399,115 @@ def escarabajo():
     return unir(p, "JEscarabajo")
 
 
+def todoterreno():
+    caqui = "#7a8f3a"
+
+    def fn(co, n):
+        return lineal("#3e4a1e") if co.z < 0.15 else lineal(caqui)
+    p = [carroceria((0, 0, 0.17), (0.25, 0.46, 0.12), 0.025, fn),
+         cristal((0, 0.02, 0.255), (0.22, 0.2, 0.08), 0.02),
+         color(caja((0, 0.02, 0.3), (0.23, 0.2, 0.015), bisel=0.005), caqui),
+         color(cilindro((0, 0.27, 0.19), 0.075, 0.04, rot=(math.pi / 2, 0, 0)), "#1c1c1e"),
+         color(caja((0, -0.245, 0.12), (0.22, 0.03, 0.05)), "#555555")]
+    for l in (-1, 1):
+        p.append(color(cilindro((l * 0.11, 0.02, 0.33), 0.012, 0.22, rot=(math.pi / 2, 0, 0)), "#2a2a2a"))
+    for k in range(4):
+        p.append(color(esfera((-0.075 + k * 0.05, -0.06, 0.32), 0.018, 8), "#fff6c2"))
+    p += faros(-0.232, 0.18, 0.08) + ruedas(-0.15, 0.15, 0.13, 0.08, ancho=0.07, llanta="#9aa3ad")
+    return unir(p, "JTodoterreno")
+
+
+def buggy_dunas():
+    naranja = "#ff8a1f"
+    p = [color(caja((0, 0, 0.1), (0.22, 0.44, 0.04), bisel=0.01), "#2a2a2a"),
+         color(caja((0, 0.02, 0.15), (0.14, 0.14, 0.08), bisel=0.02), "#1c1c1e"),
+         color(caja((0, -0.17, 0.12), (0.2, 0.1, 0.05), bisel=0.02), naranja)]
+    barras = [((0.09, -0.08, 0.12), (0.09, 0.02, 0.3)), ((-0.09, -0.08, 0.12), (-0.09, 0.02, 0.3)), ((0.09, 0.15, 0.12), (0.09, 0.02, 0.3)),
+              ((-0.09, 0.15, 0.12), (-0.09, 0.02, 0.3)), ((0.09, 0.02, 0.3), (-0.09, 0.02, 0.3)), ((0.09, -0.08, 0.12), (0.09, -0.22, 0.1)),
+              ((-0.09, -0.08, 0.12), (-0.09, -0.22, 0.1))]
+    for a, b in barras:
+        va, vb = Vector(a), Vector(b)
+        d = vb - va
+        bpy.ops.mesh.primitive_cylinder_add(vertices=10, radius=0.012, depth=d.length, location=(0, 0, 0))
+        c = bpy.context.object
+        c.rotation_euler = d.to_track_quat('Z', 'Y').to_euler()
+        bpy.ops.object.transform_apply(location=False, rotation=True)
+        c.location = (va + vb) / 2
+        bpy.ops.object.transform_apply(location=True, rotation=False, scale=False)
+        p.append(color(c, naranja))
+    p.append(color(esfera((0, 0.2, 0.13), (0.06, 0.04, 0.05), 12), "#9aa3ad"))
+    p += ruedas(-0.16, 0.15, 0.13, 0.06, 0.085, ancho=0.07, llanta=naranja)
+    return unir(p, "JBuggyDunas")
+
+
+def helados():
+    def fn(co, n):
+        return lineal("#ff9cc7") if co.z < 0.12 else lineal("#fffaf2")
+    p = [carroceria((0, 0, 0.15), (0.25, 0.5, 0.2), 0.04, fn, cortes=4),
+         cristal((0, -0.22, 0.2), (0.22, 0.06, 0.07), 0.02),
+         cristal((0.126, 0.06, 0.18), (0.01, 0.18, 0.08), 0.01),
+         color(cilindro((0, 0.05, 0.33), 0.05, 0.12, r2=0.0, rot=(math.pi, 0, 0)), "#e0a85a"),
+         color(esfera((0, 0.05, 0.43), 0.065, 14), "#ff9cc7"),
+         color(esfera((0, 0.05, 0.49), 0.05, 14), "#fff3a8"),
+         color(esfera((0, 0.05, 0.545), 0.016, 8), "#e8322a")]
+    p += faros(-0.252, 0.12, 0.08) + ruedas(-0.15, 0.15, 0.115, 0.055)
+    return unir(p, "JHelados")
+
+
+def ovni():
+    d = esfera((0, 0, 0.13), (0.27, 0.27, 0.06), 28)
+    pintar(d, lambda co, n: lineal("#7ff6ff") if abs(co.z - 0.13) < 0.012 else lineal("#c7ced6"))
+    p = [d, color(esfera((0, 0, 0.19), (0.12, 0.12, 0.09), 20), "#8fe6ff")]
+    for k in range(10):
+        a = k / 10 * math.pi * 2
+        p.append(color(esfera((math.cos(a) * 0.255, math.sin(a) * 0.255, 0.13), 0.02, 8), "#ffd21f" if k % 2 else "#3dff6a"))
+    p.append(color(esfera((0, -0.02, 0.21), (0.04, 0.035, 0.05), 12), "#5fd35a"))
+    for l in (-1, 1):
+        p.append(color(esfera((l * 0.015, -0.05, 0.225), 0.012, 8), "#111111"))
+    p += ruedas(-0.12, 0.12, 0.1, 0.04, llanta="#7ff6ff")
+    return unir(p, "JOvni")
+
+
+def dragon():
+    rojo = "#c8231b"
+    p = [carroceria((0, 0, 0.085), (0.23, 0.5, 0.08), 0.035, lambda co, n: lineal("#ffb400") if n.z < -0.3 else lineal(rojo)),
+         cristal((0, 0.05, 0.155), (0.17, 0.17, 0.07), 0.03),
+         color(esfera((0, -0.28, 0.13), (0.07, 0.09, 0.055), 16), rojo),
+         color(skin("ColaD", [(0, 0.23, 0.11), (0, 0.33, 0.14), (0, 0.42, 0.2), (0, 0.46, 0.27)], [(0, 1), (1, 2), (2, 3)], [0.035, 0.025, 0.015, 0.01]), rojo)]
+    for l in (-1, 1):
+        me = bpy.data.meshes.new("Ala")
+        me.from_pydata([(l * 0.1, -0.05, 0.16), (l * 0.1, 0.15, 0.17), (l * 0.32, 0.12, 0.3), (l * 0.28, -0.02, 0.24)], [], [(0, 1, 2, 3)])
+        ala = objeto("Ala", me)
+        s2 = ala.modifiers.new("S", 'SOLIDIFY')
+        s2.thickness = 0.008
+        aplicar(ala)
+        p.append(color(ala, "#ff6a3d"))
+        p.append(color(cilindro((l * 0.035, -0.29, 0.19), 0.012, 0.06, r2=0.0, v=6, rot=(-0.4, 0, 0)), "#fff3a8"))
+        p.append(color(esfera((l * 0.035, -0.34, 0.16), 0.012, 8), "#ffd21f"))
+    for k in range(5):
+        p.append(color(cilindro((0, -0.1 + k * 0.06, 0.2), 0.018, 0.05, r2=0.0, v=5), "#ffd21f"))
+    p += ruedas(-0.15, 0.15, 0.115, 0.058, llanta="#ffd21f")
+    return unir(p, "JDragon")
+
+
+def oro():
+    c = carroceria((0, 0, 0.065), (0.24, 0.52, 0.06), 0.025, lambda co, n: lineal("#ffc21a"), cortes=3)
+    for v in c.data.vertices:
+        if v.co.y < -0.05:
+            v.co.z = 0.035 + (v.co.z - 0.035) * max(0.35, 1 + (v.co.y + 0.05) * 2.6)
+    p = [c, cristal((0, 0.04, 0.115), (0.18, 0.18, 0.06), 0.03),
+         color(caja((0, 0.245, 0.15), (0.24, 0.05, 0.012), bisel=0.004), "#ffc21a")]
+    for o in p:
+        if o is not p[1]:
+            for m in o.data.materials:
+                pass
+    for o in (p[0], p[2]):
+        o.data.materials.clear()
+        o.data.materials.append(VC_ORO)
+    p += faros(-0.255, 0.06, 0.08, col="#ffffff") + ruedas(-0.15, 0.16, 0.115, 0.055, llanta="#ffc21a")
+    return unir(p, "JOro")
+
+
 # ---------- PIEZAS DE LAS PISTAS ----------
 def lanzador():
     """Lanzador de muelle: caja naranja con la palanca y el carril de salida."""
@@ -442,7 +551,8 @@ def set_pistas():
     return unir(p, "SetPistas")
 
 
-coches = [musculo(), formula(), monstruo(), tiburon(), dino(), cohete(), policia(), bomberos(), furgo(), escarabajo()]
+coches = [musculo(), formula(), monstruo(), tiburon(), dino(), cohete(), policia(), bomberos(), furgo(), escarabajo(),
+          todoterreno(), buggy_dunas(), helados(), ovni(), dragon(), oro()]
 proto = coches + [lanzador(), caja_pistas(), set_pistas()]
 for o in proto:
     print(f"{o.name}: {len(o.data.polygons)} caras")
@@ -512,10 +622,11 @@ def copia(o, loc, rz=0.0, esc=1.0):
 
 
 for k, o in enumerate(coches):
-    copia(o, ((k % 5) * 0.62 - 1.24, (k // 5) * 0.75, 0), 0.5)
-copia(proto[10], (1.9, 0.2, 0), 0.3)
-copia(proto[11], (-2.0, 1.2, 0), 0.2)
-copia(proto[12], (0.3, 1.9, 0), 0.1)
+    copia(o, ((k % 6) * 0.62 - 1.55, (k // 6) * 0.75, 0), 0.5)
+por_n = {o.name: o for o in proto}
+copia(por_n["Lanzador"], (2.3, 0.2, 0), 0.3)
+copia(por_n["CajaPistas"], (-2.4, 1.6, 0), 0.2)
+copia(por_n["SetPistas"], (0.3, 2.0, 0), 0.1)
 bpy.ops.mesh.primitive_plane_add(size=20, location=(0, 1, 0))
 s = bpy.context.object
 m = bpy.data.materials.new("Suelo")

@@ -601,8 +601,8 @@
     .mates-opcion { min-height: 56px; font-size: 28px; }
   }
   /* ---------- Cuarto de las pistas ---------- */
-  .mates.pistas-j { width: min(660px, calc(100% - 32px)); }
-  .fichas-j { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .mates.pistas-j { width: min(760px, calc(100% - 32px)); }
+  .fichas-j { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; max-height: 52vh; overflow-y: auto; }
   .ficha-j {
     display: grid;
     gap: 1px;
@@ -619,7 +619,11 @@
   .ficha-j strong { font: 800 14px "Baloo 2", "Nunito", sans-serif; }
   .ficha-j.elegida { border-color: #ff7a00; background: #fff1e0; }
   .ficha-j:focus-visible, .pistas-cambiar:focus-visible { outline: 3px solid var(--tinta); outline-offset: 2px; }
-  .ficha-j .foto { width: 100%; aspect-ratio: 32 / 22; background: url(cochesjuguete.png) 0 0 / 1000% 100% no-repeat; }
+  .ficha-j .foto { width: 100%; aspect-ratio: 32 / 22; background: url(cochesjuguete.png) 0 0 / 1600% 100% no-repeat; }
+  .ficha-j.cerrada { background: #ece6d8; }
+  .ficha-j.cerrada .foto { filter: grayscale(1) brightness(0.55); }
+  .ficha-j .stat.cerrado { display: block; text-align: center; font-size: 10px; line-height: 1.2; color: #7a5a2a; }
+  .ficha-j .stat.todo { justify-content: center; color: #4a6a1a; }
   .ficha-j .stat { display: flex; width: 100%; justify-content: space-between; align-items: center; gap: 4px; }
   .pistas-j .barra { display: inline-flex; gap: 2px; height: auto; background: none; border-radius: 0; overflow: visible; }
   .pistas-j .barra i, .pistas-j .barra b { position: static; display: block; width: 7px; height: 7px; border-radius: 2px; }
@@ -631,6 +635,7 @@
   .pistas-aviso { margin: 0; padding: 8px 10px; border-radius: 12px; background: #fff1e0; color: #a8430a; font: 800 17px "Nunito", sans-serif; text-align: center; }
   .pistas-boton { width: 100%; font-size: 26px; background: #ff7a00; box-shadow: 0 4px 0 #c25a00; }
   .pistas-cambiar { justify-self: center; border: 0; border-radius: 999px; padding: 6px 14px; font: 700 14px "Nunito", sans-serif; color: var(--tinta); background: var(--arena); cursor: pointer; }
+  @media (max-width: 700px) { .fichas-j { grid-template-columns: repeat(4, 1fr); } }
   @media (max-width: 520px) { .fichas-j { grid-template-columns: repeat(3, 1fr); } }
   .pistas-grito {
     position: fixed;
@@ -1540,8 +1545,9 @@
       pos.z = clamp(pos.z, CIRC.z - 110, CIRC.z + 160);
     } else if (pos.z < -1100) {
       // En el cuarto de las pistas
-      pos.x = clamp(pos.x, JUG.x - SALA_X + 1, JUG.x + SALA_X - 1);
-      pos.z = clamp(pos.z, JUG.z - SALA_Z + 1, JUG.z + SALA_Z - 1);
+      const S = salaDe(pos);
+      pos.x = clamp(pos.x, S.c.x - S.X + 1, S.c.x + S.X - 1);
+      pos.z = clamp(pos.z, S.c.z - S.Z + 1, S.c.z + S.Z - 1);
     } else if (pos.z < -400) {
       // En el pueblo de los números
       const dx = pos.x - NUM.x, dz = pos.z - NUM.z, d = Math.hypot(dx, dz);
@@ -2985,6 +2991,13 @@
         const e = juguetes.estaciones.find((q) => !juguetes.estrellas[q.def.id]);
         return e ? e.sitio : null;
       } },
+    { id: 'paisajes', titulo: 'Pasa al cuarto de los paisajes y supera sus 5 pistas largas', total: 5, cuenta: 0,
+      objetivo: () => {
+        if (!enJuguetes(ninoE.pos)) return estaDentro(ninoE.pos) ? new V3(INT.x + 3.9, INT.y, INT.z - 3.2) : dentro.puertaFuera;
+        if (salaDe(ninoE.pos) !== SALAS[1]) return new V3(JUG.x, 0, JUG.z - SALA_Z + 3);
+        const e = juguetes.estaciones.find((q) => q.def.sala && !juguetes.estrellas[q.def.id] && pistaAbierta(q.def));
+        return e ? e.sitio : null;
+      } },
     { id: 'copas', titulo: 'Gana una copa (podio) en los 4 circuitos: verde, ciudad, playa y bosque', total: 4, cuenta: 0,
       objetivo: () => (!enCircuito(ninoE.pos) ? PUERTA_CIRCUITO : circuito.fase === 'paddock' && circuito.amigos[0] ? circuito.amigos[0].grupo.position : null) },
   ];
@@ -2993,6 +3006,7 @@
   let buceando = false;  // bajo el agua, la tarea que se ve es la del arrecife
   const misionNino = () => (buceando && !hechaNino('arrecife') ? misionPor('arrecife') :
     enCircuito(ninoE.pos) && !hechaNino('carrera') ? misionPor('carrera') : enCircuito(ninoE.pos) && !hechaNino('copas') ? misionPor('copas') :
+    enJuguetes(ninoE.pos) && salaDe(ninoE.pos) === SALAS[1] && !hechaNino('paisajes') ? misionPor('paisajes') :
     enJuguetes(ninoE.pos) && !hechaNino('pistas') ? misionPor('pistas') :
     enNumeros(ninoE.pos) && !hechaNino('mates') ? misionPor('mates') : enNumeros(ninoE.pos) && !hechaNino('regalos') ? misionPor('regalos') : MISIONES_NINO.find((m) => m.cuenta < m.total) || null);
   function masCercanoA(lista, desde) {
@@ -9297,6 +9311,13 @@
     { id: 'curvas', nombre: 'Curvas locas', angulo: 14, piezas: [['recta', 1.5], ['curva', 2.2, 90], ['curva', 2.2, -180], ['sube', 2, 12], ['recta', 1.5], ['sube', 2, -12], ['curva', 2.2, 90], ['meta', 1.5]] },
     { id: 'doble', nombre: 'Doble rizo turbo', angulo: -16, piezas: [['recta', 1], ['rizo', 1.0], ['recta', 1], ['turbo', 1.5], ['rizo', 1.2], ['recta', 1], ['curva', 3.5, -90], ['meta', 1.5]] },
     { id: 'mega', nombre: 'La megapista', angulo: 20, piezas: [['sube', 2, 15], ['recta', 1], ['sube', 2, -15], ['rizo', 1.1], ['recta', 1], ['sube', 2.5, 18], ['recta', 0.8], ['hueco', 3.2, 0.3], ['recta', 2.5], ['turbo', 1.2], ['curva', 3, 90], ['curva', 3, 90], ['meta', 1.5]] },
+    // Cuarto de los paisajes: pistas largas por dunas, charcos, bosques y montañas
+    
+    { id: 'dunas', nombre: 'Dunas del desierto', tema: 'desierto', base: [80, 75], sala: 1, angulo: -6, piezas: [['recta', 2], ['colina', 8, 0.6], ['colina', 8, 0.7], ['recta', 2], ['turbo', 1.5], ['colina', 12, 0.8], ['colina', 12, 0.9], ['curva', 4, 90], ['recta', 2], ['colina', 10, 0.6], ['turbo', 1.5], ['colina', 13, 1.0], ['recta', 2], ['charco', 3], ['curva', 4, -90], ['turbo', 1.5], ['colina', 12, 0.6], ['recta', 2], ['meta', 2]] },
+    { id: 'charcos', nombre: 'El charco gigante', tema: 'agua', base: [-35, 75], sala: 1, angulo: 10, piezas: [['recta', 2], ['charco', 3], ['recta', 1.5], ['sube', 3, 12], ['recta', 2], ['sube', 3, -12], ['charco', 4], ['turbo', 1.5], ['rizo', 1.2], ['recta', 2], ['charco', 3], ['curva', 3.5, -90], ['recta', 1.5], ['turbo', 1.5], ['sube', 3, 18], ['recta', 1], ['hueco', 3.4, 0.4], ['recta', 3], ['charco', 3], ['curva', 3.5, -90], ['recta', 2], ['meta', 2]] },
+    { id: 'bosque', nombre: 'Bosque encantado', tema: 'bosque', base: [-70, 75], sala: 1, angulo: -12, piezas: [['recta', 3], ['curva', 3, 60], ['curva', 3, -120], ['curva', 3, 60], ['tunel', 4], ['turbo', 1.5], ['rizo', 1.3], ['recta', 2], ['curva', 3.5, 90], ['recta', 3], ['colina', 12, 0.7], ['curva', 3.5, -90], ['turbo', 1.5], ['recta', 2], ['curva', 4, -180], ['recta', 2], ['meta', 2]] },
+    { id: 'montana', nombre: 'La gran montaña', tema: 'montana', base: [-45, -5], sala: 1, angulo: 8, piezas: [['recta', 2], ['turbo', 2], ['sube', 4, 20], ['recta', 6], ['turbo', 2], ['recta', 4], ['sube', 4, -20], ['tunel', 6], ['sube', 4, -25], ['recta', 6], ['sube', 4, 25], ['curva', 4, 120], ['recta', 2], ['sube', 3, 15], ['recta', 1], ['hueco', 4.2, 1.0], ['recta', 3], ['curva', 4, -90], ['meta', 2]] },
+    { id: 'tour', nombre: 'El gran tour', tema: 'mix', base: [5, 75], requiere: ['dunas', 'charcos', 'bosque', 'montana'], sala: 1, angulo: -18, piezas: [['recta', 2], ['colina', 8, 0.5], ['colina', 8, 0.6], ['charco', 3], ['turbo', 2], ['rizo', 1.2], ['recta', 2], ['curva', 4, 90], ['turbo', 1.5], ['sube', 4, 18], ['recta', 4], ['sube', 4, -18], ['tunel', 5], ['sube', 4, -18], ['recta', 3], ['sube', 4, 18], ['curva', 3.5, -120], ['charco', 3], ['turbo', 3], ['rizo', 1.3], ['recta', 2], ['colina', 16, 0.8], ['turbo', 1.5], ['sube', 3, 16], ['recta', 1], ['hueco', 3.2, 0.4], ['recta', 3], ['curva', 4, 90], ['colina', 14, 0.6], ['meta', 2]] },
   ];
   const COCHES_J = [
     { id: 'JMusculo', nombre: 'Rayo rojo', peso: 1.2, agarre: 1.0 }, { id: 'JFormula', nombre: 'Fórmula', peso: 0.9, agarre: 1.25 },
@@ -9304,7 +9325,15 @@
     { id: 'JDino', nombre: 'Dinocoche', peso: 1.1, agarre: 0.95 }, { id: 'JCohete', nombre: 'Cohete', peso: 0.85, agarre: 1.1 },
     { id: 'JPolicia', nombre: 'Policía', peso: 1.1, agarre: 1.05 }, { id: 'JBomberos', nombre: 'Bomberos', peso: 1.4, agarre: 0.85 },
     { id: 'JFurgo', nombre: 'Furgoneta', peso: 1.25, agarre: 0.9 }, { id: 'JEscarabajo', nombre: 'Escarabajo', peso: 0.95, agarre: 1.0 },
+    // Coches que se desbloquean
+    { id: 'JTodoterreno', nombre: 'Todoterreno', peso: 1.3, agarre: 0.95, todoterreno: true, desbloqueo: { pista: 'dunas' } },
+    { id: 'JBuggyDunas', nombre: 'Buggy', peso: 0.9, agarre: 1.1, todoterreno: true, desbloqueo: { estrellas: 12 } },
+    { id: 'JHelados', nombre: 'Heladería', peso: 1.3, agarre: 0.9, desbloqueo: { pista: 'charcos' } },
+    { id: 'JOvni', nombre: 'Ovni', peso: 0.8, agarre: 1.2, desbloqueo: { pista: 'bosque' } },
+    { id: 'JDragon', nombre: 'Dragón', peso: 1.15, agarre: 1.15, desbloqueo: { pista: 'montana' } },
+    { id: 'JOro', nombre: 'Coche de oro', peso: 1.05, agarre: 1.3, desbloqueo: { pista: 'tour' } },
   ];
+  COCHES_J[2].todoterreno = true;  // el monstruo también pasa bien por los charcos
   // Una pista es una lista de piezas: ['recta', L] ['sube', R, grados] ['curva', R, grados] ['rizo', R]
   // ['hueco', L, caida] ['turbo', L] ['meta', L]. Empieza en (0, 0, 0) mirando a +Z.
   function muestrearPista(piezas) {
@@ -9316,13 +9345,26 @@
     const meter = (p, t, u, tipo, R, giro = 0) => { M.p.push(p); M.t.push(t); M.u.push(u); M.tipo.push(tipo); M.R.push(R); M.giro.push(giro); };
     piezas.forEach(([tipo, a0, b0]) => {
       const a = a0 * ESC_J, b = tipo === 'sube' || tipo === 'curva' ? b0 : b0 === undefined ? undefined : b0 * ESC_J;
-      if (tipo === 'recta' || tipo === 'turbo' || tipo === 'meta') {
+      if (tipo === 'recta' || tipo === 'turbo' || tipo === 'meta' || tipo === 'charco' || tipo === 'tunel') {
         const n = Math.max(1, Math.round(a / DS_PISTA));
         for (let i = 0; i < n; i++) {
           const t = tang();
           P = [P[0] + t[0] * DS_PISTA, P[1] + t[1] * DS_PISTA, P[2] + t[2] * DS_PISTA];
           meter(P, t, arriba(), tipo, 0);
         }
+      } else if (tipo === 'colina') {
+        // duna: sube y baja suave (altura b en una longitud a); en la cresta guarda el radio de la curva
+        const k2 = 2 * Math.PI / a;
+        let x = 0;
+        while (x < a) {
+          const hp = b * k2 * Math.sin(k2 * x) / 2, hpp = b * k2 * k2 * Math.cos(k2 * x) / 2;
+          pitch = Math.atan(hp);
+          const t = tang();
+          P = [P[0] + t[0] * DS_PISTA, P[1] + t[1] * DS_PISTA, P[2] + t[2] * DS_PISTA];
+          x += DS_PISTA * Math.cos(pitch);
+          meter(P, t, arriba(), 'colina', hpp < 0 ? Math.pow(1 + hp * hp, 1.5) / -hpp : 0);
+        }
+        pitch = 0;
       } else if (tipo === 'sube') {
         const total = b * Math.PI / 180, n = Math.max(2, Math.round(Math.abs(total) * a / DS_PISTA)), l = Math.abs(total) * a / n;
         for (let i = 0; i < n; i++) {
@@ -9396,6 +9438,7 @@
       const kAire = 0.012 / coche.peso;
       let a = -G_PISTA * M.t[i][1] - 0.015 * G_PISTA - kAire / ESC_J * E.v * Math.abs(E.v);
       if (M.tipo[i] === 'turbo' && E.v < 9 * RAIZ_J) a += 14;
+      if (M.tipo[i] === 'charco' && E.v > 0) a -= coche.todoterreno ? 1.8 : 3.0;  // el agua frena (menos a los todoterrenos)
       E.v += a * dt;
       E.s += E.v * dt;
       E.pos = M.p[i];
@@ -9411,6 +9454,8 @@
         salir('fuerte', 'curva', [-giro[0] / n * 2.5, 1.2, -giro[2] / n * 2.5]);
         return;
       }
+      // en la cresta de una duna, si va demasiado rápido sale volando
+      if (M.tipo[i] === 'colina' && M.R[i] > 0 && E.v * E.v > G_PISTA * M.R[i] * M.u[i][1]) { salir('fuerte', 'duna', [0, 1.0, 0]); return; }
       if (M.tipo[i] === 'rizo' && M.u[i][1] < 0 && E.v * E.v / M.R[i] < -G_PISTA * M.u[i][1] * 0.98) { salir('flojo', 'rizo'); return; }
       const h = E.v > 0 ? M.huecos.find((x) => x.desde === i) : null;
       if (h) {
@@ -9428,7 +9473,9 @@
       if (E.s / DS_PISTA >= M.N - 1) { E.fase = 'ok'; return; }
       if (E.s < 0) { E.fase = 'mal'; E.motivo = 'flojo'; E.donde = 'atras'; return; }
       if (Math.abs(E.v) < 0.05) { E.quieto += dt; if (E.quieto > 0.6) { E.fase = 'mal'; E.motivo = 'flojo'; E.donde = 'parado'; } } else E.quieto = 0;
-      if (E.t > 40) { E.fase = 'mal'; E.motivo = 'flojo'; E.donde = 'tiempo'; }
+      if (E.s > (E.maxS || 0) + 0.5) { E.maxS = E.s; E.tMax = E.t; }
+      if (E.t - (E.tMax || 0) > 6) { E.fase = 'mal'; E.motivo = 'flojo'; E.donde = E.s > 1 ? 'atascado' : 'parado'; }
+      if (E.t > 90) { E.fase = 'mal'; E.motivo = 'flojo'; E.donde = 'tiempo'; }
       return;
     }
     if (E.fase === 'vuelo' || E.fase === 'cae') {
@@ -9453,7 +9500,7 @@
   // Resultado completo (para ajustar las pistas y para los tests)
   function simularLanzamiento(M, fuerza, errorGrados, coche) {
     const E = nuevoLanzamiento(fuerza, errorGrados);
-    for (let k = 0; k < 40 / DT_PISTA && E.fase !== 'ok' && E.fase !== 'mal'; k++) pasoLanzamiento(M, E, coche);
+    for (let k = 0; k < 90 / DT_PISTA && E.fase !== 'ok' && E.fase !== 'mal'; k++) pasoLanzamiento(M, E, coche);
     return E;
   }
   function margenFuerza(M, coche) {
@@ -9470,15 +9517,44 @@
   const enJuguetes = (p) => p.z < -1100;
   const SALA_X = 58, SALA_Z = 55;             // medio ancho y medio fondo del cuarto
   const LLEGADA_JUG = new V3(JUG.x, 0, JUG.z + 47);
+  const PAI = new V3(0, 0, -2000);              // el cuarto de los paisajes, más allá
+  const SALAS = [{ c: JUG, X: SALA_X, Z: SALA_Z }, { c: PAI, X: 110, Z: 85 }];
+  const salaDe = (p) => (p.z < -1700 ? SALAS[1] : SALAS[0]);
   const juguetes = {
     listo: false, piezas: {}, grupo: new THREE.Group(), estaciones: [], estrellas: {}, coche: 'JMusculo', set: false,
     activa: null, lanzamiento: null, foco: null, ocultos: null, panel: null, caja: null, setCuarto: null, regalo: null,
-    choques: [], animados: [], lento: 1, modoCam: 'normal', grito: null,
+    choques: [], animados: [], lento: 1, modoCam: 'normal', grito: null, grupo2: new THREE.Group(), desbloqueados: [],
   };
   const BASE_ESTACIONES = [[-36, 40], [0, 40], [36, 40], [-36, 2], [0, 2], [36, 2]];
 
+  // ---------- Coches que se desbloquean ----------
+  const estrellasTotales = () => Object.values(juguetes.estrellas).reduce((a, b) => a + (b || 0), 0);
+  function cocheLibre(c) {
+    if (!c.desbloqueo) return true;
+    return juguetes.desbloqueados.includes(c.id);
+  }
+  function textoDesbloqueo(c) {
+    const d = c.desbloqueo;
+    if (d.pista) return `Supera «${PISTAS_J.find((p) => p.id === d.pista).nombre}»`;
+    return `Consigue ${d.estrellas} estrellas (tienes ${estrellasTotales()})`;
+  }
+  function comprobarDesbloqueos() {
+    const nuevos = COCHES_J.filter((c) => c.desbloqueo && !cocheLibre(c) &&
+      (c.desbloqueo.pista ? juguetes.estrellas[c.desbloqueo.pista] : estrellasTotales() >= c.desbloqueo.estrellas));
+    nuevos.forEach((c, k) => {
+      juguetes.desbloqueados.push(c.id);
+      setTimeout(() => {
+        gritar('¡COCHE NUEVO!');
+        avisar(`¡Has desbloqueado un coche nuevo: ${c.nombre}!`, 3200);
+        hablar(`¡Has desbloqueado un coche nuevo: ${c.nombre}!`);
+        notas([[523, 0, 0.15], [659, 0.15, 0.15], [784, 0.3, 0.15], [1047, 0.45, 0.4]], 'triangle', 0.1);
+      }, 2200 + k * 3400);
+    });
+    if (nuevos.length) guardarPistasJ();
+  }
+  const pistaAbierta = (def) => !def.requiere || def.requiere.every((id) => juguetes.estrellas[id]);
   function guardarPistasJ() {
-    try { localStorage.setItem('playa-del-perro-pistas', JSON.stringify({ e: juguetes.estrellas, s: juguetes.set, c: juguetes.coche })); } catch (e) { /* sin guardar */ }
+    try { localStorage.setItem('playa-del-perro-pistas', JSON.stringify({ e: juguetes.estrellas, s: juguetes.set, c: juguetes.coche, d: juguetes.desbloqueados })); } catch (e) { /* sin guardar */ }
   }
   function construirJuguetes(gJ) {
     if (!gJ) return;
@@ -9487,28 +9563,15 @@
       const d = JSON.parse(localStorage.getItem('playa-del-perro-pistas') || '{}');
       if (d.e && typeof d.e === 'object') juguetes.estrellas = d.e;
       juguetes.set = !!d.s;
-      if (COCHES_J.some((c) => c.id === d.c)) juguetes.coche = d.c;
+      if (Array.isArray(d.d)) juguetes.desbloqueados = d.d.filter((id) => COCHES_J.some((c) => c.id === id));
+      if (COCHES_J.some((c) => c.id === d.c && cocheLibre(c))) juguetes.coche = d.c;
     } catch (e) { /* nada guardado */ }
     const G = juguetes.grupo;
     G.visible = false;
     scene.add(G);
     const cx = JUG.x, cz = JUG.z;
-    // Suelo de tarima, alfombra con carreteras y paredes de papel pintado
-    const tarima = lienzo(512, 512, (c, w, h) => {
-      for (let i = 0; i < 8; i++) {
-        c.fillStyle = ['#c9935b', '#d29e66', '#bf8a52', '#cc985f'][i % 4];
-        c.fillRect(0, i * h / 8, w, h / 8);
-        c.fillStyle = 'rgba(80,45,20,0.35)';
-        c.fillRect(0, i * h / 8, w, 3);
-        c.fillRect(((i * 197) % w), i * h / 8, 3, h / 8);
-      }
-    });
-    tarima.repeat.set(18, 18);
-    const suelo1 = new THREE.Mesh(new THREE.PlaneGeometry(SALA_X * 2, SALA_Z * 2), new THREE.MeshStandardMaterial({ map: tarima, roughness: 0.7 }));
-    suelo1.rotation.x = -Math.PI / 2;
-    suelo1.position.set(cx, 0, cz);
-    suelo1.receiveShadow = true;
-    G.add(suelo1);
+    // Suelo de tarima, paredes de papel pintado y alfombra con carreteras
+    sueloYParedes(SALAS[0], G, '#bfe3f5');
     const alfombra = lienzo(512, 512, (c, w, h) => {
       c.fillStyle = '#7cc46a';
       c.fillRect(0, 0, w, h);
@@ -9527,24 +9590,6 @@
     rug.position.set(cx, 0.01, cz + 48);
     rug.receiveShadow = true;
     G.add(rug);
-    const papel = lienzo(256, 256, (c, w, h) => {
-      c.fillStyle = '#bfe3f5';
-      c.fillRect(0, 0, w, h);
-      c.fillStyle = '#ffffff';
-      for (let i = 0; i < 6; i++) for (let j = 0; j < 6; j++) { c.beginPath(); c.arc(i * 44 + (j % 2) * 22 + 10, j * 44 + 10, 8, 0, Math.PI * 2); c.fill(); }
-    });
-    papel.repeat.set(20, 4);
-    const matPared = new THREE.MeshStandardMaterial({ map: papel, roughness: 0.9, side: THREE.DoubleSide });
-    [[0, -SALA_Z, 0, SALA_X], [0, SALA_Z, Math.PI, SALA_X], [-SALA_X, 0, Math.PI / 2, SALA_Z], [SALA_X, 0, -Math.PI / 2, SALA_Z]].forEach(([x, z, r, l]) => {
-      const p = new THREE.Mesh(new THREE.PlaneGeometry(l * 2, 24), matPared);
-      p.position.set(cx + x, 12, cz + z);
-      p.rotation.y = r;
-      G.add(p);
-      const zocalo = new THREE.Mesh(new THREE.BoxGeometry(l * 2, 1.0, 0.4), new THREE.MeshStandardMaterial({ color: '#ffffff' }));
-      zocalo.position.set(cx + x * 0.996, 0.5, cz + z * 0.996);
-      zocalo.rotation.y = r;
-      G.add(zocalo);
-    });
     // Juguetes gigantes alrededor (los del pueblo de los números, enormes)
     const gigantes = [['Osito', -48, -45, 14, 0.6], ['Robot', 48, -45, 14, -0.6], ['Tren', -50, 20, 12, 1.4], ['Pelota', 50, 24, 9, 0], ['Cohete', 50, -12, 14, -2.4],
       ['Dado', -48, 46, 3.6, 0.4], ['Dado', -42, 50, 2.4, 1.0], ['Patito', 18, -47, 12, 0.2], ['CuboMagico', -16, -48, 7, 0.5], ['Bloque3', -52, -14, 3.6, 1.57],
@@ -9563,8 +9608,10 @@
       colisiones.push({ x: centro.x, z: centro.z, r: radio });
       juguetes.choques.push({ x: centro.x, z: centro.z, r: radio });
     });
-    // Las seis pistas
+    // El cuarto de los paisajes y todas las pistas
+    construirPaisajes();
     PISTAS_J.forEach((def, k) => construirEstacion(def, k));
+    puertaSala(G, new V3(JUG.x, 0, JUG.z - SALA_Z + 3), 0, 'CUARTO DE LOS PAISAJES', 'Paisajes', () => irASala(1));
     // Salida: un aro que vuelve al cuarto de Manuel
     const aro = new THREE.Mesh(new THREE.RingGeometry(0.9, 1.25, 40), new THREE.MeshBasicMaterial({ color: '#ffd42a', transparent: true, opacity: 0.8, side: THREE.DoubleSide }));
     aro.rotation.x = -Math.PI / 2;
@@ -9587,7 +9634,9 @@
     crearPanelPistas();
     if (juguetes.set) ponerSetEnCuarto();
     const m = misionPor('pistas');
-    if (m) m.cuenta = Math.min(m.total, PISTAS_J.filter((p) => juguetes.estrellas[p.id]).length);
+    if (m) m.cuenta = Math.min(m.total, PISTAS_J.filter((p) => !p.sala && juguetes.estrellas[p.id]).length);
+    const m2 = misionPor('paisajes');
+    if (m2) m2.cuenta = Math.min(m2.total, PISTAS_J.filter((p) => p.sala && juguetes.estrellas[p.id]).length);
     juguetes.listo = true;
   }
   function copiaJ(nombre) {
@@ -9599,6 +9648,327 @@
     return m;
   }
 
+  // ---------- Suelo y paredes de un cuarto ----------
+  function sueloYParedes(S, G, colorPapel) {
+    const tarima = lienzo(512, 512, (c, w, h) => {
+      for (let i = 0; i < 8; i++) {
+        c.fillStyle = ['#c9935b', '#d29e66', '#bf8a52', '#cc985f'][i % 4];
+        c.fillRect(0, i * h / 8, w, h / 8);
+        c.fillStyle = 'rgba(80,45,20,0.35)';
+        c.fillRect(0, i * h / 8, w, 3);
+        c.fillRect(((i * 197) % w), i * h / 8, 3, h / 8);
+      }
+    });
+    tarima.repeat.set(S.X / 3.2, S.Z / 3.2);
+    const suelo1 = new THREE.Mesh(new THREE.PlaneGeometry(S.X * 2, S.Z * 2), new THREE.MeshStandardMaterial({ map: tarima, roughness: 0.7 }));
+    suelo1.rotation.x = -Math.PI / 2;
+    suelo1.position.set(S.c.x, 0, S.c.z);
+    suelo1.receiveShadow = true;
+    G.add(suelo1);
+    const papel = lienzo(256, 256, (c, w, h) => {
+      c.fillStyle = colorPapel;
+      c.fillRect(0, 0, w, h);
+      c.fillStyle = '#ffffff';
+      for (let i = 0; i < 6; i++) for (let j = 0; j < 6; j++) { c.beginPath(); c.arc(i * 44 + (j % 2) * 22 + 10, j * 44 + 10, 8, 0, Math.PI * 2); c.fill(); }
+    });
+    [[0, -S.Z, 0, S.X], [0, S.Z, Math.PI, S.X], [-S.X, 0, Math.PI / 2, S.Z], [S.X, 0, -Math.PI / 2, S.Z]].forEach(([x, z, r, l]) => {
+      const tex = papel.clone();
+      tex.needsUpdate = true;
+      tex.repeat.set(l / 6, 4);
+      const p = new THREE.Mesh(new THREE.PlaneGeometry(l * 2, 24), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9, side: THREE.DoubleSide }));
+      p.position.set(S.c.x + x, 12, S.c.z + z);
+      p.rotation.y = r;
+      G.add(p);
+      const zocalo = new THREE.Mesh(new THREE.BoxGeometry(l * 2, 1.0, 0.4), new THREE.MeshStandardMaterial({ color: '#ffffff' }));
+      zocalo.position.set(S.c.x + x * 0.996, 0.5, S.c.z + z * 0.996);
+      zocalo.rotation.y = r;
+      G.add(zocalo);
+    });
+  }
+  // Puerta entre los dos cuartos: el arco de bloques del pueblo de los números, en grande
+  function puertaSala(G, pos, ry, texto, accion, hacer) {
+    const p = numeros.piezas.Arco;
+    if (p) {
+      const arco = new THREE.Mesh(p.geometry, p.material);
+      arco.scale.setScalar(1.6);
+      arco.position.copy(pos);
+      arco.rotation.y = ry;
+      arco.castShadow = true;
+      G.add(arco);
+    }
+    const letrero = cartel(texto, 7, 1.1);
+    letrero.position.set(pos.x, 8.3, pos.z);
+    letrero.rotation.y = ry;
+    G.add(letrero);
+    const aro = new THREE.Mesh(new THREE.RingGeometry(1.2, 1.6, 40), new THREE.MeshBasicMaterial({ color: '#ffd42a', transparent: true, opacity: 0.85, side: THREE.DoubleSide }));
+    aro.rotation.x = -Math.PI / 2;
+    aro.position.set(pos.x, 0.03, pos.z);
+    G.add(aro);
+    puntosAccion.push({ pos: new V3(pos.x, 0.02, pos.z), radio: 2, texto: accion, hacer, visible: () => enJuguetes(ninoE.pos) && !juguetes.activa });
+  }
+  function construirPaisajes() {
+    const S = SALAS[1], G = juguetes.grupo2;
+    G.visible = false;
+    scene.add(G);
+    sueloYParedes(S, G, '#d9f0c8');
+    // Montañas de cartón pintadas en las paredes (de adorno, al fondo)
+    const fondo = lienzo(1024, 256, (c, w, h) => {
+      c.fillStyle = '#a8dcf2';
+      c.fillRect(0, 0, w, h);
+      [['#7f9bb3', 0.35], ['#5f7f96', 0.55]].forEach(([col, alto], k) => {
+        c.fillStyle = col;
+        c.beginPath();
+        c.moveTo(0, h);
+        for (let x = 0; x <= w; x += 64) c.lineTo(x, h * (1 - alto) + Math.sin(x * 0.013 + k * 2) * 40 + (x % 128 ? 30 : -20));
+        c.lineTo(w, h);
+        c.fill();
+      });
+      c.fillStyle = '#5fa04a';
+      c.fillRect(0, h * 0.85, w, h * 0.15);
+    });
+    const mural = new THREE.Mesh(new THREE.PlaneGeometry(S.X * 2 - 2, 14), new THREE.MeshBasicMaterial({ map: fondo }));
+    mural.position.set(S.c.x, 7.5, S.c.z - S.Z + 0.3);
+    G.add(mural);
+    const alfombra = new THREE.Mesh(new THREE.PlaneGeometry(20, 8), new THREE.MeshStandardMaterial({ color: '#ffd21f', roughness: 1 }));
+    alfombra.rotation.x = -Math.PI / 2;
+    alfombra.position.set(S.c.x, 0.01, S.c.z + 80);
+    G.add(alfombra);
+    puertaSala(G, new V3(S.c.x, 0, S.c.z + S.Z - 3), Math.PI, 'VOLVER A LAS PISTAS', 'Volver', () => irASala(0));
+  }
+
+  // ---------- Paisajes alrededor de una pista (dunas, charcos, bosque, montaña) ----------
+  const TEMAS = {
+    desierto: { suelo: '#e8c98a', mancha: '#d9b56f' },
+    agua: { suelo: '#9fd67a', mancha: '#86c463' },
+    bosque: { suelo: '#4f8f3a', mancha: '#3f7a2e' },
+    montana: { suelo: '#9aa59a', mancha: '#7f8b80' },
+    mix: { suelo: '#b9d98a', mancha: '#a5c977' },
+  };
+  function copiaPista(nombre, color) {
+    const p = (circuito.piezasPista || {})[nombre];
+    if (!p) return null;
+    const mat = color ? p.material.clone() : p.material;
+    if (color) mat.color.set(color);
+    const m = new THREE.Mesh(p.geometry, mat);
+    m.castShadow = true;
+    return m;
+  }
+  function decorarPista(E) {
+    const { M, g, def } = E;
+    const tema = TEMAS[def.tema];
+    // Suelo del paisaje bajo la pista
+    let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
+    M.p.forEach((p) => { x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); z0 = Math.min(z0, p[2]); z1 = Math.max(z1, p[2]); });
+    x0 -= 7; x1 += 7; z0 -= 3; z1 += 7;
+    const tex = lienzo(256, 256, (c, w, h) => {
+      c.fillStyle = tema.suelo;
+      c.fillRect(0, 0, w, h);
+      c.fillStyle = tema.mancha;
+      for (let i = 0; i < 40; i++) { c.beginPath(); c.ellipse((i * 97) % w, (i * 61) % h, 10 + (i % 5) * 4, 6 + (i % 3) * 3, i, 0, Math.PI * 2); c.fill(); }
+    });
+    tex.repeat.set((x1 - x0) / 8, (z1 - z0) / 8);
+    const suelo1 = new THREE.Mesh(new THREE.PlaneGeometry(x1 - x0, z1 - z0), new THREE.MeshStandardMaterial({ map: tex, roughness: 1 }));
+    suelo1.rotation.x = -Math.PI / 2;
+    suelo1.position.set((x0 + x1) / 2, 0.012, (z0 + z1) / 2);
+    suelo1.receiveShadow = true;
+    g.add(suelo1);
+    // ¿Está libre un punto (lejos de la pista)?
+    const cerca = (x, z, d) => { for (let i = 0; i < M.N; i += 8) if (Math.hypot(M.p[i][0] - x, M.p[i][2] - z) < d) return true; return false; };
+    let semilla2 = def.id.length * 977;
+    const azarP = () => ((semilla2 = (semilla2 * 16807) % 2147483647) / 2147483647);
+    const sitios = (n, dMin) => {
+      const out = [];
+      for (let k = 0; k < n * 6 && out.length < n; k++) {
+        const x = x0 + azarP() * (x1 - x0), z = z0 + azarP() * (z1 - z0);
+        if (!cerca(x, z, dMin) && z > -1 && !(Math.abs(x) < 4 && z < 2)) out.push([x, z]);
+      }
+      return out;
+    };
+    const arena = new THREE.MeshStandardMaterial({ color: '#d9a85c', roughness: 1 });
+    const agua = new THREE.MeshStandardMaterial({ color: '#3aa0e8', roughness: 0.15, metalness: 0.1, transparent: true, opacity: 0.85 });
+    // Dunas bajo las colinas de la pista (y alguna suelta)
+    for (let i = 1; i < M.N - 1; i++) {
+      if (M.tipo[i] !== 'colina' || !(M.p[i][1] >= M.p[i - 1][1] && M.p[i][1] > M.p[i + 1][1])) continue;
+      let j = i; while (j > 0 && M.tipo[j - 1] === 'colina' && M.p[j - 1][1] < M.p[j][1]) j--;
+      const largo = Math.hypot(M.p[i][0] - M.p[j][0], M.p[i][2] - M.p[j][2]) * 1.15;
+      const alto = M.p[i][1] - 0.12;
+      const duna = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), arena);
+      duna.scale.set(4.5, alto, Math.max(2, largo));
+      duna.position.set(M.p[i][0], 0, M.p[i][2]);
+      duna.rotation.y = Math.atan2(M.t[i][0], M.t[i][2]);
+      duna.receiveShadow = true;
+      g.add(duna);
+    }
+    // Charcos: agua bajo la pista y patitos
+    let enCharco = -1;
+    for (let i = 0; i <= M.N; i++) {
+      const es = i < M.N && M.tipo[i] === 'charco';
+      if (es && enCharco < 0) enCharco = i;
+      if (!es && enCharco >= 0) {
+        const a = M.p[enCharco], b = M.p[i - 1], mid = M.p[Math.floor((enCharco + i) / 2)];
+        const largo = Math.hypot(b[0] - a[0], b[2] - a[2]) + 4;
+        const charco = new THREE.Mesh(new THREE.CircleGeometry(1, 32), agua);
+        charco.rotation.x = -Math.PI / 2;
+        charco.scale.set(4.2, largo / 2, 1);
+        charco.rotation.z = -Math.atan2(b[0] - a[0], b[2] - a[2]);
+        charco.position.set(mid[0], 0.03, mid[2]);
+        g.add(charco);
+        const patito = numeros.piezas.Patito && new THREE.Mesh(numeros.piezas.Patito.geometry, numeros.piezas.Patito.material);
+        if (patito) {
+          patito.scale.setScalar(2.5);
+          const r = new V3(...M.t[enCharco]).cross(new V3(0, 1, 0)).normalize();
+          patito.position.set(mid[0] + r.x * 2.8, 0.02, mid[2] + r.z * 2.8);
+          patito.rotation.y = enCharco;
+          g.add(patito);
+          juguetes.animados.push((t) => { patito.position.y = 0.03 + Math.sin(t * 2 + enCharco) * 0.04; patito.rotation.z = Math.sin(t * 1.6 + enCharco) * 0.08; });
+        }
+        // la pista va encharcada: un poco de agua encima
+        E.charcos = E.charcos || [];
+        E.charcos.push([enCharco, i - 1]);
+        enCharco = -1;
+      }
+    }
+    // Túneles: un tronco hueco en el bosque; una montaña con nieve en lo demás
+    let enTunel = -1;
+    for (let i = 0; i <= M.N; i++) {
+      const es = i < M.N && M.tipo[i] === 'tunel';
+      if (es && enTunel < 0) enTunel = i;
+      if (!es && enTunel >= 0) {
+        const a = M.p[enTunel], b = M.p[i - 1], mid = M.p[Math.floor((enTunel + i) / 2)];
+        const largo = Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]);
+        const yaw = Math.atan2(b[0] - a[0], b[2] - a[2]);
+        if (def.tema === 'bosque') {
+          const tronco = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.6, largo + 1, 20, 1, true), new THREE.MeshStandardMaterial({ color: '#7a4a26', roughness: 0.9, side: THREE.DoubleSide }));
+          tronco.rotation.set(Math.PI / 2, 0, 0);
+          const t2 = new THREE.Group();
+          t2.add(tronco);
+          t2.position.set(mid[0], mid[1] + 0.6, mid[2]);
+          t2.rotation.y = yaw;
+          tronco.castShadow = true;
+          g.add(t2);
+          [-1, 1].forEach((l) => {
+            const anillo = new THREE.Mesh(new THREE.TorusGeometry(1.55, 0.12, 8, 24), new THREE.MeshStandardMaterial({ color: '#c99a5e' }));
+            anillo.position.set(0, 0, l * (largo + 1) / 2);
+            t2.add(anillo);
+          });
+          for (let k = 0; k < 4; k++) {
+            const seta = copiaPista('SetaGigante');
+            if (seta) { seta.scale.setScalar(0.35); seta.position.set((k % 2 ? 1 : -1) * 1.1, 1.3, -largo / 2 + k * largo / 3); seta.rotation.z = (k % 2 ? -1 : 1) * 0.6; t2.add(seta); }
+          }
+        } else {
+          // macizo de roca: la silueta de picos, estirada a lo largo del túnel (las bocas quedan en sus paredes)
+          const alto = Math.max(mid[1] + 6, 10);
+          const forma = new THREE.Shape();
+          forma.moveTo(-17, 0);
+          [[-14, alto * 0.45], [-10, alto * 0.7], [-6, alto * 0.62], [-2, alto], [3, alto * 0.82], [7, alto * 0.95], [11, alto * 0.6], [15, alto * 0.35]].forEach(([x, y]) => forma.lineTo(x, y));
+          forma.lineTo(17, 0);
+          forma.closePath();
+          const geo = new THREE.ExtrudeGeometry(forma, { depth: largo + 0.4, bevelEnabled: true, bevelSize: 1.2, bevelThickness: 1.2, bevelSegments: 2, steps: 2 });
+          geo.computeVertexNormals();
+          const pos = geo.attributes.position, cols = [];
+          for (let v = 0; v < pos.count; v++) {
+            const y = pos.getY(v) / alto;
+            const c = new THREE.Color(y > 0.78 ? '#ffffff' : y > 0.6 ? '#b9c2bb' : y > 0.25 ? '#8a8f86' : '#6f7a68').convertSRGBToLinear();
+            cols.push(c.r, c.g, c.b);
+          }
+          geo.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
+          const monte = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, flatShading: true }));
+          const grupoM = new THREE.Group();
+          monte.position.z = -0.2;
+          grupoM.add(monte);
+          grupoM.position.set(a[0], 0, a[2]);
+          grupoM.rotation.y = yaw;
+          monte.castShadow = monte.receiveShadow = true;
+          g.add(grupoM);
+          // pinos con nieve encima
+          for (let k = 0; k < 6; k++) {
+            const pinito = new THREE.Mesh(new THREE.ConeGeometry(0.8, 2.2, 8), new THREE.MeshStandardMaterial({ color: '#2f6b3a' }));
+            pinito.position.set(-13 + k * 5, alto * 0.42 + (k % 2) * 0.6, -1.5);
+            grupoM.add(pinito);
+          }
+          // bocas del túnel en las dos paredes
+          [[a, 0], [b, largo]].forEach(([p, dz]) => {
+            const boca = new THREE.Mesh(new THREE.TorusGeometry(1.5, 0.4, 8, 20, Math.PI), new THREE.MeshStandardMaterial({ color: '#6b5f55', roughness: 1 }));
+            boca.position.set(0, p[1] - 0.15, dz + (dz ? 1.3 : -1.3));
+            grupoM.add(boca);
+          });
+        }
+        enTunel = -1;
+      }
+    }
+    // Cosas del paisaje por todas partes (lejos de la pista)
+    const poner = (nombre, n, dMin, esc, color, alturaY = 0) => {
+      sitios(n, dMin).forEach(([x, z], k) => {
+        const m = typeof nombre === 'function' ? nombre(k) : copiaPista(nombre, color);
+        if (!m) return;
+        m.position.set(x, alturaY, z);
+        m.rotation.y = azarP() * 6.28;
+        if (esc) m.scale.multiplyScalar(esc * (0.8 + azarP() * 0.5));
+        g.add(m);
+      });
+    };
+    const cactus = () => {
+      const c = new THREE.Group(), verde = new THREE.MeshStandardMaterial({ color: '#4a9a3a', roughness: 0.8 });
+      const tronco = new THREE.Mesh(new THREE.CapsuleGeometry(0.35, 2.2, 4, 10), verde);
+      tronco.position.y = 1.45;
+      c.add(tronco);
+      [-1, 1].forEach((l) => {
+        const brazo = new THREE.Mesh(new THREE.CapsuleGeometry(0.22, 0.8, 4, 8), verde);
+        brazo.position.set(l * 0.55, 1.6 + l * 0.2, 0);
+        c.add(brazo);
+      });
+      c.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+      return c;
+    };
+    const pino = () => {
+      const c = new THREE.Group();
+      const tronco = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.25, 1.2, 8), new THREE.MeshStandardMaterial({ color: '#6b4526' }));
+      tronco.position.y = 0.6;
+      c.add(tronco);
+      for (let k = 0; k < 3; k++) {
+        const capa = new THREE.Mesh(new THREE.ConeGeometry(1.5 - k * 0.35, 1.6, 9), new THREE.MeshStandardMaterial({ color: k === 2 ? '#e9f2f5' : '#2f6b3a', roughness: 0.9 }));
+        capa.position.y = 1.6 + k * 0.9;
+        c.add(capa);
+      }
+      c.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+      return c;
+    };
+    const roca = () => {
+      const r = new THREE.Mesh(new THREE.DodecahedronGeometry(1, 0), new THREE.MeshStandardMaterial({ color: '#8d8478', roughness: 1, flatShading: true }));
+      r.scale.set(1.2, 0.7, 1);
+      r.castShadow = true;
+      return r;
+    };
+    if (def.tema === 'desierto') {
+      poner(cactus, 26, 3.5, 1);
+      poner('Palmera', 8, 4.5, 0.6);
+      poner('RocaPlaya', 10, 3.5, 0.8);
+      poner((k) => { const d = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), arena); d.scale.set(4, 1.2, 6); return d; }, 12, 6, 1);
+    } else if (def.tema === 'agua') {
+      poner((k) => { const c = new THREE.Mesh(new THREE.CircleGeometry(1, 24), agua); c.rotation.x = -Math.PI / 2; c.scale.set(3, 2, 1); return c; }, 10, 4, 1, null, 0.025);
+      poner('Helecho', 20, 3, 1.2);
+      poner('ArbolCalle', 10, 4, 0.9);
+      poner((k) => { const b = numeros.piezas.Barquito; if (!b) return null; const m = new THREE.Mesh(b.geometry, b.material); m.scale.setScalar(3); return m; }, 4, 4, 1);
+    } else if (def.tema === 'bosque') {
+      poner('ArbolMisterio', 14, 4, 0.55);
+      poner('ArbolMisterio2', 10, 4, 0.55);
+      poner('ArbolCalle', 14, 3.5, 1.1);
+      poner('Helecho', 24, 2.5, 1.3);
+      poner('SetaGigante', 10, 3, 0.45);
+      poner('Farolillo', 8, 2.5, 1);
+    } else if (def.tema === 'montana') {
+      poner(pino, 34, 3.5, 1.3);
+      poner(roca, 16, 3, 1.4);
+      poner('TroncoCaido', 4, 4, 0.8);
+    } else {
+      poner(cactus, 8, 3.5, 1);
+      poner(pino, 12, 3.5, 1.2);
+      poner('ArbolCalle', 10, 3.5, 1);
+      poner('Helecho', 14, 2.5, 1.2);
+      poner(roca, 8, 3, 1.2);
+    }
+  }
+
   // ---------- Una estación: lanzador + pista ----------
   const matPista = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.4, side: THREE.DoubleSide });
   const linJ = (h) => new THREE.Color(h).convertSRGBToLinear();
@@ -9606,7 +9976,7 @@
     const pos = [], col = [], idx = [];
     const w = 0.28 * ESC_J, alto = 0.07 * ESC_J, labio = 0.05 * ESC_J, muro = 0.42 * ESC_J;
     const naranja = linJ('#ff6a00'), borde = linJ('#d94f00'), junta = linJ('#b84000'), turbo = linJ('#ffd21f'), blanco = linJ('#ffffff'),
-      negro = linJ('#1c1c1e'), rojo = linJ('#e8322a');
+      negro = linJ('#1c1c1e'), rojo = linJ('#e8322a'), aguaC = linJ('#3aa0e8');
     let previo = -1;
     for (let i = 0; i < M.N; i++) {
       const p = M.p[i], t = M.t[i], u = M.u[i];
@@ -9625,6 +9995,7 @@
         if (!suelo && curva) c = Math.floor(i / 6) % 2 ? rojo : blanco;
         if (M.tipo[i] === 'turbo' && suelo) c = Math.floor(i / 5) % 2 ? turbo : naranja;
         if (M.tipo[i] === 'meta' && suelo) c = (Math.floor(i / 4) + j) % 2 ? blanco : negro;
+        if (M.tipo[i] === 'charco' && suelo) c = aguaC;
         col.push(c.r, c.g, c.b);
       });
       const salto = previo >= 0 && Math.hypot(p[0] - M.p[previo][0], p[1] - M.p[previo][1], p[2] - M.p[previo][2]) > DS_PISTA * 3;
@@ -9710,20 +10081,22 @@
   }
   function construirEstacion(def, k) {
     const M = muestrearPista(def.piezas);
-    const [bx, bz] = BASE_ESTACIONES[k];
+    const S = SALAS[def.sala || 0], GR = def.sala ? juguetes.grupo2 : juguetes.grupo;
+    const [bx, bz] = def.base || BASE_ESTACIONES[k];
     // El lanzador mira hacia -Z del mundo; la pista empieza delante, girada "angulo" grados
     const yawBase = Math.PI;
-    const lanz = new V3(JUG.x + bx, 0, JUG.z + bz);
+    const lanz = new V3(S.c.x + bx, 0, S.c.z + bz);
     const g = new THREE.Group();  // marco de la pista: origen en la entrada, +Z hacia delante
     const a = yawBase + def.angulo * Math.PI / 180;
     g.position.set(lanz.x + Math.sin(a) * DIST_LANZADOR, 0, lanz.z + Math.cos(a) * DIST_LANZADOR);
     g.rotation.y = a;
-    juguetes.grupo.add(g);
+    GR.add(g);
     const pista = new THREE.Mesh(geometriaPista(M), matPista);
     pista.castShadow = true;
     pista.receiveShadow = true;
     g.add(pista);
-    const E = { def, M, g, lanz, yaw: a, yawBase, coche: null, k, peligro: new Uint8Array(M.N), luces: null };
+    const E = { def, M, g, lanz, yaw: a, yawBase, coche: null, k, peligro: new Uint8Array(M.N), luces: null, sala: S, grupoSala: GR };
+    if (def.tema) decorarPista(E);
     // Patas azules con pie y abrazadera (no en los rizos)
     const patas = [];
     for (let i = 0; i < M.N; i += 30) if (M.p[i][1] > 0.35 && M.tipo[i] !== 'rizo') patas.push(M.p[i]);
@@ -9756,7 +10129,7 @@
       E.luces = im;
       const cols = ['#ff3b30', '#ffd21f', '#2cb7e6', '#3dff6a'].map((c) => new THREE.Color(c));
       juguetes.animados.push((t) => {
-        if (!juguetes.grupo.visible) return;
+        if (!GR.visible) return;
         for (let i = 0; i < bombillas.length; i++) im.setColorAt(i, cols[(i + Math.floor(t * 6)) % cols.length]);
         im.instanceColor.needsUpdate = true;
       });
@@ -9804,7 +10177,22 @@
       borde.position.addScaledVector(B.u, -0.12);
       g.add(borde);
       const medio = new V3(...M.p[h.desde]).addScaledVector(new V3(...h.h), h.L / 2);
-      if (def.id === 'salto') {
+      if (def.tema === 'agua' || def.tema === 'mix') {
+        // un río de juguete bajo el salto, con un barquito
+        const rio = new THREE.Mesh(new THREE.PlaneGeometry(h.L * 0.9, 34), new THREE.MeshStandardMaterial({ color: '#2f8fd8', roughness: 0.15, transparent: true, opacity: 0.9 }));
+        rio.rotation.x = -Math.PI / 2;
+        rio.rotation.z = -Math.atan2(h.h[0], h.h[2]) + Math.PI / 2;
+        rio.position.set(medio.x, 0.04, medio.z);
+        g.add(rio);
+        const b = numeros.piezas.Barquito;
+        if (b) {
+          const barco = new THREE.Mesh(b.geometry, b.material);
+          barco.scale.setScalar(4);
+          g.add(barco);
+          const lado = new V3(h.h[2], 0, -h.h[0]);
+          juguetes.animados.push((t) => { const d = Math.sin(t * 0.25) * 12; barco.position.set(medio.x + lado.x * d, 0.05 + Math.sin(t * 2) * 0.05, medio.z + lado.z * d); barco.rotation.y = Math.atan2(lado.x, lado.z) + (Math.cos(t * 0.25) > 0 ? 0 : Math.PI); });
+        }
+      } else if (def.id === 'salto') {
         const c = cocodrilo();
         c.g.position.set(medio.x, 0, medio.z);
         c.g.rotation.y = Math.atan2(h.h[0], h.h[2]) + Math.PI / 2;
@@ -9946,23 +10334,23 @@
     for (let n = 0; n < 4; n++) {
       const cono = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.55, 12), new THREE.MeshStandardMaterial({ color: n % 2 ? '#ffffff' : '#ff6a00' }));
       cono.position.set(lanz.x + (n < 2 ? -1.6 : 1.6), 0.27, lanz.z + (n % 2 ? -0.6 : 0.6));
-      juguetes.grupo.add(cono);
+      GR.add(cono);
     }
     // Lanzador, cartel y estrellas
     const lz = copiaJ('Lanzador');
     lz.position.copy(lanz);
     lz.rotation.y = yawBase;
     lz.scale.setScalar(ESC_J);
-    juguetes.grupo.add(lz);
+    GR.add(lz);
     colisiones.push({ x: lanz.x, z: lanz.z - Math.cos(yawBase) * 0.45, r: 0.55 });
     juguetes.choques.push({ x: lanz.x, z: lanz.z - Math.cos(yawBase) * 0.45, r: 0.55 });
     const titulo = cartel(`${k + 1}. ${def.nombre}`, 3.6, 0.7);
     titulo.position.set(lanz.x, 2.4, lanz.z + 1.9);
     titulo.rotation.y = yawBase + Math.PI;
-    juguetes.grupo.add(titulo);
+    GR.add(titulo);
     const est = textoEstrellas();
     est.m.position.set(lanz.x, 1.8, lanz.z + 1.92);
-    juguetes.grupo.add(est.m);
+    GR.add(est.m);
     E.est = est;
     // Flecha para apuntar (desde el lanzador)
     const flecha = new THREE.Group();
@@ -9975,7 +10363,7 @@
     flecha.add(linea, punta);
     flecha.position.copy(lanz);
     flecha.visible = false;
-    juguetes.grupo.add(flecha);
+    GR.add(flecha);
     E.flecha = flecha;
     E.sitio = new V3(lanz.x + 1.5, 0.02, lanz.z + 1.2);
     juguetes.estaciones.push(E);
@@ -9987,6 +10375,15 @@
   function pintarEstrellasJ(E) {
     const s = juguetes.estrellas[E.def.id] || 0, c = E.est.l.getContext('2d');
     c.clearRect(0, 0, 256, 64);
+    if (!pistaAbierta(E.def)) {
+      c.font = '700 34px sans-serif';
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      c.fillStyle = '#123b4a';
+      c.fillText(`🔒 faltan ${E.def.requiere.filter((id) => !juguetes.estrellas[id]).length}`, 128, 34);
+      E.est.t.needsUpdate = true;
+      return;
+    }
     c.font = '44px sans-serif';
     c.textAlign = 'center';
     c.textBaseline = 'middle';
@@ -10001,11 +10398,11 @@
     return (pos) => {
       let wx = ox + ca * pos[0] + sa * pos[2], wz = oz - sa * pos[0] + ca * pos[2];
       let nx = 0, nz = 0;
-      const lx = SALA_X - 0.8 - radio, lz = SALA_Z - 0.8 - radio;
-      if (wx < JUG.x - lx) { wx = JUG.x - lx; nx = 1; }
-      if (wx > JUG.x + lx) { wx = JUG.x + lx; nx = -1; }
-      if (wz < JUG.z - lz) { wz = JUG.z - lz; nz = 1; }
-      if (wz > JUG.z + lz) { wz = JUG.z + lz; nz = -1; }
+      const SA = E.sala, lx = SA.X - 0.8 - radio, lz = SA.Z - 0.8 - radio;
+      if (wx < SA.c.x - lx) { wx = SA.c.x - lx; nx = 1; }
+      if (wx > SA.c.x + lx) { wx = SA.c.x + lx; nx = -1; }
+      if (wz < SA.c.z - lz) { wz = SA.c.z - lz; nz = 1; }
+      if (wz > SA.c.z + lz) { wz = SA.c.z + lz; nz = -1; }
       if (pos[1] < 6) {
         for (const c of lista) {
           const dx = wx - c.x, dz = wz - c.z, d = Math.hypot(dx, dz);
@@ -10077,6 +10474,29 @@
       }, 500);
     });
   }
+  // Pasar de un cuarto de pistas al otro
+  function irASala(n) {
+    cerrarEstacion();
+    fundido(() => {
+      const S = SALAS[n];
+      ninoE.modo = 'libre';
+      if (n === 1) { ninoE.pos.set(S.c.x, 0.02, S.c.z + S.Z - 7); ninoE.rumbo = Math.PI; cam.yaw = 0; }
+      else { ninoE.pos.set(S.c.x, 0.02, S.c.z - S.Z + 8); ninoE.rumbo = 0; cam.yaw = Math.PI; }
+      ninoE.vy = 0;
+      estado.pos.set(ninoE.pos.x - 2, 0.02, ninoE.pos.z + (n === 1 ? 1 : -1));
+      estado.descansando = false;
+      cam.pitch = 0.4;
+      cam.dist = 9;
+      cam.objetivo.copy(ninoE.pos);
+      if (numeros.carrito && numeros.tieneCarrito) colocarCarritoDetras();
+      ocultarParaJuguetes(true, n);
+      setTimeout(pintarTarea, 50);
+      if (n === 1) setTimeout(() => {
+        avisar('¡El cuarto de los paisajes! Dunas, charcos, bosques y montañas', 2800);
+        hablar('¡Bienvenido al cuarto de los paisajes! Aquí las pistas son muy largas');
+      }, 500);
+    });
+  }
   function volverDeJuguetes() {
     cerrarEstacion();
     fundido(() => {
@@ -10093,15 +10513,16 @@
       musica.proximo = 'casa';
     });
   }
-  function ocultarParaJuguetes(dentroJ) {
-    juguetes.grupo.visible = dentroJ;
+  function ocultarParaJuguetes(dentroJ, sala = 0) {
+    juguetes.grupo.visible = dentroJ && sala === 0;
+    juguetes.grupo2.visible = dentroJ && sala === 1;
     if (!dentroJ) {
       (juguetes.ocultos || []).forEach((o) => { o.visible = true; });
       juguetes.ocultos = null;
       return;
     }
     if (juguetes.ocultos) return;
-    const quedan = new Set([juguetes.grupo, nino.grupo, perro, numeros.carrito && numeros.carrito.g]);
+    const quedan = new Set([juguetes.grupo, juguetes.grupo2, nino.grupo, perro, numeros.carrito && numeros.carrito.g]);
     const c3 = new THREE.Box3();
     juguetes.ocultos = [];
     scene.children.forEach((o) => {
@@ -10125,6 +10546,13 @@
     p.querySelector('.mates-voz').addEventListener('click', () => { if (juguetes.activa && juguetes.activa.voz) hablar(juguetes.activa.voz); });
   }
   function abrirEstacion(E) {
+    if (!pistaAbierta(E.def)) {
+      const faltan = E.def.requiere.filter((id) => !juguetes.estrellas[id]).length;
+      const msg = `El gran tour se abre cuando superes las otras pistas de paisajes (te faltan ${faltan})`;
+      avisar(`🔒 ${msg}`, 3000);
+      hablar(msg);
+      return;
+    }
     juguetes.activa = { E, fase: 'coche', intentos: 0, apunte: 0, fuerza: 0, ultima: null, t0: reloj.elapsedTime };
     empezarAtraccion({ tipo: 'lanzar', pos: E.sitio.clone(), ry: E.yawBase, fijo: true,
       accion: () => ({ texto: juguetes.activa && juguetes.activa.fase === 'apuntar' ? 'Fijar' : juguetes.activa && juguetes.activa.fase === 'fuerza' ? '¡Lanzar!' : 'Salir',
@@ -10154,11 +10582,14 @@
     P.querySelector('.mates-titulo').textContent = `🏁 ${A.E.def.nombre}`;
     const cuerpo = P.querySelector('.mates-cuerpo');
     cuerpo.innerHTML = `<p class="mates-ayuda">Elige tu coche:</p>
-      <div class="fichas-j">${COCHES_J.map((c, k) => `<button type="button" class="ficha-j${c.id === juguetes.coche ? ' elegida' : ''}" data-id="${c.id}">
-        <span class="foto" style="background-position:${(k * 100 / (COCHES_J.length - 1)).toFixed(2)}% 0"></span><strong>${c.nombre}</strong>
-        <span class="stat">Peso ${barrasJ(Math.round((c.peso - 0.7) / 0.75 * 5))}</span><span class="stat">Agarre ${barrasJ(Math.round((c.agarre - 0.7) / 0.6 * 5))}</span></button>`).join('')}</div>
+      <div class="fichas-j">${COCHES_J.map((c, k) => { const libre = cocheLibre(c); return `<button type="button" class="ficha-j${c.id === juguetes.coche ? ' elegida' : ''}${libre ? '' : ' cerrada'}" data-id="${c.id}">
+        <span class="foto" style="background-position:${(k * 100 / (COCHES_J.length - 1)).toFixed(2)}% 0"></span><strong>${libre ? '' : '🔒 '}${c.nombre}</strong>
+        ${libre ? `<span class="stat">Peso ${barrasJ(Math.round((c.peso - 0.7) / 0.75 * 5))}</span><span class="stat">Agarre ${barrasJ(Math.round((c.agarre - 0.7) / 0.6 * 5))}</span>${c.todoterreno ? '<span class="stat todo">🛞 Todoterreno</span>' : ''}` :
+          `<span class="stat cerrado">${textoDesbloqueo(c)}</span>`}</button>`; }).join('')}</div>
       <button type="button" class="mates-opcion pistas-listo">¡Este!</button>`;
     cuerpo.querySelectorAll('.ficha-j').forEach((b) => b.addEventListener('click', () => {
+      const c = COCHES_J.find((x) => x.id === b.dataset.id);
+      if (!cocheLibre(c)) { hablar(`${c.nombre}. Para tenerlo: ${textoDesbloqueo(c)}`); avisar(`🔒 ${textoDesbloqueo(c)}`, 2200); return; }
       juguetes.coche = b.dataset.id;
       cuerpo.querySelectorAll('.ficha-j').forEach((x) => x.classList.toggle('elegida', x === b));
       ponerCocheEn(A.E);
@@ -10244,7 +10675,9 @@
       juguetes.estrellas[def.id] = Math.max(juguetes.estrellas[def.id] || 0, s);
       pintarEstrellasJ(A.E);
       guardarPistasJ();
-      if (nueva) sumarNino('pistas');
+      if (nueva) sumarNino(def.sala ? 'paisajes' : 'pistas');
+      if (nueva && def.sala) juguetes.estaciones.forEach((q) => { if (q.def.requiere) pintarEstrellasJ(q); });
+      comprobarDesbloqueos();
       sonPremio();
       ninoCelebra('¡Lo he conseguido!');
       const cuerpo = juguetes.panel.querySelector('.mates-cuerpo');
@@ -10258,12 +10691,13 @@
       hablar(A.voz);
       A.fase = 'fin';
       juguetes.foco = null;
-      if (!juguetes.set && PISTAS_J.every((p) => juguetes.estrellas[p.id])) setTimeout(regalarSet, 1500);
+      if (!juguetes.set && PISTAS_J.filter((p) => !p.sala).every((p) => juguetes.estrellas[p.id])) setTimeout(regalarSet, 1500);
       return;
     }
     const mensajes = {
-      flojo: { rizo: '¡Le ha faltado fuerza para el rizo!', salto: '¡Le ha faltado fuerza para el salto!', suelo: '¡Muy flojito! No ha llegado a la pista' },
-      fuerte: { curva: '¡Demasiada fuerza! Se ha salido en la curva', salto: '¡Demasiada fuerza! Se ha pasado del salto' },
+      flojo: { rizo: '¡Le ha faltado fuerza para el rizo!', salto: '¡Le ha faltado fuerza para el salto!', suelo: '¡Muy flojito! No ha llegado a la pista',
+        atascado: '¡Le ha faltado fuerza! Se ha quedado atascado' },
+      fuerte: { curva: '¡Demasiada fuerza! Se ha salido en la curva', salto: '¡Demasiada fuerza! Se ha pasado del salto', duna: '¡Demasiada fuerza! Ha salido volando en una duna' },
     };
     let msg;
     if (L.motivo === 'izquierda') msg = '¡Se ha ido a la izquierda! Apunta más a la derecha';
@@ -10329,7 +10763,7 @@
       A.fuerza = fuerzaEn(t - A.t0);
       if (A.relleno) A.relleno.style.width = `${(A.fuerza * 100).toFixed(1)}%`;
     }
-    if (juguetes.grupo.visible) juguetes.animados.forEach((f) => f(t));
+    if (juguetes.grupo.visible || juguetes.grupo2.visible) juguetes.animados.forEach((f) => f(t));
     const R = juguetes.lanzamiento;
     if (R) {
       const L = R.L, M = R.E.M;
@@ -10346,6 +10780,13 @@
         if (L.fase === 'vuelo') modo = 'salto';
         else if (L.fase === 'cae') modo = 'choque';
         else if (L.fase === 'pista' && M.tipo[i] === 'rizo') modo = 'rizo';
+        else if (L.fase === 'pista' && M.tipo[i] === 'tunel') modo = 'tunel';
+        else if (L.fase === 'pista' && M.tipo[i] === 'colina' && L.v > 0) {
+          // cerca de la cresta de una duna, ¿va demasiado rápido?
+          let j = i;
+          while (j < M.N - 1 && j < i + 60 && !(M.tipo[j] === 'colina' && M.R[j] > 0)) j++;
+          if (M.R[j] > 0 && L.v * L.v > 0.8 * G_PISTA * M.R[j] * M.u[j][1]) modo = 'peligro';
+        }
         else if (L.fase === 'pista' && R.E.peligro[i] === 1 && L.v > 0) modo = 'salto';
         else if (L.fase === 'pista' && R.E.peligro[i] === 2 && L.v > 0) {
           let j = i;
@@ -10359,11 +10800,17 @@
           const dir = L.fase === 'pista' ? M.t[i] : L.vel;
           R.yawFijo = R.E.yaw + Math.atan2(dir[0], dir[2]);
           if (modo === 'rizo') gritar('¡RIZO!');
+          else if (modo === 'tunel') gritar('¡TÚNEL!');
           else if (modo === 'salto' && antes !== 'salto') gritar(L.fase === 'vuelo' ? '¡A VOLAR!' : '¡SALTO!');
           else if (modo === 'peligro') gritar('¡CUIDADO!');
           else if (modo === 'choque') gritar('¡OH, NO!');
         }
-        juguetes.lento = damp(juguetes.lento, modo === 'normal' ? 1 : modo === 'peligro' ? 0.6 : 0.45, 5, dt);
+        juguetes.lento = damp(juguetes.lento, modo === 'normal' || modo === 'tunel' ? 1 : modo === 'peligro' ? 0.6 : 0.45, 5, dt);
+        // ¡chof! al entrar en un charco
+        const enAgua = L.fase === 'pista' && M.tipo[i] === 'charco';
+        if (enAgua && !R.mojado) { gritar('¡CHOF!'); const w = juguetes.foco.clone(); salpicar(w, 30); }
+        if (enAgua && Math.random() < 0.3) salpicar(juguetes.foco.clone(), 3);
+        R.mojado = enAgua;
         R.resto += dt * juguetes.lento;
         while (R.resto >= DT_PISTA && L.fase !== 'ok' && L.fase !== 'mal') { pasoLanzamiento(M, L, R.coche, R.choque); R.resto -= DT_PISTA; }
       }
@@ -10377,6 +10824,7 @@
       let yawObj = yawC + Math.PI + 0.5, pitchObj = 0.45, distObj = 9;
       if (modo === 'rizo' || modo === 'salto') { yawObj = R.yawFijo - Math.PI / 2; pitchObj = 0.22; distObj = 6.5; }
       else if (modo === 'peligro') { yawObj = yawC + Math.PI + 0.3; pitchObj = 0.32; distObj = 4.8; }
+      else if (modo === 'tunel') { yawObj = yawC + Math.PI; pitchObj = 0.12; distObj = 3.2; }
       else if (modo === 'choque') { yawObj = cam.yaw; pitchObj = 0.5; distObj = 5.5; }
       cam.yaw = angulo(cam.yaw, yawObj, 1 - Math.exp(-3 * dt));
       cam.pitch = damp(cam.pitch, pitchObj, 3, dt);
@@ -10429,9 +10877,11 @@
       correr: () => aCorrer(),
       irNumeros: () => irANumeros(),
       irPistas: () => irAJuguetes(),
+      irPaisajes: () => irASala(1),
+      desbloqueados: () => juguetes.desbloqueados.slice(),
       pistas: () => ({ activa: juguetes.activa && { pista: juguetes.activa.E.def.id, fase: juguetes.activa.fase, intentos: juguetes.activa.intentos },
         lanz: juguetes.lanzamiento && { fase: juguetes.lanzamiento.L.fase, s: +juguetes.lanzamiento.L.s.toFixed(2), v: +juguetes.lanzamiento.L.v.toFixed(2),
-          modo: juguetes.modoCam, lento: +juguetes.lento.toFixed(2), mundo: juguetes.foco && [+(juguetes.foco.x - JUG.x).toFixed(1), +juguetes.foco.y.toFixed(1), +(juguetes.foco.z - JUG.z).toFixed(1)] },
+          modo: juguetes.modoCam, lento: +juguetes.lento.toFixed(2), mundo: juguetes.foco && [+(juguetes.foco.x - salaDe(juguetes.foco).c.x).toFixed(1), +juguetes.foco.y.toFixed(1), +(juguetes.foco.z - salaDe(juguetes.foco).c.z).toFixed(1)] },
         estrellas: juguetes.estrellas, set: juguetes.set, coche: juguetes.coche }),
       abrirPista: (k) => { const E = juguetes.estaciones[k]; ninoE.pos.copy(E.sitio); abrirEstacion(E); },
       lanzarCon: (f, err = 0) => { const A = juguetes.activa; if (A.fase === 'coche') empezarApuntar(); A.fase = 'fuerza'; A.fuerza = f; A.apunte = A.E.def.angulo + err; lanzar(); },
@@ -10645,8 +11095,9 @@
     }
     if (enJuguetes(foco)) {
       // dentro del cuarto de las pistas, la cámara no sale por las paredes
-      camera.position.x = clamp(camera.position.x, JUG.x - SALA_X + 1.2, JUG.x + SALA_X - 1.2);
-      camera.position.z = clamp(camera.position.z, JUG.z - SALA_Z + 1.2, JUG.z + SALA_Z - 1.2);
+      const SC = salaDe(foco);
+      camera.position.x = clamp(camera.position.x, SC.c.x - SC.X + 1.2, SC.c.x + SC.X - 1.2);
+      camera.position.z = clamp(camera.position.z, SC.c.z - SC.Z + 1.2, SC.c.z + SC.Z - 1.2);
       camera.position.y = Math.min(camera.position.y, 22);
     }
     camera.lookAt(cam.objetivo);
