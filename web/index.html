@@ -600,6 +600,38 @@
     .mates-pregunta { font-size: 24px; }
     .mates-opcion { min-height: 56px; font-size: 28px; }
   }
+  /* ---------- Cuarto de las pistas ---------- */
+  .mates.pistas-j { width: min(660px, calc(100% - 32px)); }
+  .fichas-j { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .ficha-j {
+    display: grid;
+    gap: 1px;
+    justify-items: center;
+    padding: 4px;
+    border: 3px solid transparent;
+    border-radius: 14px;
+    background: #fffdf7;
+    color: var(--tinta);
+    font: 600 11px "Nunito", system-ui, sans-serif;
+    box-shadow: 0 3px 0 #d8cdb3;
+    cursor: pointer;
+  }
+  .ficha-j strong { font: 800 14px "Baloo 2", "Nunito", sans-serif; }
+  .ficha-j.elegida { border-color: #ff7a00; background: #fff1e0; }
+  .ficha-j:focus-visible, .pistas-cambiar:focus-visible { outline: 3px solid var(--tinta); outline-offset: 2px; }
+  .ficha-j .foto { width: 100%; aspect-ratio: 32 / 22; background: url(cochesjuguete.png) 0 0 / 1000% 100% no-repeat; }
+  .ficha-j .stat { display: flex; width: 100%; justify-content: space-between; align-items: center; gap: 4px; }
+  .pistas-j .barra { display: inline-flex; gap: 2px; height: auto; background: none; border-radius: 0; overflow: visible; }
+  .pistas-j .barra i, .pistas-j .barra b { position: static; display: block; width: 7px; height: 7px; border-radius: 2px; }
+  .pistas-j .barra i { background: #ff7a00; }
+  .pistas-j .barra b { background: #e3dccb; }
+  .barra-fuerza { position: relative; height: 34px; border-radius: 999px; background: #e3dccb; overflow: hidden; }
+  .barra-fuerza i { position: absolute; inset: 0 auto 0 0; width: 0; background: linear-gradient(90deg, #7cd35a, #ffd42a, #ff6f59); }
+  .barra-fuerza b { position: absolute; top: 0; bottom: 0; width: 4px; margin-left: -2px; background: #123b4a; }
+  .pistas-aviso { margin: 0; padding: 8px 10px; border-radius: 12px; background: #fff1e0; color: #a8430a; font: 800 17px "Nunito", sans-serif; text-align: center; }
+  .pistas-boton { width: 100%; font-size: 26px; background: #ff7a00; box-shadow: 0 4px 0 #c25a00; }
+  .pistas-cambiar { justify-self: center; border: 0; border-radius: 999px; padding: 6px 14px; font: 700 14px "Nunito", sans-serif; color: var(--tinta); background: var(--arena); cursor: pointer; }
+  @media (max-width: 520px) { .fichas-j { grid-template-columns: repeat(3, 1fr); } }
 </style>
 
 <canvas id="escena" aria-label="Playa en 3D con Drako, un perro bretón, y Manuel, que juegan con un balón"></canvas>
@@ -1223,9 +1255,9 @@
   // Papá y mamá (hechos en Blender con Padres.py); si faltan, se usan los muñecos sencillos
   const cargarOpcional = (n) => cargar(n).catch(() => null);
   Promise.all([cargar('playa.glb'), cargar('perro.glb'), cargar('nino.glb'), cargarOpcional('papa.glb'), cargarOpcional('mama.glb'),
-    cargarOpcional('arrecife.glb'), cargarOpcional('coches.glb'), cargarOpcional('pistas.glb'), cargarOpcional('numeros.glb'),
+    cargarOpcional('arrecife.glb'), cargarOpcional('coches.glb'), cargarOpcional('pistas.glb'), cargarOpcional('numeros.glb'), cargarOpcional('cochesjuguete.glb'),
     cargarOpcional('amigo1.glb'), cargarOpcional('amigo2.glb'), cargarOpcional('amigo3.glb'), cargarOpcional('amigo4.glb')])
-    .then(([playa, gPerro, gNino, gPapa, gMama, gArrecife, gCoches, gPistas, gNumeros, ...gAmigos]) => {
+    .then(([playa, gPerro, gNino, gPapa, gMama, gArrecife, gCoches, gPistas, gNumeros, gJuguetes, ...gAmigos]) => {
     prepararPlaya(playa);
     prepararPerro(gPerro);
     prepararNino(gNino);
@@ -1237,6 +1269,7 @@
     construirCoche(gCoches);
     if (gCoches && gPistas) construirCircuito(gAmigos, gPistas);
     try { construirNumeros(gNumeros); } catch (e) { console.error('Pueblo de los números:', e); }
+    try { construirJuguetes(gJuguetes); } catch (e) { console.error('Cuarto de las pistas:', e); }
     parque.toboganes.forEach((t) => {
       if (t.aro) return;
       const aro = new THREE.Mesh(new THREE.RingGeometry(0.4, 0.6, 32), new THREE.MeshBasicMaterial({ color: '#ffd42a', side: THREE.DoubleSide, transparent: true, opacity: 0.85 }));
@@ -1490,6 +1523,10 @@
     } else if (pos.x < -500) {
       pos.x = clamp(pos.x, CIRC.x - 150, CIRC.x + 150);
       pos.z = clamp(pos.z, CIRC.z - 110, CIRC.z + 160);
+    } else if (pos.z < -1100) {
+      // En el cuarto de las pistas
+      pos.x = clamp(pos.x, JUG.x - 31, JUG.x + 31);
+      pos.z = clamp(pos.z, JUG.z - 31, JUG.z + 31);
     } else if (pos.z < -400) {
       // En el pueblo de los números
       const dx = pos.x - NUM.x, dz = pos.z - NUM.z, d = Math.hypot(dx, dz);
@@ -2187,6 +2224,7 @@
     if (E.modo === 'bucear') { zona = 'agua'; texto = `Buceando · ${Math.max(0, Math.round(-E.pos.y))} m`; }
     else if (E.modo === 'atraccion' && E.atr && E.atr.tipo === 'coche') texto = `Conduciendo · ${Math.round(Math.abs(E.atr.vehiculo.vel) * 3.6)} km/h`;
     else if (enCircuito(E.pos)) texto = circuito.fase === 'carrera' || circuito.fase === 'cuenta' ? `${circuito.pista ? circuito.pista.def.nombre : 'Carrera'} · ${Math.round(Math.abs(circuito.yo ? circuito.yo.vel : 0) * 3.6)} km/h` : 'En el circuito de karts';
+    else if (enJuguetes(E.pos)) texto = juguetes.lanzamiento ? `¡Allá va! · ${Math.round(Math.abs(juguetes.lanzamiento.L.v) * 3.6)} km/h` : 'En el cuarto de las pistas';
     else if (enNumeros(E.pos)) texto = numeros.rayuela ? 'Saltando a los números' : numeros.juego ? 'Jugando con los números' : `Pueblo de los números · 🛒 ${numeros.carga.length}/${MAX_CARRITO}`;
     else if (E.modo === 'tobogan') { zona = 'agua'; texto = '¡Bajando por el tobogán!'; }
     else if (E.modo === 'volando') { zona = 'agua'; texto = '¡Volando!'; }
@@ -2926,6 +2964,12 @@
         const p = numeros.puestos[numeros.guardados.length % numeros.puestos.length];
         return p.sitio;
       } },
+    { id: 'pistas', titulo: 'Entra por la caja de pistas de tu cuarto y supera las 6 pistas de coches', total: 6, cuenta: 0,
+      objetivo: () => {
+        if (!enJuguetes(ninoE.pos)) return estaDentro(ninoE.pos) ? new V3(INT.x + 3.9, INT.y, INT.z - 3.2) : dentro.puertaFuera;
+        const e = juguetes.estaciones.find((q) => !juguetes.estrellas[q.def.id]);
+        return e ? e.sitio : null;
+      } },
     { id: 'copas', titulo: 'Gana una copa (podio) en los 4 circuitos: verde, ciudad, playa y bosque', total: 4, cuenta: 0,
       objetivo: () => (!enCircuito(ninoE.pos) ? PUERTA_CIRCUITO : circuito.fase === 'paddock' && circuito.amigos[0] ? circuito.amigos[0].grupo.position : null) },
   ];
@@ -2934,6 +2978,7 @@
   let buceando = false;  // bajo el agua, la tarea que se ve es la del arrecife
   const misionNino = () => (buceando && !hechaNino('arrecife') ? misionPor('arrecife') :
     enCircuito(ninoE.pos) && !hechaNino('carrera') ? misionPor('carrera') : enCircuito(ninoE.pos) && !hechaNino('copas') ? misionPor('copas') :
+    enJuguetes(ninoE.pos) && !hechaNino('pistas') ? misionPor('pistas') :
     enNumeros(ninoE.pos) && !hechaNino('mates') ? misionPor('mates') : enNumeros(ninoE.pos) && !hechaNino('regalos') ? misionPor('regalos') : MISIONES_NINO.find((m) => m.cuenta < m.total) || null);
   function masCercanoA(lista, desde) {
     let mejor = null, d = Infinity;
@@ -8025,7 +8070,7 @@
   // =====================================================================
   // Personajes de bloques, juguetes, regalos, carrito y decoración: Numeros.py (numeros.glb)
   const NUM = new V3(0, 0, -700);              // el pueblo está lejos, tras las dunas
-  const enNumeros = (p) => p.z < -400 && p.x > -500 && p.x < 500;
+  const enNumeros = (p) => p.z < -400 && p.z > -1100 && p.x > -500 && p.x < 500;
   const PUERTA_NUMEROS = new V3(25, 0, -45);   // arco en las dunas, al lado de la casa
   const LLEGADA_NUMEROS = new V3(NUM.x, 0, NUM.z + 36);
   const MAX_CARRITO = 3;
@@ -9217,6 +9262,767 @@
   }
 
 
+  // ---------- Pistas de coches de juguete: física (sin three.js, para poder probarla aparte) ----------
+  const G_PISTA = 9.8;
+  const DS_PISTA = 0.05;          // separación entre muestras de la pista (m)
+  const DIST_LANZADOR = 4.0;      // del lanzador a la entrada de la pista
+  const ANCHO_ENTRADA = 1.3;      // ancho del embudo de entrada
+  const ROCE_SUELO = 0.6;         // frenado rodando por el suelo (m/s²)
+  const DT_PISTA = 1 / 240;
+  const velLanzamiento = (f) => 3 + f * 13;  // fuerza 0..1 -> m/s
+  const PISTAS_J = [
+    { id: 'rampa', nombre: 'La primera rampa', angulo: 0, piezas: [['sube', 2, 15], ['recta', 1.5], ['sube', 2, -15], ['recta', 1.5], ['curva', 2.5, 90], ['recta', 1.5], ['meta', 1.5]] },
+    { id: 'rizo', nombre: 'El gran rizo', angulo: 8, piezas: [['recta', 1.5], ['rizo', 1.1], ['recta', 1.5], ['curva', 3, -90], ['recta', 1], ['meta', 1.5]] },
+    { id: 'salto', nombre: 'El salto del cocodrilo', angulo: -10, piezas: [['sube', 2.5, 20], ['recta', 1.2], ['hueco', 2.0, 0.5], ['recta', 2.5], ['curva', 3, 90], ['meta', 1.5]] },
+    { id: 'curvas', nombre: 'Curvas locas', angulo: 14, piezas: [['recta', 1.5], ['curva', 2.2, 90], ['curva', 2.2, -180], ['sube', 2, 12], ['recta', 1.5], ['sube', 2, -12], ['curva', 2.2, 90], ['meta', 1.5]] },
+    { id: 'doble', nombre: 'Doble rizo turbo', angulo: -16, piezas: [['recta', 1], ['rizo', 1.0], ['recta', 1], ['turbo', 1.5], ['rizo', 1.2], ['recta', 1], ['curva', 3.5, -90], ['meta', 1.5]] },
+    { id: 'mega', nombre: 'La megapista', angulo: 20, piezas: [['sube', 2, 15], ['recta', 1], ['sube', 2, -15], ['rizo', 1.1], ['recta', 1], ['sube', 2.5, 18], ['recta', 0.8], ['hueco', 3.2, 0.3], ['recta', 2.5], ['turbo', 1.2], ['curva', 3, 90], ['curva', 3, 90], ['meta', 1.5]] },
+  ];
+  const COCHES_J = [
+    { id: 'JMusculo', nombre: 'Rayo rojo', peso: 1.2, agarre: 1.0 }, { id: 'JFormula', nombre: 'Fórmula', peso: 0.9, agarre: 1.25 },
+    { id: 'JMonstruo', nombre: 'Monstruo', peso: 1.35, agarre: 0.85 }, { id: 'JTiburon', nombre: 'Tiburón', peso: 1.0, agarre: 1.05 },
+    { id: 'JDino', nombre: 'Dinocoche', peso: 1.1, agarre: 0.95 }, { id: 'JCohete', nombre: 'Cohete', peso: 0.85, agarre: 1.1 },
+    { id: 'JPolicia', nombre: 'Policía', peso: 1.1, agarre: 1.05 }, { id: 'JBomberos', nombre: 'Bomberos', peso: 1.4, agarre: 0.85 },
+    { id: 'JFurgo', nombre: 'Furgoneta', peso: 1.25, agarre: 0.9 }, { id: 'JEscarabajo', nombre: 'Escarabajo', peso: 0.95, agarre: 1.0 },
+  ];
+  // Una pista es una lista de piezas: ['recta', L] ['sube', R, grados] ['curva', R, grados] ['rizo', R]
+  // ['hueco', L, caida] ['turbo', L] ['meta', L]. Empieza en (0, 0, 0) mirando a +Z.
+  function muestrearPista(piezas) {
+    const M = { p: [], t: [], u: [], tipo: [], R: [], huecos: [] };
+    let P = [0, 0.06, 0], yaw = 0, pitch = 0;
+    const tang = () => [Math.cos(pitch) * Math.sin(yaw), Math.sin(pitch), Math.cos(pitch) * Math.cos(yaw)];
+    const arriba = () => [-Math.sin(pitch) * Math.sin(yaw), Math.cos(pitch), -Math.sin(pitch) * Math.cos(yaw)];
+    const derecha = () => [Math.cos(yaw), 0, -Math.sin(yaw)];
+    const meter = (p, t, u, tipo, R) => { M.p.push(p); M.t.push(t); M.u.push(u); M.tipo.push(tipo); M.R.push(R); };
+    piezas.forEach(([tipo, a, b]) => {
+      if (tipo === 'recta' || tipo === 'turbo' || tipo === 'meta') {
+        const n = Math.max(1, Math.round(a / DS_PISTA));
+        for (let i = 0; i < n; i++) {
+          const t = tang();
+          P = [P[0] + t[0] * DS_PISTA, P[1] + t[1] * DS_PISTA, P[2] + t[2] * DS_PISTA];
+          meter(P, t, arriba(), tipo, 0);
+        }
+      } else if (tipo === 'sube') {
+        const total = b * Math.PI / 180, n = Math.max(2, Math.round(Math.abs(total) * a / DS_PISTA)), l = Math.abs(total) * a / n;
+        for (let i = 0; i < n; i++) {
+          const t0 = tang();
+          pitch += total / n;
+          const t1 = tang();
+          P = [0, 1, 2].map((j) => P[j] + (t0[j] + t1[j]) / 2 * l);
+          meter(P, tang(), arriba(), 'recta', 0);
+        }
+      } else if (tipo === 'curva') {
+        const total = b * Math.PI / 180, n = Math.max(2, Math.round(Math.abs(total) * a / DS_PISTA)), l = Math.abs(total) * a / n;
+        for (let i = 0; i < n; i++) {
+          yaw += total / n;
+          const t = tang();
+          P = [0, 1, 2].map((j) => P[j] + t[j] * l);
+          // peralte: la pista se inclina un poco hacia dentro de la curva
+          const r = derecha(), s = -Math.sign(b) * 0.25, u = arriba();
+          meter(P, t, [u[0] * Math.cos(s) + r[0] * Math.sin(s), u[1] * Math.cos(s), u[2] * Math.cos(s) + r[2] * Math.sin(s)], 'curva', a);
+        }
+      } else if (tipo === 'rizo') {
+        const R = a, t0 = tang(), u0 = arriba(), r0 = derecha(), P0 = P.slice(), lado = b || 0.9;
+        const n = Math.round(2 * Math.PI * R / DS_PISTA);
+        for (let i = 1; i <= n; i++) {
+          const f = i / n * 2 * Math.PI, d = (1 - Math.cos(i / n * Math.PI)) / 2 * lado;
+          meter([0, 1, 2].map((j) => P0[j] + t0[j] * R * Math.sin(f) + u0[j] * R * (1 - Math.cos(f)) + r0[j] * d),
+            [0, 1, 2].map((j) => t0[j] * Math.cos(f) + u0[j] * Math.sin(f)),
+            [0, 1, 2].map((j) => -t0[j] * Math.sin(f) + u0[j] * Math.cos(f)), 'rizo', R);
+        }
+        P = [0, 1, 2].map((j) => P0[j] + r0[j] * lado);
+      } else if (tipo === 'hueco') {
+        M.huecos.push({ desde: M.p.length - 1, L: a, caida: b, pitch, hasta: M.p.length, h: [Math.sin(yaw), 0, Math.cos(yaw)] });
+        P = [P[0] + Math.sin(yaw) * a, P[1] - b, P[2] + Math.cos(yaw) * a];
+        pitch = 0;
+      }
+    });
+    M.N = M.p.length;
+    return M;
+  }
+
+  // Estado de un lanzamiento: fuerza 0..1, error de dirección en grados y el coche {peso, agarre}.
+  // Fases: suelo (rodando hasta la entrada), pista, vuelo (salto), cae (se ha salido), ok, mal.
+  function nuevoLanzamiento(fuerza, errorGrados) {
+    const a = errorGrados * Math.PI / 180;
+    return { fase: 'suelo', v: velLanzamiento(fuerza), d: 0, s: 0, dir: [Math.sin(a), 0, Math.cos(a)], pos: [0, 0.06, -DIST_LANZADOR],
+      vel: [0, 0, 0], t: 0, quieto: 0, motivo: null, donde: null, vuelo: null, giro: 0 };
+  }
+  function pasoLanzamiento(M, E, coche) {
+    const dt = DT_PISTA;
+    E.t += dt;
+    if (E.fase === 'suelo' || E.fase === 'fuera') {
+      E.v = Math.max(0, E.v - ROCE_SUELO * dt);
+      E.d += E.v * dt;
+      E.pos = [E.dir[0] * E.d, 0.06, -DIST_LANZADOR + E.dir[2] * E.d];
+      if (E.fase === 'suelo' && E.d * E.dir[2] >= DIST_LANZADOR) {
+        if (Math.abs(E.pos[0]) > ANCHO_ENTRADA / 2) { E.fase = 'fuera'; E.motivo = E.pos[0] > 0 ? 'derecha' : 'izquierda'; E.donde = 'entrada'; }
+        else { E.fase = 'pista'; E.s = 0; }
+      }
+      if (E.v <= 0) { E.fase = 'mal'; if (!E.motivo) { E.motivo = 'flojo'; E.donde = 'suelo'; } }
+      return;
+    }
+    if (E.fase === 'pista') {
+      const i = Math.max(0, Math.min(M.N - 1, Math.floor(E.s / DS_PISTA)));
+      const kAire = 0.012 / coche.peso;
+      let a = -G_PISTA * M.t[i][1] - 0.015 * G_PISTA - kAire * E.v * Math.abs(E.v);
+      if (M.tipo[i] === 'turbo' && E.v < 9) a += 14;
+      E.v += a * dt;
+      E.s += E.v * dt;
+      E.pos = M.p[i];
+      const salir = (motivo, donde, empuje) => {
+        E.fase = 'cae'; E.motivo = motivo; E.donde = donde;
+        E.pos = M.p[i].slice();
+        E.vel = [0, 1, 2].map((j) => M.t[i][j] * E.v + (empuje ? empuje[j] : 0));
+      };
+      if (M.tipo[i] === 'curva' && Math.abs(E.v) > Math.sqrt(3.0 * coche.agarre * G_PISTA * M.R[i])) {
+        // se sale hacia fuera de la curva
+        const k = Math.min(M.N - 1, i + 2), giro = [M.t[k][0] - M.t[i][0], 0, M.t[k][2] - M.t[i][2]];
+        const n = Math.hypot(giro[0], giro[2]) || 1;
+        salir('fuerte', 'curva', [-giro[0] / n * 2.5, 1.2, -giro[2] / n * 2.5]);
+        return;
+      }
+      if (M.tipo[i] === 'rizo' && M.u[i][1] < 0 && E.v * E.v / M.R[i] < -G_PISTA * M.u[i][1] * 0.98) { salir('flojo', 'rizo'); return; }
+      const h = E.v > 0 ? M.huecos.find((x) => x.desde === i) : null;
+      if (h) {
+        const vx = E.v * Math.cos(h.pitch), vy = E.v * Math.sin(h.pitch);
+        const tv = (vy + Math.sqrt(vy * vy + 2 * G_PISTA * h.caida)) / G_PISTA;
+        const dist = vx * tv;
+        const ok = dist >= h.L - 0.05 && dist <= h.L + 2.0;
+        E.fase = 'vuelo';
+        E.pos = M.p[i].slice();
+        E.vel = [h.h[0] * vx, vy, h.h[2] * vx];
+        E.vuelo = { h, tv, ok, t: 0, aterriza: ok ? (h.hasta + (dist - h.L) / DS_PISTA) * DS_PISTA : 0, vx };
+        if (!ok) { E.motivo = dist < h.L ? 'flojo' : 'fuerte'; E.donde = 'salto'; }
+        return;
+      }
+      if (E.s / DS_PISTA >= M.N - 1) { E.fase = 'ok'; return; }
+      if (E.s < 0) { E.fase = 'mal'; E.motivo = 'flojo'; E.donde = 'atras'; return; }
+      if (Math.abs(E.v) < 0.05) { E.quieto += dt; if (E.quieto > 0.6) { E.fase = 'mal'; E.motivo = 'flojo'; E.donde = 'parado'; } } else E.quieto = 0;
+      if (E.t > 40) { E.fase = 'mal'; E.motivo = 'flojo'; E.donde = 'tiempo'; }
+      return;
+    }
+    if (E.fase === 'vuelo' || E.fase === 'cae') {
+      E.pos = [E.pos[0] + E.vel[0] * dt, E.pos[1] + E.vel[1] * dt, E.pos[2] + E.vel[2] * dt];
+      E.vel[1] -= G_PISTA * dt;
+      E.giro += dt * (E.fase === 'cae' ? 9 : 0);
+      if (E.fase === 'vuelo') {
+        E.vuelo.t += dt;
+        if (E.vuelo.ok && E.vuelo.t >= E.vuelo.tv) { E.fase = 'pista'; E.s = E.vuelo.aterriza; E.v = E.vuelo.vx * 0.92; return; }
+        if (!E.vuelo.ok && E.vuelo.t >= E.vuelo.tv) E.fase = 'cae';
+      }
+      if (E.pos[1] <= 0.06 && E.vel[1] < 0) { E.pos[1] = 0.06; E.fase = 'mal'; }
+    }
+  }
+  // Resultado completo (para ajustar las pistas y para los tests)
+  function simularLanzamiento(M, fuerza, errorGrados, coche) {
+    const E = nuevoLanzamiento(fuerza, errorGrados);
+    for (let k = 0; k < 40 / DT_PISTA && E.fase !== 'ok' && E.fase !== 'mal'; k++) pasoLanzamiento(M, E, coche);
+    return E;
+  }
+  function margenFuerza(M, coche) {
+    let a = null, b = null;
+    for (let f = 0; f <= 1.0001; f += 0.01) {
+      if (simularLanzamiento(M, f, 0, coche).fase === 'ok') { if (a === null) a = f; b = f; }
+    }
+    return a === null ? null : [a, b];
+  }
+
+  // ---------- Pistas de coches de juguete: el cuarto de juegos gigante ----------
+  // Coches, lanzador, caja y set de regalo: PistasJuguete.py (cochesjuguete.glb)
+  const JUG = new V3(0, 0, -1400);              // el cuarto de las pistas, lejos de todo
+  const enJuguetes = (p) => p.z < -1100;
+  const LLEGADA_JUG = new V3(JUG.x, 0, JUG.z + 22);
+  const juguetes = {
+    listo: false, piezas: {}, grupo: new THREE.Group(), estaciones: [], estrellas: {}, coche: 'JMusculo', set: false,
+    activa: null, lanzamiento: null, foco: null, ocultos: null, panel: null, caja: null, setCuarto: null, regalo: null,
+  };
+  const BASE_ESTACIONES = [[-16, 10], [0, 10], [16, 10], [-16, -8], [0, -8], [16, -8]];
+
+  function guardarPistasJ() {
+    try { localStorage.setItem('playa-del-perro-pistas', JSON.stringify({ e: juguetes.estrellas, s: juguetes.set, c: juguetes.coche })); } catch (e) { /* sin guardar */ }
+  }
+  function construirJuguetes(gJ) {
+    if (!gJ) return;
+    gJ.scene.traverse((o) => { if (o.isMesh) juguetes.piezas[o.name] = o; });
+    try {
+      const d = JSON.parse(localStorage.getItem('playa-del-perro-pistas') || '{}');
+      if (d.e && typeof d.e === 'object') juguetes.estrellas = d.e;
+      juguetes.set = !!d.s;
+      if (COCHES_J.some((c) => c.id === d.c)) juguetes.coche = d.c;
+    } catch (e) { /* nada guardado */ }
+    const G = juguetes.grupo;
+    G.visible = false;
+    scene.add(G);
+    const cx = JUG.x, cz = JUG.z;
+    // Suelo de tarima, alfombra con carreteras y paredes de papel pintado
+    const tarima = lienzo(512, 512, (c, w, h) => {
+      for (let i = 0; i < 8; i++) {
+        c.fillStyle = ['#c9935b', '#d29e66', '#bf8a52', '#cc985f'][i % 4];
+        c.fillRect(0, i * h / 8, w, h / 8);
+        c.fillStyle = 'rgba(80,45,20,0.35)';
+        c.fillRect(0, i * h / 8, w, 3);
+        c.fillRect(((i * 197) % w), i * h / 8, 3, h / 8);
+      }
+    });
+    tarima.repeat.set(10, 10);
+    const suelo1 = new THREE.Mesh(new THREE.PlaneGeometry(64, 64), new THREE.MeshStandardMaterial({ map: tarima, roughness: 0.7 }));
+    suelo1.rotation.x = -Math.PI / 2;
+    suelo1.position.set(cx, 0, cz);
+    suelo1.receiveShadow = true;
+    G.add(suelo1);
+    const alfombra = lienzo(512, 512, (c, w, h) => {
+      c.fillStyle = '#7cc46a';
+      c.fillRect(0, 0, w, h);
+      c.fillStyle = '#4a4f57';
+      [[0, 120, w, 70], [0, 330, w, 70], [130, 0, 70, h], [330, 0, 70, h]].forEach(([x, y, ww, hh]) => c.fillRect(x, y, ww, hh));
+      c.strokeStyle = '#ffffff';
+      c.lineWidth = 5;
+      c.setLineDash([22, 18]);
+      [[0, 155, w, 155], [0, 365, w, 365]].forEach(([a, b, d, e]) => { c.beginPath(); c.moveTo(a, b); c.lineTo(d, e); c.stroke(); });
+      [[165, 0, 165, h], [365, 0, 365, h]].forEach(([a, b, d, e]) => { c.beginPath(); c.moveTo(a, b); c.lineTo(d, e); c.stroke(); });
+      c.setLineDash([]);
+      ['#ff6f59', '#ffd21f', '#2cb7e6', '#ffffff'].forEach((col, k) => { c.fillStyle = col; c.fillRect(30 + k * 120, 230, 60, 50); });
+    });
+    const rug = new THREE.Mesh(new THREE.PlaneGeometry(16, 12), new THREE.MeshStandardMaterial({ map: alfombra, roughness: 1 }));
+    rug.rotation.x = -Math.PI / 2;
+    rug.position.set(cx, 0.01, cz + 22);
+    rug.receiveShadow = true;
+    G.add(rug);
+    const papel = lienzo(256, 256, (c, w, h) => {
+      c.fillStyle = '#bfe3f5';
+      c.fillRect(0, 0, w, h);
+      c.fillStyle = '#ffffff';
+      for (let i = 0; i < 6; i++) for (let j = 0; j < 6; j++) { c.beginPath(); c.arc(i * 44 + (j % 2) * 22 + 10, j * 44 + 10, 8, 0, Math.PI * 2); c.fill(); }
+    });
+    papel.repeat.set(12, 3);
+    const matPared = new THREE.MeshStandardMaterial({ map: papel, roughness: 0.9, side: THREE.DoubleSide });
+    [[0, -32, 0], [0, 32, Math.PI], [-32, 0, Math.PI / 2], [32, 0, -Math.PI / 2]].forEach(([x, z, r]) => {
+      const p = new THREE.Mesh(new THREE.PlaneGeometry(64, 16), matPared);
+      p.position.set(cx + x, 8, cz + z);
+      p.rotation.y = r;
+      G.add(p);
+      const zocalo = new THREE.Mesh(new THREE.BoxGeometry(64, 0.8, 0.3), new THREE.MeshStandardMaterial({ color: '#ffffff' }));
+      zocalo.position.set(cx + x * 0.995, 0.4, cz + z * 0.995);
+      zocalo.rotation.y = r;
+      G.add(zocalo);
+    });
+    // Juguetes gigantes alrededor (los del pueblo de los números, muy grandes)
+    const gigantes = [['Osito', -24, -24, 9, 0.6], ['Robot', 24, -24, 9, -0.6], ['Tren', -25, 4, 8, 1.2], ['Pelota', 25, 2, 6, 0], ['Cohete', 24, 24, 9, -2.4],
+      ['Dado', -25, 24, 2.4, 0.4], ['Dado', -21, 27, 1.6, 1.0], ['Patito', 10, -26, 8, 0.2], ['CuboMagico', -9, -27, 5, 0.5], ['Bloque3', -28, -10, 2.6, 1.57], ['Bloque6', 28, -10, 2.6, -1.57]];
+    gigantes.forEach(([n, x, z, e, r]) => {
+      const p = numeros.piezas[n];
+      if (!p) return;
+      const m = new THREE.Mesh(p.geometry, p.material);
+      m.position.set(cx + x, 0, cz + z);
+      m.scale.setScalar(e);
+      m.rotation.y = r;
+      m.castShadow = true;
+      G.add(m);
+      const caja3 = new THREE.Box3().setFromObject(m), tam = caja3.getSize(new V3());
+      colisiones.push({ x: cx + x, z: cz + z, r: Math.max(tam.x, tam.z) * 0.45 });
+    });
+    // Las seis pistas
+    PISTAS_J.forEach((def, k) => construirEstacion(def, k));
+    // Salida: un aro que vuelve al cuarto de Manuel
+    const aro = new THREE.Mesh(new THREE.RingGeometry(0.9, 1.25, 40), new THREE.MeshBasicMaterial({ color: '#ffd42a', transparent: true, opacity: 0.8, side: THREE.DoubleSide }));
+    aro.rotation.x = -Math.PI / 2;
+    aro.position.set(cx, 0.03, cz + 26);
+    G.add(aro);
+    const cartelSalida = cartel('VOLVER A MI CUARTO', 4, 0.7);
+    cartelSalida.position.set(cx, 2.2, cz + 27.6);
+    G.add(cartelSalida);
+    puntosAccion.push({ pos: new V3(cx, 0.02, cz + 26), radio: 1.6, texto: 'Volver', hacer: volverDeJuguetes, visible: () => enJuguetes(ninoE.pos) && !juguetes.activa });
+    // La caja de las pistas en el cuarto de Manuel (por ella se entra) y el set de regalo
+    const Yi = INT.y, ix = INT.x, iz = INT.z;
+    const cajaP = copiaJ('CajaPistas');
+    cajaP.position.set(ix + 3.25, Yi, iz - 3.2);
+    cajaP.rotation.y = Math.PI / 2;
+    scene.add(cajaP);
+    cajas.push({ x0: ix + 3.05, x1: ix + 3.45, z0: iz - 3.7, z1: iz - 2.7, activa: true });
+    puntosAccion.push({ pos: new V3(ix + 3.9, Yi, iz - 3.2), radio: 1.1, texto: 'Pistas', hacer: irAJuguetes });
+    crearPanelPistas();
+    if (juguetes.set) ponerSetEnCuarto();
+    const m = misionPor('pistas');
+    if (m) m.cuenta = Math.min(m.total, PISTAS_J.filter((p) => juguetes.estrellas[p.id]).length);
+    juguetes.listo = true;
+  }
+  function copiaJ(nombre) {
+    const p = juguetes.piezas[nombre];
+    if (!p) return new THREE.Group();
+    const m = new THREE.Mesh(p.geometry, p.material);
+    m.castShadow = true;
+    m.receiveShadow = true;
+    return m;
+  }
+
+  // ---------- Una estación: lanzador + pista ----------
+  const matPista = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.45, side: THREE.DoubleSide });
+  function geometriaPista(M) {
+    const pos = [], col = [], idx = [];
+    const w = 0.28, alto = 0.07;
+    const perfil = [[-w - 0.03, alto], [-w, alto], [-w, 0], [w, 0], [w, alto], [w + 0.03, alto]];
+    const lin = (h) => new THREE.Color(h).convertSRGBToLinear();
+    const naranja = lin('#ff6a00'), borde = lin('#d94f00'), turbo = lin('#ffd21f'), meta = lin('#ffffff'), metaN = lin('#1c1c1e');
+    let previo = -1;
+    for (let i = 0; i < M.N; i++) {
+      const p = M.p[i], t = M.t[i], u = M.u[i];
+      const r = [u[1] * t[2] - u[2] * t[1], u[2] * t[0] - u[0] * t[2], u[0] * t[1] - u[1] * t[0]];
+      const base = pos.length / 3;
+      perfil.forEach(([x, y], j) => {
+        pos.push(p[0] + r[0] * x + u[0] * (y - 0.02), p[1] + r[1] * x + u[1] * (y - 0.02), p[2] + r[2] * x + u[2] * (y - 0.02));
+        let c = j === 2 || j === 3 ? naranja : borde;
+        if (M.tipo[i] === 'turbo' && (j === 2 || j === 3)) c = Math.floor(i / 4) % 2 ? turbo : naranja;
+        if (M.tipo[i] === 'meta' && (j === 2 || j === 3)) c = (Math.floor(i / 3) + j) % 2 ? meta : metaN;
+        col.push(c.r, c.g, c.b);
+      });
+      const salto = previo >= 0 && Math.hypot(p[0] - M.p[previo][0], p[1] - M.p[previo][1], p[2] - M.p[previo][2]) > DS_PISTA * 3;
+      if (previo >= 0 && !salto) {
+        const a = base - perfil.length;
+        for (let j = 0; j < perfil.length - 1; j++) idx.push(a + j, base + j, a + j + 1, a + j + 1, base + j, base + j + 1);
+      }
+      previo = i;
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+    g.setIndex(idx);
+    g.computeVertexNormals();
+    return g;
+  }
+  function construirEstacion(def, k) {
+    const M = muestrearPista(def.piezas);
+    const [bx, bz] = BASE_ESTACIONES[k];
+    // El lanzador mira hacia -Z del mundo; la pista empieza a 4 m, girada "angulo" grados
+    const yawBase = Math.PI;
+    const lanz = new V3(JUG.x + bx, 0, JUG.z + bz);
+    const g = new THREE.Group();  // marco de la pista: origen en la entrada, +Z hacia delante
+    const a = yawBase + def.angulo * Math.PI / 180;
+    g.position.set(lanz.x + Math.sin(a) * DIST_LANZADOR, 0, lanz.z + Math.cos(a) * DIST_LANZADOR);
+    g.rotation.y = a;
+    juguetes.grupo.add(g);
+    const pista = new THREE.Mesh(geometriaPista(M), matPista);
+    pista.castShadow = true;
+    pista.receiveShadow = true;
+    g.add(pista);
+    // Patas bajo la pista (no en los rizos)
+    const patas = [];
+    for (let i = 0; i < M.N; i += 24) if (M.p[i][1] > 0.2 && M.tipo[i] !== 'rizo') patas.push(M.p[i]);
+    M.huecos.forEach((h) => { patas.push(M.p[h.desde]); });
+    if (patas.length) {
+      const im = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.035, 0.05, 1, 8), new THREE.MeshStandardMaterial({ color: '#2a7ae0', roughness: 0.5 }), patas.length);
+      const mm = new THREE.Matrix4();
+      patas.forEach((p, i) => { mm.compose(new V3(p[0], p[1] / 2, p[2]), new THREE.Quaternion(), new V3(1, Math.max(0.05, p[1] - 0.02), 1)); im.setMatrixAt(i, mm); });
+      im.castShadow = true;
+      g.add(im);
+    }
+    // Embudo de la entrada (en el marco de la pista)
+    const embudo = new THREE.Shape();
+    embudo.moveTo(-ANCHO_ENTRADA / 2, -0.9); embudo.lineTo(ANCHO_ENTRADA / 2, -0.9); embudo.lineTo(0.28, 0.02); embudo.lineTo(-0.28, 0.02); embudo.closePath();
+    const emb = new THREE.Mesh(new THREE.ShapeGeometry(embudo), new THREE.MeshStandardMaterial({ color: '#ff7a00', roughness: 0.5 }));
+    emb.rotation.x = Math.PI / 2;
+    emb.position.y = 0.035;
+    emb.scale.y = -1;
+    g.add(emb);
+    // Arco de meta al final
+    const fin = M.p[M.N - 1], tf = M.t[M.N - 1];
+    const meta = new THREE.Group();
+    const bandera = lienzo(256, 64, (c, w, h) => { for (let i = 0; i < 16; i++) for (let j = 0; j < 4; j++) { c.fillStyle = (i + j) % 2 ? '#111' : '#fff'; c.fillRect(i * 16, j * 16, 16, 16); } });
+    const banda = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 0.25), new THREE.MeshBasicMaterial({ map: bandera, side: THREE.DoubleSide }));
+    banda.position.y = 0.95;
+    meta.add(banda);
+    [-0.5, 0.5].forEach((x) => { const p = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.1, 8), new THREE.MeshStandardMaterial({ color: '#e8322a' })); p.position.set(x, 0.55, 0); meta.add(p); });
+    meta.position.set(fin[0] - tf[0] * 0.6, fin[1] - 0.06, fin[2] - tf[2] * 0.6);
+    meta.rotation.y = Math.atan2(tf[0], tf[2]);
+    g.add(meta);
+    const garaje = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.35, 0.25), new THREE.MeshStandardMaterial({ color: '#2a7ae0' }));
+    garaje.position.set(fin[0] + tf[0] * 0.3, fin[1] + 0.12, fin[2] + tf[2] * 0.3);
+    garaje.rotation.y = meta.rotation.y;
+    g.add(garaje);
+    // Lanzador, cartel y estrellas
+    const lz = copiaJ('Lanzador');
+    lz.position.copy(lanz);
+    lz.rotation.y = yawBase;
+    juguetes.grupo.add(lz);
+    colisiones.push({ x: lanz.x, z: lanz.z - Math.cos(yawBase) * 0.3, r: 0.35 });
+    const titulo = cartel(`${k + 1}. ${def.nombre}`, 3.2, 0.6);
+    titulo.position.set(lanz.x, 2.0, lanz.z + 1.4);
+    titulo.rotation.y = yawBase + Math.PI;
+    juguetes.grupo.add(titulo);
+    const est = textoEstrellas();
+    est.m.position.set(lanz.x, 1.5, lanz.z + 1.42);
+    est.m.rotation.y = 0;
+    juguetes.grupo.add(est.m);
+    // Flecha para apuntar (desde el lanzador)
+    const flecha = new THREE.Group();
+    const linea = new THREE.Mesh(new THREE.PlaneGeometry(0.12, DIST_LANZADOR + 0.5), new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.85 }));
+    linea.rotation.x = -Math.PI / 2;
+    linea.position.set(0, 0.05, (DIST_LANZADOR + 0.5) / 2);
+    const punta = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.45, 3), new THREE.MeshBasicMaterial({ color: '#ffffff' }));
+    punta.rotation.set(Math.PI / 2, 0, 0);
+    punta.position.set(0, 0.06, DIST_LANZADOR + 0.6);
+    flecha.add(linea, punta);
+    flecha.position.copy(g.position).sub(new V3(Math.sin(a) * DIST_LANZADOR, 0, Math.cos(a) * DIST_LANZADOR));
+    flecha.visible = false;
+    juguetes.grupo.add(flecha);
+    const sitio = new V3(lanz.x + 0.9, 0.02, lanz.z + 0.9);
+    const E = { def, M, g, lanz, yaw: a, yawBase, est, flecha, sitio, coche: null, k };
+    juguetes.estaciones.push(E);
+    pintarEstrellasJ(E);
+    puntosAccion.push({ pos: sitio, radio: 1.4, texto: 'Jugar', hacer: () => abrirEstacion(E), visible: () => !juguetes.activa });
+    // Coche esperando en el lanzador
+    ponerCocheEn(E);
+  }
+  function pintarEstrellasJ(E) {
+    const s = juguetes.estrellas[E.def.id] || 0, c = E.est.l.getContext('2d');
+    c.clearRect(0, 0, 256, 64);
+    c.font = '44px sans-serif';
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    for (let k = 0; k < 3; k++) { c.globalAlpha = k < s ? 1 : 0.3; c.fillText(k < s ? '⭐' : '☆', 48 + k * 80, 34); }
+    c.globalAlpha = 1;
+    E.est.t.needsUpdate = true;
+  }
+  function ponerCocheEn(E) {
+    if (E.coche) E.g.remove(E.coche);
+    const m = copiaJ(juguetes.coche);
+    m.scale.setScalar(1.4);
+    E.coche = m;
+    E.g.add(m);
+    colocarCocheJ(E, { fase: 'suelo', pos: [0, 0.06, -DIST_LANZADOR + 0.3], dir: [Math.sin((-E.def.angulo) * Math.PI / 180), 0, Math.cos((-E.def.angulo) * Math.PI / 180)], giro: 0 });
+  }
+  const _x = new V3(), _y = new V3(), _z = new V3(), _m = new THREE.Matrix4();
+  function colocarCocheJ(E, L) {
+    const m = E.coche, M = E.M;
+    if (!m) return;
+    if (L.fase === 'pista') {
+      const i = Math.max(0, Math.min(M.N - 1, Math.floor(L.s / DS_PISTA)));
+      const f = L.s / DS_PISTA - i, j = Math.min(M.N - 1, i + 1);
+      const lerp = (A, k) => A[i][k] + (A[j][k] - A[i][k]) * f;
+      m.position.set(lerp(M.p, 0), lerp(M.p, 1) - 0.02, lerp(M.p, 2));
+      _z.set(lerp(M.t, 0), lerp(M.t, 1), lerp(M.t, 2)).normalize();
+      _y.set(lerp(M.u, 0), lerp(M.u, 1), lerp(M.u, 2)).normalize();
+      _x.crossVectors(_y, _z).normalize();
+      _y.crossVectors(_z, _x);
+      _m.makeBasis(_x, _y, _z);
+      m.quaternion.setFromRotationMatrix(_m);
+    } else {
+      m.position.set(L.pos[0], L.pos[1] - 0.04, L.pos[2]);
+      const d = L.vel && (L.fase === 'vuelo' || L.fase === 'cae') ? L.vel : L.dir;
+      const yaw = Math.atan2(d[0], d[2]);
+      const pitch = L.fase === 'vuelo' ? -Math.atan2(d[1], Math.hypot(d[0], d[2])) * 0.7 : 0;
+      m.rotation.set(pitch + (L.giro || 0), yaw, (L.giro || 0) * 0.6, 'YXZ');
+    }
+  }
+
+  // ---------- Entrar y salir del cuarto de las pistas ----------
+  function irAJuguetes() {
+    if (!juguetes.listo) return;
+    fundido(() => {
+      if (ninoE.modo === 'atraccion') terminarAtraccion();
+      if (balon.estado === 'mano') { balon.estado = 'libre'; balon.pos.set(INT.x + 4.5, INT.y + 0.5, INT.z - 2.5); balon.vel.set(0, 0, 0); }
+      ninoE.modo = 'libre';
+      ninoE.pos.set(LLEGADA_JUG.x, 0.02, LLEGADA_JUG.z);
+      ninoE.rumbo = Math.PI;
+      ninoE.vy = 0;
+      estado.pos.set(LLEGADA_JUG.x - 2, 0.02, LLEGADA_JUG.z + 1);
+      estado.descansando = false;
+      cam.yaw = 0;
+      cam.pitch = 0.4;
+      cam.dist = 9;
+      cam.objetivo.copy(ninoE.pos);
+      if (numeros.carrito && numeros.tieneCarrito) colocarCarritoDetras();
+      ocultarParaJuguetes(true);
+      musica.proximo = 'playa';
+      setTimeout(pintarTarea, 50);
+      setTimeout(() => {
+        avisar('¡Bienvenido al cuarto de las pistas!', 2400);
+        hablar('¡Bienvenido al cuarto de las pistas! Elige una pista y lanza tu coche');
+      }, 500);
+    });
+  }
+  function volverDeJuguetes() {
+    cerrarEstacion();
+    fundido(() => {
+      ocultarParaJuguetes(false);
+      ninoE.modo = 'libre';
+      ninoE.pos.set(INT.x + 4.2, INT.y, INT.z - 2.4);
+      ninoE.rumbo = Math.PI / 2;
+      estado.pos.set(INT.x + 4.8, INT.y, INT.z - 1.4);
+      cam.yaw = -Math.PI / 2;
+      cam.pitch = 0.9;
+      cam.dist = 6;
+      cam.objetivo.copy(ninoE.pos);
+      if (numeros.carrito && numeros.tieneCarrito) colocarCarritoDetras();
+      musica.proximo = 'casa';
+    });
+  }
+  function ocultarParaJuguetes(dentroJ) {
+    juguetes.grupo.visible = dentroJ;
+    if (!dentroJ) {
+      (juguetes.ocultos || []).forEach((o) => { o.visible = true; });
+      juguetes.ocultos = null;
+      return;
+    }
+    if (juguetes.ocultos) return;
+    const quedan = new Set([juguetes.grupo, nino.grupo, perro, numeros.carrito && numeros.carrito.g]);
+    const c3 = new THREE.Box3();
+    juguetes.ocultos = [];
+    scene.children.forEach((o) => {
+      if (!o.visible || quedan.has(o) || o.isLight || o.isCamera) return;
+      c3.setFromObject(o);
+      if (!c3.isEmpty() && c3.min.z > -1100 && c3.max.x - c3.min.x < 2000) { o.visible = false; juguetes.ocultos.push(o); }
+    });
+  }
+
+  // ---------- El panel del lanzador ----------
+  function crearPanelPistas() {
+    const p = document.createElement('div');
+    p.className = 'mates pistas-j';
+    p.hidden = true;
+    p.innerHTML = `<div class="mates-cab"><strong class="mates-titulo"></strong>
+      <button type="button" class="mates-voz" aria-label="Leer en voz alta">🔊</button>
+      <button type="button" class="mates-salir">Salir</button></div><div class="mates-cuerpo"></div>`;
+    document.body.appendChild(p);
+    juguetes.panel = p;
+    p.querySelector('.mates-salir').addEventListener('click', cerrarEstacion);
+    p.querySelector('.mates-voz').addEventListener('click', () => { if (juguetes.activa && juguetes.activa.voz) hablar(juguetes.activa.voz); });
+  }
+  function abrirEstacion(E) {
+    juguetes.activa = { E, fase: 'coche', intentos: 0, apunte: 0, fuerza: 0, ultima: null, t0: reloj.elapsedTime };
+    empezarAtraccion({ tipo: 'lanzar', pos: E.sitio.clone(), ry: E.yawBase, fijo: true,
+      accion: () => ({ texto: juguetes.activa && juguetes.activa.fase === 'apuntar' ? 'Fijar' : juguetes.activa && juguetes.activa.fase === 'fuerza' ? '¡Lanzar!' : 'Salir',
+        hacer: () => pulsarLanzador() }),
+      saltar: () => pulsarLanzador() });
+    cam.yaw = E.yawBase + Math.PI + 0.5;
+    cam.pitch = 0.5;
+    cam.dist = 7;
+    document.body.classList.add('en-mates');
+    pintarElegirCoche();
+  }
+  function cerrarEstacion() {
+    const A = juguetes.activa;
+    juguetes.activa = null;
+    juguetes.foco = null;
+    juguetes.panel.hidden = true;
+    document.body.classList.remove('en-mates');
+    if (A) { A.E.flecha.visible = false; if (A.fase === 'carrera') ponerCocheEn(A.E); }
+    try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) { /* sin voz */ }
+    if (ninoE.modo === 'atraccion' && ninoE.atr && ninoE.atr.tipo === 'lanzar') terminarAtraccion();
+  }
+  const barrasJ = (n) => '<span class="barra">' + '<i></i>'.repeat(n) + '<b></b>'.repeat(5 - n) + '</span>';
+  function pintarElegirCoche() {
+    const A = juguetes.activa, P = juguetes.panel;
+    A.fase = 'coche';
+    P.hidden = false;
+    P.querySelector('.mates-titulo').textContent = `🏁 ${A.E.def.nombre}`;
+    const cuerpo = P.querySelector('.mates-cuerpo');
+    cuerpo.innerHTML = `<p class="mates-ayuda">Elige tu coche:</p>
+      <div class="fichas-j">${COCHES_J.map((c, k) => `<button type="button" class="ficha-j${c.id === juguetes.coche ? ' elegida' : ''}" data-id="${c.id}">
+        <span class="foto" style="background-position:${(k * 100 / (COCHES_J.length - 1)).toFixed(2)}% 0"></span><strong>${c.nombre}</strong>
+        <span class="stat">Peso ${barrasJ(Math.round((c.peso - 0.7) / 0.75 * 5))}</span><span class="stat">Agarre ${barrasJ(Math.round((c.agarre - 0.7) / 0.6 * 5))}</span></button>`).join('')}</div>
+      <button type="button" class="mates-opcion pistas-listo">¡Este!</button>`;
+    cuerpo.querySelectorAll('.ficha-j').forEach((b) => b.addEventListener('click', () => {
+      juguetes.coche = b.dataset.id;
+      cuerpo.querySelectorAll('.ficha-j').forEach((x) => x.classList.toggle('elegida', x === b));
+      ponerCocheEn(A.E);
+      guardarPistasJ();
+    }));
+    cuerpo.querySelector('.pistas-listo').addEventListener('click', () => empezarApuntar());
+    A.voz = 'Elige tu coche';
+    hablar(A.voz);
+  }
+  function empezarApuntar(mensaje) {
+    const A = juguetes.activa;
+    if (!A) return;
+    A.fase = 'apuntar';
+    A.t0 = reloj.elapsedTime;
+    A.E.flecha.visible = true;
+    ponerCocheEn(A.E);
+    juguetes.foco = null;
+    const cuerpo = juguetes.panel.querySelector('.mates-cuerpo');
+    juguetes.panel.hidden = false;
+    cuerpo.innerHTML = `${mensaje ? `<p class="pistas-aviso">${mensaje}</p>` : ''}
+      <p class="mates-pregunta">1. Apunta a la pista</p>
+      <p class="mates-ayuda">La flecha se mueve: pulsa cuando mire a la entrada naranja.</p>
+      <button type="button" class="mates-opcion pistas-boton">🎯 ¡Fijar dirección!</button>
+      <button type="button" class="pistas-cambiar">Cambiar de coche</button>`;
+    cuerpo.querySelector('.pistas-boton').addEventListener('click', pulsarLanzador);
+    cuerpo.querySelector('.pistas-cambiar').addEventListener('click', () => { A.E.flecha.visible = false; pintarElegirCoche(); });
+    A.voz = (mensaje ? mensaje + '. ' : '') + 'Apunta a la pista y pulsa';
+    hablar(A.voz);
+    cam.yaw = A.E.yawBase + Math.PI + 0.35;
+    cam.pitch = 0.55;
+    cam.dist = 6.5;
+  }
+  function empezarFuerza() {
+    const A = juguetes.activa;
+    A.fase = 'fuerza';
+    A.t0 = reloj.elapsedTime;
+    const cuerpo = juguetes.panel.querySelector('.mates-cuerpo');
+    cuerpo.innerHTML = `<p class="mates-pregunta">2. ¿Con cuánta fuerza?</p>
+      <div class="barra-fuerza"><i></i>${A.ultima !== null ? `<b style="left:${(A.ultima * 100).toFixed(1)}%"></b>` : ''}</div>
+      <p class="mates-ayuda">${A.ultima !== null ? 'La rayita negra es tu último lanzamiento.' : 'Pulsa cuando la barra tenga la fuerza que quieras.'}</p>
+      <button type="button" class="mates-opcion pistas-boton">🚀 ¡Lanzar!</button>`;
+    cuerpo.querySelector('.pistas-boton').addEventListener('click', pulsarLanzador);
+    A.relleno = cuerpo.querySelector('.barra-fuerza i');
+    A.voz = '¿Con cuánta fuerza? Pulsa para lanzar';
+    hablar(A.voz);
+  }
+  function pulsarLanzador() {
+    const A = juguetes.activa;
+    if (!A) return;
+    if (A.fase === 'coche') { empezarApuntar(); return; }
+    if (A.fase === 'apuntar') { empezarFuerza(); return; }
+    if (A.fase === 'fuerza') { lanzar(); return; }
+    if (A.fase === 'carrera') return;
+    cerrarEstacion();
+  }
+  const apunteEn = (t) => Math.sin(t * 1.9) * 30;              // grados respecto al lanzador
+  const fuerzaEn = (t) => 1 - Math.abs(((t * 0.45) % 2) - 1);  // sube y baja
+  function lanzar() {
+    const A = juguetes.activa, E = A.E;
+    A.fase = 'carrera';
+    A.intentos++;
+    A.ultima = A.fuerza;
+    E.flecha.visible = false;
+    juguetes.panel.hidden = true;
+    const coche = COCHES_J.find((c) => c.id === juguetes.coche);
+    // error de dirección: lo que apunta la flecha menos donde está la pista
+    juguetes.lanzamiento = { E, L: nuevoLanzamiento(A.fuerza, A.apunte - E.def.angulo), coche, resto: 0, fin: 0 };
+    juguetes.foco = new V3();
+    notas([[180, 0, 0.12], [360, 0.05, 0.2]], 'sawtooth', 0.05);
+    ninoDice('¡Allá va!', 1);
+  }
+  function terminarLanzamiento(L) {
+    const A = juguetes.activa;
+    if (!A) return;
+    const def = A.E.def;
+    if (L.fase === 'ok') {
+      const s = A.intentos <= 1 ? 3 : A.intentos <= 3 ? 2 : 1;
+      const nueva = !juguetes.estrellas[def.id];
+      juguetes.estrellas[def.id] = Math.max(juguetes.estrellas[def.id] || 0, s);
+      pintarEstrellasJ(A.E);
+      guardarPistasJ();
+      if (nueva) sumarNino('pistas');
+      sonPremio();
+      ninoCelebra('¡Lo he conseguido!');
+      const cuerpo = juguetes.panel.querySelector('.mates-cuerpo');
+      juguetes.panel.hidden = false;
+      cuerpo.innerHTML = `<p class="mates-final">¡Pista superada!</p><p class="mates-estrellas">${'⭐'.repeat(s)}${'☆'.repeat(3 - s)}</p>
+        <p class="mates-ayuda">${A.intentos === 1 ? '¡A la primera!' : `En ${A.intentos} intentos.`}</p>
+        <div class="mates-botones"><button type="button" class="mates-otra">Otra vez</button><button type="button" class="mates-cambiar">Salir</button></div>`;
+      cuerpo.querySelector('.mates-otra').addEventListener('click', () => { A.intentos = 0; empezarApuntar(); });
+      cuerpo.querySelector('.mates-cambiar').addEventListener('click', cerrarEstacion);
+      A.voz = '¡Pista superada!';
+      hablar(A.voz);
+      A.fase = 'fin';
+      juguetes.foco = null;
+      if (!juguetes.set && PISTAS_J.every((p) => juguetes.estrellas[p.id])) setTimeout(regalarSet, 1500);
+      return;
+    }
+    const mensajes = {
+      flojo: { rizo: '¡Le ha faltado fuerza para el rizo!', salto: '¡Le ha faltado fuerza para el salto!', suelo: '¡Muy flojito! No ha llegado a la pista' },
+      fuerte: { curva: '¡Demasiada fuerza! Se ha salido en la curva', salto: '¡Demasiada fuerza! Se ha pasado del salto' },
+    };
+    let msg;
+    if (L.motivo === 'izquierda') msg = '¡Se ha ido a la izquierda! Apunta más a la derecha';
+    else if (L.motivo === 'derecha') msg = '¡Se ha ido a la derecha! Apunta más a la izquierda';
+    else msg = (mensajes[L.motivo] && mensajes[L.motivo][L.donde]) || (L.motivo === 'fuerte' ? '¡Demasiada fuerza!' : '¡Le ha faltado fuerza!');
+    sonFallo();
+    ninoDice(L.motivo === 'fuerte' ? '¡Uy, demasiado!' : '¡Casi!', 1.4);
+    setTimeout(() => { if (juguetes.activa === A) empezarApuntar(msg); }, 600);
+  }
+
+  // ---------- El regalo final: un set de pistas para el cuarto ----------
+  function regalarSet() {
+    juguetes.set = true;
+    guardarPistasJ();
+    ponerSetEnCuarto();
+    const g = new THREE.Group();
+    const color = '#ff7a00';
+    const cajaR = numeros.piezas.RegaloCaja ? copiaPieza('RegaloCaja', color) : new THREE.Group();
+    const tapa = new THREE.Group();
+    if (numeros.piezas.RegaloTapa) tapa.add(copiaPieza('RegaloTapa', color), copiaPieza('RegaloLazo', '#2a7ae0'));
+    g.add(cajaR, tapa);
+    const set = copiaJ('SetPistas');
+    set.scale.setScalar(0.5);
+    set.visible = false;
+    g.add(set);
+    g.position.set(ninoE.pos.x + Math.sin(ninoE.rumbo) * 1.6, 0.02, ninoE.pos.z + Math.cos(ninoE.rumbo) * 1.6);
+    g.scale.setScalar(0.01);
+    juguetes.grupo.add(g);
+    juguetes.regalo = { g, tapa, set, t: 0 };
+    sonPremio();
+    avisar('¡Has superado todas las pistas! Te regalan un set de pistas', 3600);
+    hablar('¡Has superado todas las pistas! Te regalan un set de pistas. Lo tienes en tu cuarto');
+  }
+  function ponerSetEnCuarto() {
+    if (juguetes.setCuarto) return;
+    const g = new THREE.Group();
+    g.add(copiaJ('SetPistas'));
+    ['JMusculo', 'JFormula', 'JTiburon'].forEach((id, k) => {
+      const c = copiaJ(id);
+      c.scale.setScalar(0.35);
+      c.position.set(-0.2 + k * 0.2, 0.06, 0.35 - k * 0.05);
+      c.rotation.y = 0.4 * k;
+      g.add(c);
+    });
+    g.position.set(INT.x + 5.0, INT.y + 0.01, INT.z - 2.3);
+    g.rotation.y = Math.PI / 2;
+    scene.add(g);
+    juguetes.setCuarto = g;
+    cajas.push({ x0: INT.x + 4.25, x1: INT.x + 5.75, z0: INT.z - 2.75, z1: INT.z - 1.85, activa: true });
+  }
+
+  // ---------- Cada fotograma ----------
+  function actualizarJuguetes(dt) {
+    if (!juguetes.listo) return;
+    const A = juguetes.activa;
+    const t = reloj.elapsedTime;
+    if (A && A.fase === 'apuntar') {
+      // la flecha gira respecto al lanzador; el error es apunte - angulo de la pista
+      A.apunte = apunteEn(t - A.t0);
+      A.E.flecha.rotation.y = A.E.yawBase + A.apunte * Math.PI / 180;
+    }
+    if (A && A.fase === 'fuerza') {
+      A.fuerza = fuerzaEn(t - A.t0);
+      if (A.relleno) A.relleno.style.width = `${(A.fuerza * 100).toFixed(1)}%`;
+    }
+    const R = juguetes.lanzamiento;
+    if (R) {
+      R.resto += dt;
+      while (R.resto >= DT_PISTA && R.L.fase !== 'ok' && R.L.fase !== 'mal') { pasoLanzamiento(R.E.M, R.L, R.coche); R.resto -= DT_PISTA; }
+      colocarCocheJ(R.E, R.L);
+      R.E.coche.getWorldPosition(juguetes.foco);
+      // la cámara sigue al coche desde detrás
+      const yawC = R.E.yaw + Math.atan2(R.L.fase === 'pista' ? R.E.M.t[Math.min(R.E.M.N - 1, Math.floor(R.L.s / DS_PISTA))][0] : (R.L.vel && R.L.fase !== 'suelo' ? R.L.vel[0] : R.L.dir[0]),
+        R.L.fase === 'pista' ? R.E.M.t[Math.min(R.E.M.N - 1, Math.floor(R.L.s / DS_PISTA))][2] : (R.L.vel && R.L.fase !== 'suelo' ? R.L.vel[2] : R.L.dir[2]));
+      cam.yaw = angulo(cam.yaw, yawC + Math.PI + 0.6, 1 - Math.exp(-1.5 * dt));
+      cam.pitch = damp(cam.pitch, 0.5, 2, dt);
+      cam.dist = damp(cam.dist, 5.5, 2, dt);
+      if (R.L.fase === 'ok' || R.L.fase === 'mal') {
+        R.fin += dt;
+        if (R.fin > (R.L.fase === 'ok' ? 0.8 : 1.4)) { juguetes.lanzamiento = null; terminarLanzamiento(R.L); }
+      }
+    }
+    const G = juguetes.regalo;
+    if (G) {
+      G.t += dt;
+      G.g.scale.setScalar(Math.min(1.6, G.t * 4));
+      if (G.t > 1.2) {
+        const k = Math.min(1, (G.t - 1.2) * 2.5);
+        G.tapa.position.y = k * 0.8;
+        G.tapa.rotation.z = k;
+        G.set.visible = true;
+        G.set.position.y = 0.3 + k * 0.6;
+        G.set.rotation.y = G.t * 1.5;
+      }
+      if (G.t > 7) { G.g.parent && G.g.parent.remove(G.g); juguetes.regalo = null; }
+    }
+  }
+
+
   // ---------- Bucle principal ----------
   const reloj = new THREE.Clock();
   let autopiloto = false;
@@ -9230,6 +10036,13 @@
       irCircuito: () => irAlCircuito(),
       correr: () => aCorrer(),
       irNumeros: () => irANumeros(),
+      irPistas: () => irAJuguetes(),
+      pistas: () => ({ activa: juguetes.activa && { pista: juguetes.activa.E.def.id, fase: juguetes.activa.fase, intentos: juguetes.activa.intentos },
+        lanz: juguetes.lanzamiento && { fase: juguetes.lanzamiento.L.fase, s: +juguetes.lanzamiento.L.s.toFixed(2), v: +juguetes.lanzamiento.L.v.toFixed(2) },
+        estrellas: juguetes.estrellas, set: juguetes.set, coche: juguetes.coche }),
+      abrirPista: (k) => { const E = juguetes.estaciones[k]; ninoE.pos.copy(E.sitio); abrirEstacion(E); },
+      lanzarCon: (f, err = 0) => { const A = juguetes.activa; if (A.fase === 'coche') empezarApuntar(); A.fase = 'fuerza'; A.fuerza = f; A.apunte = A.E.def.angulo + err; lanzar(); },
+      margen: (k, coche = juguetes.coche) => margenFuerza(juguetes.estaciones[k].M, COCHES_J.find((c) => c.id === coche)),
       numeros: () => ({ juego: numeros.juego && { id: numeros.juego.puesto.juego.id, fase: numeros.juego.fase, aciertos: numeros.juego.aciertos, fallos: numeros.juego.fallos,
         pregunta: numeros.juego.pregunta && numeros.juego.pregunta.texto, bien: numeros.juego.pregunta && numeros.juego.pregunta.bien },
         rayuela: numeros.rayuela && { aciertos: numeros.rayuela.aciertos, bien: numeros.rayuela.pregunta.bien, texto: numeros.rayuela.pregunta.texto },
@@ -9407,8 +10220,8 @@
   }
 
   function actualizarCamara(dt) {
-    const foco = jugador === 'perro' ? estado.pos : ninoE.pos;
-    const alto = jugador === 'perro' ? 0.6 : 1.0;
+    const foco = juguetes.foco || (jugador === 'perro' ? estado.pos : ninoE.pos);
+    const alto = juguetes.foco ? 0.3 : jugador === 'perro' ? 0.6 : 1.0;
     cam.objetivo.x = damp(cam.objetivo.x, foco.x, 6, dt);
     cam.objetivo.z = damp(cam.objetivo.z, foco.z, 6, dt);
     cam.objetivo.y = damp(cam.objetivo.y, foco.y + alto, 4, dt);
@@ -9483,6 +10296,7 @@
         actualizarArrecife(dt);
         actualizarCircuito(dt);
         actualizarNumeros(dt);
+        actualizarJuguetes(dt);
       }
       actualizarSalpicaduras(dt);
       actualizarBotonAccion();
