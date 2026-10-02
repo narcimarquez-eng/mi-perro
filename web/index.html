@@ -785,7 +785,8 @@
     if (x < -500) return 0.02;                // el circuito de karts, tierra adentro
     if (z < -400) return 0.02;                // el pueblo de los números, tras las dunas
     let h = x > 200 && x < 500 && z > -400 && z < 300 ? SUELO_FERIA                  // la feria es llana
-      : x > -480 && x < -200 && z > -40 && z < 280 ? hArroyo(x, z) : altura(x, -z);   // el arroyo mágico
+      : x > -480 && x < -200 && z > -40 && z < 280 ? hArroyo(x, z)                    // el arroyo mágico
+      : x > -480 && x < -200 && z > -395 && z < -55 ? hSafari(x, z) : altura(x, -z);  // el safari
     if (sobreMuelle(x, z) && (yActual === undefined || yActual > MUELLE.y - 0.45)) h = Math.max(h, MUELLE.y);
     for (const pl of plataformas) {
       if (x > pl.x0 && x < pl.x1 && z > pl.z0 && z < pl.z1) {
@@ -1276,9 +1277,9 @@
   // Papá y mamá (hechos en Blender con Padres.py); si faltan, se usan los muñecos sencillos
   const cargarOpcional = (n) => cargar(n).catch(() => null);
   Promise.all([cargar('playa.glb'), cargar('perro.glb'), cargar('nino.glb'), cargarOpcional('papa.glb'), cargarOpcional('mama.glb'),
-    cargarOpcional('arrecife.glb'), cargarOpcional('coches.glb'), cargarOpcional('pistas.glb'), cargarOpcional('numeros.glb'), cargarOpcional('cochesjuguete.glb'), cargarOpcional('feria.glb'),
+    cargarOpcional('arrecife.glb'), cargarOpcional('coches.glb'), cargarOpcional('pistas.glb'), cargarOpcional('numeros.glb'), cargarOpcional('cochesjuguete.glb'), cargarOpcional('feria.glb'), cargarOpcional('safari.glb'),
     cargarOpcional('amigo1.glb'), cargarOpcional('amigo2.glb'), cargarOpcional('amigo3.glb'), cargarOpcional('amigo4.glb')])
-    .then(([playa, gPerro, gNino, gPapa, gMama, gArrecife, gCoches, gPistas, gNumeros, gJuguetes, gFeria, ...gAmigos]) => {
+    .then(([playa, gPerro, gNino, gPapa, gMama, gArrecife, gCoches, gPistas, gNumeros, gJuguetes, gFeria, gSafari, ...gAmigos]) => {
     prepararPlaya(playa);
     prepararPerro(gPerro);
     prepararNino(gNino);
@@ -1293,6 +1294,7 @@
     try { construirJuguetes(gJuguetes); } catch (e) { console.error('Cuarto de las pistas:', e); }
     try { construirFeria(gFeria); } catch (e) { console.error('Feria:', e); }
     try { construirArroyo(); } catch (e) { console.error('Arroyo mágico:', e); }
+    try { construirSafari(gSafari); } catch (e) { console.error('Safari:', e); }
     parque.toboganes.forEach((t) => {
       if (t.aro) return;
       const aro = new THREE.Mesh(new THREE.RingGeometry(0.4, 0.6, 32), new THREE.MeshBasicMaterial({ color: '#ffd42a', side: THREE.DoubleSide, transparent: true, opacity: 0.85 }));
@@ -1546,6 +1548,9 @@
     } else if (pos.x < -500) {
       pos.x = clamp(pos.x, CIRC.x - 150, CIRC.x + 150);
       pos.z = clamp(pos.z, CIRC.z - 110, CIRC.z + 160);
+    } else if (enSafari(pos)) {
+      pos.x = clamp(pos.x, SAFARI.x - SX + 8, SAFARI.x + SX - 8);
+      pos.z = clamp(pos.z, SAFARI.z - SZ + 8, SAFARI.z + SZ - 8);
     } else if (enArroyo(pos)) {
       pos.x = clamp(pos.x, ARROYO.x - 118, ARROYO.x + 118);
       pos.z = clamp(pos.z, ARROYO.z - 108, ARROYO.z + 124);
@@ -2252,6 +2257,7 @@
     const E = ninoE;
     let zona = 'arena', texto;
     if (E.modo === 'bucear') { zona = 'agua'; texto = `Buceando · ${Math.max(0, Math.round(-E.pos.y))} m`; }
+    else if (enSafari(E.pos)) { zona = E.nadando || E.pos.y < 0.2 ? 'agua' : 'arena'; texto = E.nadando ? 'Nadando en la charca' : `${E.modo === 'atraccion' && E.atr && E.atr.tipo === 'jeep' ? 'De safari en el jeep' : 'En el safari'} · Saludos ${safari.saludadas.size}/${MANADAS.length}`; }
     else if (E.modo === 'atraccion' && E.atr && E.atr.tipo === 'coche') texto = `Conduciendo · ${Math.round(Math.abs(E.atr.vehiculo.vel) * 3.6)} km/h`;
     else if (enCircuito(E.pos)) texto = circuito.fase === 'carrera' || circuito.fase === 'cuenta' ? `${circuito.pista ? circuito.pista.def.nombre : 'Carrera'} · ${Math.round(Math.abs(circuito.yo ? circuito.yo.vel : 0) * 3.6)} km/h` : 'En el circuito de karts';
     else if (enArroyo(E.pos)) { zona = E.nadando || E.pos.y < 0.2 ? 'agua' : 'arena'; texto = E.nadando ? 'Nadando en el arroyo' : E.pos.y < 0.2 ? 'Chapoteando en el arroyo' : 'En el arroyo mágico'; }
@@ -3018,6 +3024,13 @@
       } },
     { id: 'arroyo', titulo: 'Entra en el portal mágico de las dunas y mira saltar 5 peces en el arroyo', total: 5, cuenta: 0,
       objetivo: () => (enArroyo(ninoE.pos) ? null : PORTAL_ARROYO) },
+    { id: 'safari', titulo: 'Ve al safari (arco de madera en las dunas) y deja que te saluden las 11 manadas de animales', total: 11, cuenta: 0,
+      objetivo: () => {
+        if (!enSafari(ninoE.pos)) return PUERTA_SAFARI;
+        if (ninoE.modo === 'atraccion') return null;
+        const pend = safari.manadas.filter((M) => !safari.saludadas.has(M.id)).map((M) => M.centro);
+        return pend.length ? masCercanoA(pend, ninoE.pos) : null;
+      } },
     { id: 'copas', titulo: 'Gana una copa (podio) en los 4 circuitos: verde, ciudad, playa y bosque', total: 4, cuenta: 0,
       objetivo: () => (!enCircuito(ninoE.pos) ? PUERTA_CIRCUITO : circuito.fase === 'paddock' && circuito.amigos[0] ? circuito.amigos[0].grupo.position : null) },
   ];
@@ -3027,6 +3040,7 @@
   const misionNino = () => (buceando && !hechaNino('arrecife') ? misionPor('arrecife') :
     enCircuito(ninoE.pos) && !hechaNino('carrera') ? misionPor('carrera') : enCircuito(ninoE.pos) && !hechaNino('copas') ? misionPor('copas') :
     enArroyo(ninoE.pos) && !hechaNino('arroyo') ? misionPor('arroyo') :
+    enSafari(ninoE.pos) && !hechaNino('safari') ? misionPor('safari') :
     enFeria(ninoE.pos) && !hechaNino('feria') ? misionPor('feria') :
     enJuguetes(ninoE.pos) && salaDe(ninoE.pos) === SALAS[1] && !hechaNino('paisajes') ? misionPor('paisajes') :
     enJuguetes(ninoE.pos) && !hechaNino('pistas') ? misionPor('pistas') :
@@ -12280,6 +12294,733 @@
   }
 
 
+  // =====================================================================
+  // ---------- El safari: manadas de animales que saludan a Manuel ----------
+  // =====================================================================
+  // Los animales, el jeep, los árboles y el arco vienen de Safari.py (safari.glb). Cada animal tiene piezas
+  // que giran (cabeza, patas, cola, orejas, trompa, mandíbula, alas, brazos); el terreno, la charca, la hierba
+  // y todo el movimiento se hacen aquí.
+  const SAFARI = new V3(-340, 0, -225);
+  const enSafari = (p) => p.x > -480 && p.x < -200 && p.z > -395 && p.z < -55;
+  const PUERTA_SAFARI = new V3(-2, 0, -78);      // arco de madera en las dunas, entre la casa y el parque acuático
+  const SX = 140, SZ = 170;                        // medio ancho y medio largo de la sabana
+  const CHARCA = { x: 62, z: -40, rx: 24, rz: 16 };  // junto al camino, para verla desde el jeep
+  const safari = {
+    listo: false, grupo: new THREE.Group(), animales: [], manadas: [], saludadas: new Set(), jeep: null, camino: null, largoCamino: 0,
+    ocultos: null, niebla: null, hola: [], tSonido: 0, puntoJeep: null, perroEnJeep: false,
+  };
+  // Altura de la sabana: lomas suaves, colinas en los bordes y la charca
+  function hSafari(x, z) {
+    const lx = x - SAFARI.x, lz = z - SAFARI.z;
+    let h = 1.7 + 0.8 * Math.sin(lx * 0.031) * Math.cos(lz * 0.027) + 0.35 * Math.sin(lx * 0.083 + lz * 0.061) + 0.25 * Math.sin(lz * 0.11 - lx * 0.04);
+    h += 10 * Math.max(smoothstep(SX - 18, SX + 10, Math.abs(lx)), smoothstep(SZ - 18, SZ + 10, Math.abs(lz)));
+    const dc = Math.hypot((lx - CHARCA.x) / CHARCA.rx, (lz - CHARCA.z) / CHARCA.rz);
+    if (dc < 1.6) {
+      const t = smoothstep(0.8, 1.55, dc);
+      h = h * t + (-1.4 + 1.8 * dc * dc) * (1 - t);
+    }
+    return h;
+  }
+  // [especie, saludo, radio de choque, velocidad al andar, ángulo de la cabeza al pastar, altura del bocadillo]
+  const ANIMALES_SAFARI = {
+    Elefante: { saludo: 'trompa', r: 1.6, vel: 1.1, pasta: 0.35, alto: 4.4, sombra: true },
+    Jirafa: { saludo: 'cuello', r: 0.8, vel: 1.3, pasta: 0.15, alto: 6.0, sombra: true },
+    Cebra: { saludo: 'relincho', r: 0.6, vel: 1.5, pasta: 0.95, alto: 2.7, sombra: true },
+    Leon: { saludo: 'rugido', r: 0.7, vel: 1.0, pasta: 0, alto: 2.1, sombra: true },
+    Leona: { saludo: 'rugido', r: 0.6, vel: 1.2, pasta: 0, alto: 2.0, sombra: true },
+    Hipo: { saludo: 'bostezo', r: 1.2, vel: 0.6, pasta: 0.25, alto: 2.4, sombra: true },
+    Rino: { saludo: 'cabeza', r: 1.1, vel: 0.9, pasta: 0.75, alto: 2.4, sombra: true },
+    Gacela: { saludo: 'brinco', r: 0.4, vel: 1.8, pasta: 1.0, alto: 2.2 },
+    Avestruz: { saludo: 'alas', r: 0.5, vel: 1.6, pasta: 0.5, alto: 3.0 },
+    Flamenco: { saludo: 'alas', r: 0, vel: 0, pasta: 0.9, alto: 2.2 },
+    Mono: { saludo: 'mano', r: 0, vel: 0, pasta: 0, alto: 1.5 },
+    Suricata: { saludo: 'mano', r: 0, vel: 0, pasta: 0, alto: 1.1 },
+  };
+  // Las manadas (centro en coordenadas de la sabana)
+  const MANADAS = [
+    { id: 'cebras', nombre: 'las cebras', especie: 'Cebra', n: 7, crias: 2, c: [38, 98], R: 14 },
+    { id: 'jirafas', nombre: 'las jirafas', especie: 'Jirafa', n: 4, crias: 1, c: [118, 30], R: 10 },
+    { id: 'elefantes', nombre: 'los elefantes', especie: 'Elefante', n: 4, crias: 1, c: [48, -92], R: 13 },
+    { id: 'hipos', nombre: 'los hipopótamos', especie: 'Hipo', n: 3, crias: 1, c: [68, -41], R: 7, agua: true },
+    { id: 'flamencos', nombre: 'los flamencos', especie: 'Flamenco', n: 9, c: [84, -36], R: 6, orilla: true },
+    { id: 'leones', nombre: 'los leones', especie: 'Leona', n: 5, crias: 2, c: [-62, -112], R: 12, minR: 6.5 },
+    { id: 'rinos', nombre: 'los rinocerontes', especie: 'Rino', n: 3, crias: 1, c: [-124, -36], R: 9 },
+    { id: 'avestruces', nombre: 'las avestruces', especie: 'Avestruz', n: 4, c: [-84, 22], R: 12 },
+    { id: 'gacelas', nombre: 'las gacelas', especie: 'Gacela', n: 8, crias: 2, c: [80, -118], R: 13 },
+    { id: 'suricatas', nombre: 'las suricatas', especie: 'Suricata', n: 6, c: [-90, 90], R: 3 },
+    { id: 'monos', nombre: 'los monos', especie: 'Mono', n: 4, c: [-28, 96], R: 0 },
+  ];
+  const SONIDOS_SAFARI = {
+    Elefante: [[[392, 0, 0.12], [523, 0.1, 0.12], [784, 0.2, 0.55]], 'sawtooth', 0.05],
+    Jirafa: [[[330, 0, 0.25], [294, 0.2, 0.3]], 'sine', 0.08],
+    Cebra: [[[880, 0, 0.08], [1047, 0.06, 0.08], [988, 0.12, 0.08], [880, 0.18, 0.22]], 'square', 0.03],
+    Leon: [[[110, 0, 0.6], [92, 0.25, 0.6]], 'sawtooth', 0.06],
+    Leona: [[[130, 0, 0.5], [110, 0.2, 0.5]], 'sawtooth', 0.05],
+    Hipo: [[[90, 0, 0.5], [80, 0.3, 0.4]], 'sawtooth', 0.06],
+    Rino: [[[150, 0, 0.3], [130, 0.2, 0.3]], 'sawtooth', 0.05],
+    Gacela: [[[1200, 0, 0.06], [1400, 0.08, 0.06]], 'triangle', 0.06],
+    Avestruz: [[[220, 0, 0.15], [180, 0.18, 0.25]], 'triangle', 0.08],
+    Flamenco: [[[620, 0, 0.1], [560, 0.12, 0.12], [620, 0.26, 0.1]], 'square', 0.03],
+    Mono: [[[500, 0, 0.1], [600, 0.12, 0.1], [800, 0.26, 0.12], [950, 0.4, 0.15]], 'triangle', 0.08],
+    Suricata: [[[1500, 0, 0.05], [1700, 0.07, 0.05], [1500, 0.14, 0.05]], 'triangle', 0.06],
+  };
+  const SL = (lx, lz) => new V3(SAFARI.x + lx, 0, SAFARI.z + lz);
+  // El camino del jeep: una vuelta cerrada por la sabana
+  const CAMINO = [[10, 128], [62, 112], [100, 62], [104, -10], [78, -88], [28, -128], [-42, -134], [-96, -96], [-112, -18], [-96, 58], [-52, 112]];
+
+  function construirSafari(gS) {
+    if (!gS) return;
+    const G = safari.grupo;
+    G.visible = false;
+    scene.add(G);
+    const P = {};
+    gS.scene.children.forEach((o) => { P[o.name] = o; });
+    const copia = (nombre) => {
+      const o = P[nombre].clone(true);
+      o.traverse((m) => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } });
+      return o;
+    };
+    safari.camino = new THREE.CatmullRomCurve3(CAMINO.map(([x, z]) => new V3(SAFARI.x + x, 0, SAFARI.z + z)), true, 'catmullrom', 0.5);
+    safari.largoCamino = safari.camino.getLength();
+    // distancia al camino, precalculada en una rejilla de 2 m
+    const muestrasCamino = safari.camino.getSpacedPoints(500);
+    const NXC = SX + 1, NZC = SZ + 1, rejilla = new Float32Array(NXC * NZC);
+    for (let iz = 0; iz < NZC; iz++) for (let ix = 0; ix < NXC; ix++) {
+      const x = SAFARI.x - SX + ix * 2, z = SAFARI.z - SZ + iz * 2;
+      let d = Infinity;
+      for (const p of muestrasCamino) { const dd = (p.x - x) ** 2 + (p.z - z) ** 2; if (dd < d) d = dd; }
+      rejilla[iz * NXC + ix] = Math.sqrt(d);
+    }
+    const distCamino = (x, z) => {
+      const gx = clamp((x - SAFARI.x + SX) / 2, 0, NXC - 1.001), gz = clamp((z - SAFARI.z + SZ) / 2, 0, NZC - 1.001);
+      const ix = Math.floor(gx), iz = Math.floor(gz), fx = gx - ix, fz = gz - iz, k = iz * NXC + ix;
+      return (rejilla[k] * (1 - fx) + rejilla[k + 1] * fx) * (1 - fz) + (rejilla[k + NXC] * (1 - fx) + rejilla[k + NXC + 1] * fx) * fz;
+    };
+    const enCharca = (x, z) => Math.hypot((x - SAFARI.x - CHARCA.x) / CHARCA.rx, (z - SAFARI.z - CHARCA.z) / CHARCA.rz);
+
+    // ---------- Terreno: hierba seca, manchas verdes y el camino de tierra ----------
+    const AX = 2 * SX + 60, AZ = 2 * SZ + 60;
+    const geo = new THREE.PlaneGeometry(AX, AZ, AX / 2, AZ / 2);
+    geo.rotateX(-Math.PI / 2);
+    const pos = geo.attributes.position, cols = new Float32Array(pos.count * 3), c = new THREE.Color();
+    const SECO = new THREE.Color('#d2b25a'), VERDE = new THREE.Color('#93ad46'), TIERRA = new THREE.Color('#b98a55'), BARRO = new THREE.Color('#7d6a45'), COLINA = new THREE.Color('#c7a964');
+    safari.dCamino = new Float32Array(pos.count);
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i) + SAFARI.x, z = pos.getZ(i) + SAFARI.z;
+      const h = hSafari(x, z);
+      pos.setY(i, h);
+      const ruido = 0.5 + 0.5 * Math.sin(x * 0.07) * Math.cos(z * 0.09) + 0.2 * Math.sin(x * 0.31 + z * 0.23);
+      c.copy(SECO).lerp(VERDE, clamp(ruido * 0.7, 0, 1));
+      const dc = enCharca(x, z);
+      if (dc < 1.6) c.lerp(VERDE, 1 - smoothstep(1.0, 1.6, dc));
+      if (dc < 1.05) c.copy(BARRO);
+      if (h > 4) c.lerp(COLINA, smoothstep(4, 9, h));
+      const dCam = distCamino(x, z);
+      safari.dCamino[i] = dCam;
+      if (dCam < 3.2) c.lerp(TIERRA, 1 - smoothstep(2.2, 3.2, dCam));
+      c.convertSRGBToLinear();
+      cols[i * 3] = c.r; cols[i * 3 + 1] = c.g; cols[i * 3 + 2] = c.b;
+    }
+    geo.setAttribute('color', new THREE.BufferAttribute(cols, 3));
+    geo.translate(SAFARI.x, 0, SAFARI.z);
+    geo.computeVertexNormals();
+    const terreno = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 }));
+    terreno.receiveShadow = true;
+    G.add(terreno);
+    // la charca
+    const agua2 = new THREE.Mesh(new THREE.CircleGeometry(1, 48), new THREE.MeshStandardMaterial({ color: '#2f93a8', roughness: 0.12, metalness: 0.15, transparent: true, opacity: 0.9 }));
+    agua2.rotation.x = -Math.PI / 2;
+    agua2.scale.set(CHARCA.rx * 1.02, CHARCA.rz * 1.02, 1);
+    agua2.position.set(SAFARI.x + CHARCA.x, 0.0, SAFARI.z + CHARCA.z);
+    G.add(agua2);
+    safari.aguaCharca = agua2;
+
+    // ---------- Hierba, arbustos y piedras (instanciados) ----------
+    // (sin nada en la llegada, junto al arco y al cartel)
+    const libre = (x, z, margen = 4) => distCamino(x, z) > margen && enCharca(x, z) > 1.15 && hSafari(x, z) < 5 && Math.hypot(x - SAFARI.x + 2, z - SAFARI.z - 142) > 13;
+    const azarS = (() => { let s = 11; return () => ((s = (s * 16807) % 2147483647) / 2147483647); })();
+    const sitioLibre = (margen) => {
+      for (let k = 0; k < 40; k++) {
+        const x = SAFARI.x + (azarS() * 2 - 1) * (SX - 8), z = SAFARI.z + (azarS() * 2 - 1) * (SZ - 8);
+        if (libre(x, z, margen)) return [x, z];
+      }
+      return null;
+    };
+    const hoja = new THREE.ConeGeometry(0.12, 0.9, 3, 1, true);
+    hoja.translate(0, 0.45, 0);
+    const mata = mergeGeometrias([0, 1, 2, 3, 4].map((k) => {
+      const g = hoja.clone();
+      g.rotateZ(0.25 * (k % 2 ? 1 : -1));
+      g.rotateY(k * 1.3);
+      g.translate(Math.cos(k * 2.1) * 0.12, 0, Math.sin(k * 2.1) * 0.12);
+      return g;
+    }));
+    const NH = 2600;
+    const hierba = new THREE.InstancedMesh(mata, new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 1, side: THREE.DoubleSide }), NH);
+    const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), s3 = new V3();
+    const colH = new THREE.Color();
+    let nh = 0;
+    for (let k = 0; k < NH * 2 && nh < NH; k++) {
+      const p = sitioLibre(2.6);
+      if (!p) continue;
+      const [x, z] = p;
+      const es = 0.7 + azarS() * 0.9;
+      m4.compose(new V3(x, hSafari(x, z) - 0.05, z), q.setFromEuler(e.set(0, azarS() * 6.3, 0)), s3.set(es, es * (0.8 + azarS() * 0.6), es));
+      hierba.setMatrixAt(nh, m4);
+      hierba.setColorAt(nh, colH.set('#d9c46a').lerp(new THREE.Color('#8fae48'), azarS() * 0.8).convertSRGBToLinear());
+      nh++;
+    }
+    hierba.count = nh;
+    G.add(hierba);
+    const NA_ = 70;
+    const arbustos = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 1), new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.9, flatShading: true }), NA_);
+    for (let k = 0; k < NA_; k++) {
+      const p = sitioLibre(5) || [SAFARI.x, SAFARI.z + 160];
+      const es = 0.35 + azarS() * 0.6;
+      m4.compose(new V3(p[0], hSafari(p[0], p[1]) + es * 0.25, p[1]), q.setFromEuler(e.set(0, azarS() * 6, 0)), s3.set(es * 1.3, es * 0.8, es * 1.2));
+      arbustos.setMatrixAt(k, m4);
+      arbustos.setColorAt(k, colH.set('#6f8f35').lerp(new THREE.Color('#a3a845'), azarS()).convertSRGBToLinear());
+    }
+    arbustos.castShadow = true;
+    G.add(arbustos);
+    const NP_ = 40;
+    const piedras = new THREE.InstancedMesh(new THREE.DodecahedronGeometry(1, 0), new THREE.MeshStandardMaterial({ color: '#b3a48a', roughness: 0.9, flatShading: true }), NP_);
+    for (let k = 0; k < NP_; k++) {
+      const p = sitioLibre(4) || [SAFARI.x, SAFARI.z + 160];
+      const es = 0.3 + azarS() * 0.8;
+      m4.compose(new V3(p[0], hSafari(p[0], p[1]) + es * 0.2, p[1]), q.setFromEuler(e.set(azarS(), azarS() * 6, azarS())), s3.set(es * 1.4, es * 0.8, es));
+      piedras.setMatrixAt(k, m4);
+    }
+    G.add(piedras);
+
+    // ---------- Árboles, termiteros, la roca de los leones y el baobab de los monos ----------
+    const poner = (nombre, lx, lz, ry = 0, es = 1, choque = 0) => {
+      const o = copia(nombre);
+      const x = SAFARI.x + lx, z = SAFARI.z + lz;
+      o.position.set(x, hSafari(x, z) - 0.1, z);
+      o.rotation.y = ry;
+      o.scale.setScalar(es);
+      G.add(o);
+      if (choque) colisiones.push({ x, z, r: choque * es });
+      return o;
+    };
+    const ACACIAS = [[126, 46], [108, 22], [130, 14], [60, 70], [-20, 60], [-80, -60], [-30, -80], [70, -20], [120, -60], [20, 140], [-120, 120],
+      [-130, 0], [90, 110], [-50, -150], [60, -150], [-100, -140], [130, -130], [0, 40], [-60, 80], [50, 20], [-125, -70], [100, 140]];
+    ACACIAS.forEach(([x, z], k) => poner('Acacia', x, z, k * 1.7, 0.9 + (k % 4) * 0.15, 0.35));
+    safari.baobab = poner('Baobab', -28, 96, 0.4, 1.0, 1.4);
+    poner('Baobab', 10, -30, 1.2, 0.85, 1.4);
+    poner('Baobab', -100, 130, 2.0, 0.9, 1.4);
+    safari.termitero = poner('Termitero', -90, 90, 0, 1.0, 0.9);
+    [[-60, -40], [70, 40], [120, -100], [-20, 120]].forEach(([x, z], k) => poner('Termitero', x, z, k, 0.6 + k * 0.1, 0.6));
+    safari.roca = poner('RocaLeones', -62, -112, 0.6, 1.0, 4.6);
+    // arco de vuelta a la playa (dentro del safari)
+    const arcoAqui = poner('ArcoSafari', -6, 150, Math.PI, 1, 0);
+    [-3.2, 3.2].forEach((dx) => colisiones.push({ x: SAFARI.x - 6 + dx, z: SAFARI.z + 150, r: 0.4 }));
+    const cartelA = cartel('A LA PLAYA', 4.2, 0.9);
+    cartelA.position.set(SAFARI.x - 6, arcoAqui.position.y + 6.0, SAFARI.z + 150 - 0.3);
+    cartelA.rotation.y = Math.PI;
+    G.add(cartelA);
+    puntosAccion.push({ pos: new V3(SAFARI.x - 6, hSafari(SAFARI.x - 6, SAFARI.z + 150), SAFARI.z + 150), radio: 2.2, alto: 3, texto: 'A la playa', hacer: volverDelSafari,
+      visible: () => enSafari(ninoE.pos) && ninoE.modo === 'libre' });
+    // cartel de bienvenida
+    const bienvenida = cartel('SAFARI · ¡LOS ANIMALES TE SALUDAN!', 7, 1.1);
+    bienvenida.position.set(SAFARI.x + 4, hSafari(SAFARI.x + 4, SAFARI.z + 134) + 2.6, SAFARI.z + 134);
+    G.add(bienvenida);
+    const poste = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 2.6, 8), new THREE.MeshStandardMaterial({ color: '#8a5a33' }));
+    poste.position.set(bienvenida.position.x, bienvenida.position.y - 1.3, bienvenida.position.z);
+    G.add(poste);
+
+    // ---------- Las manadas ----------
+    MANADAS.forEach((M, im) => {
+      const man = { ...M, centro: SL(M.c[0], M.c[1]), miembros: [], saludada: false };
+      for (let k = 0; k < M.n; k++) {
+        let especie = M.especie;
+        if (M.id === 'leones' && k === 0) especie = 'Leon';
+        const cria = k >= M.n - (M.crias || 0);
+        const g = copia(especie);
+        const es = (cria ? 0.55 : 0.92 + ((k * 37) % 10) / 60) * (especie === 'Suricata' ? 1.5 : especie === 'Mono' ? 1.25 : 1);
+        g.scale.setScalar(es);
+        const sp = ANIMALES_SAFARI[especie];
+        g.traverse((m) => { if (m.isMesh && !sp.sombra) m.castShadow = false; });
+        const partes = { patas: [], orejas: [], alas: [], brazos: [] };
+        g.traverse((o) => {
+          const n = o.name.split('_')[1];
+          if (!n) return;
+          if (n.startsWith('Pata')) partes.patas.push(o);
+          else if (n.startsWith('Oreja')) partes.orejas.push(o);
+          else if (n.startsWith('Ala')) partes.alas.push(o);
+          else if (n.startsWith('Brazo')) partes.brazos.push(o);
+          else partes[n.toLowerCase()] = o;
+        });
+        // patas en diagonal: la delantera izquierda va con la trasera derecha
+        partes.patas.forEach((p) => { p.userData.fase = (p.position.z > 0) === (p.position.x > 0) ? 0 : Math.PI; p.userData.rx0 = p.rotation.x; });
+        const a = { g, especie, sp, partes, es, manada: man, pos: new V3(), rumbo: azarS() * 6.28, obj: new V3(), vel: 0, fase: azarS() * 6, estado: 'pasta',
+          t: azarS() * 4, tSaludo: -1, retraso: 0, ultimoSaludo: -99, mira: 0, cabX: 0, cabY: 0, fijo: false, y0: 0, col: null, hola: null };
+        // dónde está cada uno
+        if (M.id === 'monos' && k >= 2) {
+          // sentados al pie del baobab
+          const b = safari.baobab, ang = 0.9 + k * 0.7;
+          a.pos.set(b.position.x + Math.sin(ang) * 2.4, 0, b.position.z + Math.cos(ang) * 2.4);
+          a.pos.y = hSafari(a.pos.x, a.pos.z);
+          a.rumbo = ang;
+          a.fijo = true;
+        } else if (M.id === 'monos') {
+          // en mitad de una rama del baobab (las ramas de Safari.py salen cada 60 grados)
+          const ang = k * Math.PI / 3 + Math.PI, b = safari.baobab;
+          a.pos.copy(new V3(Math.cos(ang) * 1.15, 4.98, -Math.sin(ang) * 1.15).applyEuler(b.rotation).add(b.position));
+          const dir = new V3(Math.cos(ang), 0, -Math.sin(ang)).applyEuler(b.rotation);
+          a.rumbo = Math.atan2(dir.x, dir.z);
+          a.fijo = true;
+        } else if (M.id === 'suricatas') {
+          const ang = k / M.n * Math.PI * 2, r = 1.5 + (k % 2) * 0.8;
+          a.pos.set(man.centro.x + Math.cos(ang) * r, 0, man.centro.z + Math.sin(ang) * r);
+          a.pos.y = hSafari(a.pos.x, a.pos.z);
+          a.rumbo = Math.PI * 0.2 + k * 0.4;
+          a.fijo = true;
+        } else if (M.id === 'leones' && k === 0) {
+          // el león, tumbado en lo alto de la roca
+          const r = safari.roca;
+          a.pos.copy(new V3(0.3, 4.87, 1.8).applyEuler(r.rotation).add(r.position));
+          a.rumbo = r.rotation.y + 0.3;
+          a.fijo = true;
+        } else if (M.id === 'flamencos') {
+          const ang = -0.6 + k * 0.32, dc = 0.88 + (k % 3) * 0.06;
+          a.pos.set(SAFARI.x + CHARCA.x + Math.cos(ang) * CHARCA.rx * dc, 0, SAFARI.z + CHARCA.z + Math.sin(ang) * CHARCA.rz * dc);
+          a.pos.y = hSafari(a.pos.x, a.pos.z);
+          a.rumbo = Math.atan2(-Math.cos(ang), -Math.sin(ang)) + (k % 2 ? 0.8 : -0.5);
+          a.fijo = true;
+        } else {
+          sitioManada(a, true);
+          a.pos.copy(a.obj);
+          a.pos.y = hSafari(a.pos.x, a.pos.z);
+        }
+        if (sp.r && !a.fijo) { a.col = { x: a.pos.x, z: a.pos.z, r: sp.r * es }; colisiones.push(a.col); }
+        g.position.copy(a.pos);
+        g.rotation.y = a.rumbo;
+        G.add(g);
+        man.miembros.push(a);
+        safari.animales.push(a);
+      }
+      safari.manadas.push(man);
+    });
+    if (safari.roca) colisiones.push({ x: safari.roca.position.x + 2, z: safari.roca.position.z + 1.5, r: 3 });
+
+    // ---------- Bocadillos de "¡Hola!" ----------
+    const lienzo = document.createElement('canvas');
+    lienzo.width = 256; lienzo.height = 128;
+    const cx = lienzo.getContext('2d');
+    cx.fillStyle = '#ffffff';
+    cx.strokeStyle = '#2a7ae0';
+    cx.lineWidth = 8;
+    cx.beginPath();
+    cx.roundRect ? cx.roundRect(8, 8, 240, 90, 40) : cx.rect(8, 8, 240, 90);
+    cx.fill(); cx.stroke();
+    cx.beginPath(); cx.moveTo(110, 96); cx.lineTo(128, 122); cx.lineTo(146, 96); cx.closePath(); cx.fill();
+    cx.fillStyle = '#e8322a';
+    cx.font = '800 58px "Baloo 2", "Nunito", sans-serif';
+    cx.textAlign = 'center'; cx.textBaseline = 'middle';
+    cx.fillText('¡Hola!', 128, 56);
+    const texHola = new THREE.CanvasTexture(lienzo);
+    texHola.encoding = THREE.sRGBEncoding;
+    for (let k = 0; k < 14; k++) {
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: texHola, transparent: true, depthWrite: false, toneMapped: false }));
+      sp.scale.set(1.8, 0.9, 1);
+      sp.visible = false;
+      sp.renderOrder = 5;
+      G.add(sp);
+      safari.hola.push({ sp, a: null, t: 0 });
+    }
+
+    // ---------- El jeep ----------
+    const jeep = copia('Jeep');
+    const J = { g: jeep, s: 8, v: 0, ruedas: [], viaje: null };
+    jeep.traverse((o) => { if (o.name.includes('_Rueda')) J.ruedas.push(o); });
+    G.add(jeep);
+    safari.jeep = J;
+    J.col = { x: 0, z: 0, r: 1.7 };
+    colisiones.push(J.col);
+    colocarJeep(J, 0);
+    safari.puntoJeep = { pos: jeep.position.clone(), radio: 3.2, alto: 3, texto: 'Subir al jeep', hacer: subirJeep,
+      visible: () => enSafari(ninoE.pos) && ninoE.modo === 'libre' && !J.viaje };
+    puntosAccion.push(safari.puntoJeep);
+
+    // ---------- El arco en la playa ----------
+    const yP = suelo(PUERTA_SAFARI.x, PUERTA_SAFARI.z);
+    const arcoP = copia('ArcoSafari');
+    arcoP.position.set(PUERTA_SAFARI.x, yP - 0.1, PUERTA_SAFARI.z);
+    scene.add(arcoP);
+    [-3.2, 3.2].forEach((dx) => colisiones.push({ x: PUERTA_SAFARI.x + dx, z: PUERTA_SAFARI.z, r: 0.4 }));
+    const letreroP = cartel('SAFARI', 3.4, 0.9);
+    letreroP.position.set(PUERTA_SAFARI.x, yP + 6.0, PUERTA_SAFARI.z + 0.3);
+    scene.add(letreroP);
+    // una cebra y una jirafa de bienvenida junto al arco
+    [['Cebra', 4.6, 1.4, -0.6], ['Jirafa', -5, 1.5, 0.5]].forEach(([n, dx, dz, ry]) => {
+      const o = copia(n);
+      o.position.set(PUERTA_SAFARI.x + dx, suelo(PUERTA_SAFARI.x + dx, PUERTA_SAFARI.z + dz), PUERTA_SAFARI.z + dz);
+      o.rotation.y = ry;
+      scene.add(o);
+      colisiones.push({ x: o.position.x, z: o.position.z, r: n === 'Jirafa' ? 0.8 : 0.6 });
+      safari.porteros = (safari.porteros || []).concat([o]);
+    });
+    puntosAccion.push({ pos: new V3(PUERTA_SAFARI.x, yP, PUERTA_SAFARI.z), radio: 2.2, alto: 3, texto: 'Ir al safari', hacer: irAlSafari });
+    safari.listo = true;
+  }
+  // Une varias geometrías (solo posición y normal) en una
+  function mergeGeometrias(lista) {
+    const pos = [], nor = [];
+    lista.forEach((g) => {
+      const gi = g.index ? g.toNonIndexed() : g;
+      pos.push(...gi.attributes.position.array);
+      nor.push(...gi.attributes.normal.array);
+    });
+    const out = new THREE.BufferGeometry();
+    out.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    out.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+    return out;
+  }
+  // Un sitio nuevo dentro de la zona de la manada (en tierra, o en el agua para los hipopótamos)
+  function sitioManada(a, alAzar) {
+    const M = a.manada;
+    for (let k = 0; k < 20; k++) {
+      const ang = Math.random() * Math.PI * 2, r = (M.minR || 0) + Math.sqrt(Math.random()) * (M.R - (M.minR || 0));
+      const x = M.centro.x + Math.cos(ang) * r, z = M.centro.z + Math.sin(ang) * r;
+      const h = hSafari(x, z);
+      if (M.agua ? h < -0.6 : h > 0.35 && h < 4.5) {
+        if (!alAzar && distXZ(ninoE.pos, { x, z }) < 4) continue;
+        a.obj.set(x, h, z);
+        return;
+      }
+    }
+    a.obj.copy(a.pos);
+  }
+
+  // ---------- El jeep por el camino ----------
+  const _t = new V3(), _p = new V3();
+  function colocarJeep(J, dt) {
+    const u = ((J.s / safari.largoCamino) % 1 + 1) % 1;
+    safari.camino.getPointAt(u, _p);
+    safari.camino.getTangentAt(u, _t);
+    const yaw = Math.atan2(_t.x, _t.z);
+    const hF = hSafari(_p.x + _t.x * 1.4, _p.z + _t.z * 1.4), hB = hSafari(_p.x - _t.x * 1.4, _p.z - _t.z * 1.4);
+    const hI = hSafari(_p.x + _t.z * 0.95, _p.z - _t.x * 0.95), hD = hSafari(_p.x - _t.z * 0.95, _p.z + _t.x * 0.95);
+    J.g.position.set(_p.x, (hF + hB + hI + hD) / 4 + Math.sin(J.s * 2.3) * 0.02 * Math.min(1, J.v), _p.z);
+    J.g.rotation.set(-Math.atan2(hF - hB, 2.8), yaw, Math.atan2(hI - hD, 1.9) * 0.6, 'YXZ');
+    J.yaw = yaw;
+    J.ruedas.forEach((r) => { r.rotation.x += J.v * dt / 0.44; });
+    if (safari.puntoJeep) safari.puntoJeep.pos.copy(J.g.position);
+    if (J.col) { J.col.x = _p.x; J.col.z = _p.z; }
+  }
+  const asientoJeep = new V3(), asientoPerro = new V3();
+  function subirJeep() {
+    const J = safari.jeep;
+    if (!J || J.viaje) return;
+    J.viaje = { t: 0 };
+    J.v = 0;
+    safari.perroEnJeep = !estado.descansando;  // Drako también se sube, en el banco de atrás
+    empezarAtraccion({ tipo: 'jeep', pos: new V3(), ry: 0, sentado: true, fijo: true, asientoY: 0, vehiculo: { rumbo: 0, vel: 0 },
+      actualizar: (dt, a) => {
+        J.g.updateMatrixWorld();
+        asientoJeep.set(-0.45, 1.3, 0.1).applyMatrix4(J.g.matrixWorld);
+        a.pos.set(asientoJeep.x, asientoJeep.y - 0.5, asientoJeep.z);
+        a.asientoY = asientoJeep.y - 0.05;
+        a.ry = J.yaw;
+        a.rx = J.g.rotation.x;
+        a.vehiculo.rumbo = J.yaw;
+        a.vehiculo.vel = J.v;
+      },
+      accion: () => ({ texto: 'Bajar', hacer: terminarAtraccion }),
+      saltar: tocarBocina,
+      alSalir: () => {
+        J.viaje = null;
+        J.v = 0;
+        const lado = new V3(-2.2, 0, 0.3).applyAxisAngle(new V3(0, 1, 0), J.yaw).add(J.g.position);
+        ninoE.pos.set(lado.x, hSafari(lado.x, lado.z) + 0.05, lado.z);
+        if (safari.perroEnJeep) {
+          safari.perroEnJeep = false;
+          const lp = new V3(2.3, 0, -0.5).applyAxisAngle(new V3(0, 1, 0), J.yaw).add(J.g.position);
+          estado.pos.set(lp.x, hSafari(lp.x, lp.z) + 0.05, lp.z);
+        }
+      } });
+    hablar('¡Nos vamos de safari!');
+    grito('¡Al safari!');
+    notas([[392, 0, 0.12], [392, 0.18, 0.2]], 'square', 0.05);
+  }
+  function tocarBocina() {
+    if (safari.tBocina > 0) return;
+    safari.tBocina = 1.2;
+    notas([[392, 0, 0.15], [392, 0.22, 0.25]], 'square', 0.05);
+    ninoDice('¡Pi, pi! ¡Hola, animales!', 1.6);
+    // todos los que estén cerca contestan
+    for (const a of safari.animales) {
+      if (a.estado !== 'saluda' && distXZ(a.pos, ninoE.pos) < 40) empezarSaludo(a, distXZ(a.pos, ninoE.pos) * 0.03 + Math.random() * 0.4);
+    }
+  }
+
+  // ---------- Ir y volver ----------
+  function irAlSafari() {
+    if (!safari.listo) return;
+    fundido(() => {
+      if (ninoE.modo === 'atraccion') terminarAtraccion();
+      if (balon.estado === 'mano') { balon.estado = 'libre'; balon.pos.set(PUERTA_SAFARI.x + 2, suelo(PUERTA_SAFARI.x + 2, PUERTA_SAFARI.z + 3) + 0.5, PUERTA_SAFARI.z + 3); balon.vel.set(0, 0, 0); }
+      ninoE.modo = 'libre';
+      const x = SAFARI.x - 6, z = SAFARI.z + 136;
+      ninoE.pos.set(x, hSafari(x, z) + 0.05, z);
+      ninoE.rumbo = Math.PI;
+      ninoE.vy = 0;
+      estado.pos.set(x + 1.5, hSafari(x + 1.5, z + 1) + 0.05, z + 1);
+      estado.descansando = false;
+      cam.yaw = 0;
+      cam.pitch = 0.3;
+      cam.dist = 9;
+      cam.objetivo.copy(ninoE.pos);
+      if (numeros.carrito && numeros.tieneCarrito) colocarCarritoDetras();
+      ocultarParaSafari(true);
+      setTimeout(pintarTarea, 50);
+      setTimeout(() => { avisar('¡Bienvenido al safari!', 2400); hablar('¡Un safari! Sube al jeep o acércate a los animales para que te saluden'); }, 500);
+    });
+  }
+  function volverDelSafari() {
+    fundido(() => {
+      ocultarParaSafari(false);
+      ninoE.modo = 'libre';
+      ninoE.pos.set(PUERTA_SAFARI.x, 0, PUERTA_SAFARI.z + 3);
+      ninoE.pos.y = suelo(ninoE.pos.x, ninoE.pos.z);
+      ninoE.rumbo = 0;
+      estado.pos.set(PUERTA_SAFARI.x + 1.5, 0, PUERTA_SAFARI.z + 3.5);
+      estado.pos.y = suelo(estado.pos.x, estado.pos.z);
+      cam.yaw = Math.PI;
+      cam.pitch = 0.36;
+      cam.dist = 6.5;
+      cam.objetivo.copy(ninoE.pos);
+      if (numeros.carrito && numeros.tieneCarrito) colocarCarritoDetras();
+    });
+  }
+  function ocultarParaSafari(dentro) {
+    safari.grupo.visible = dentro;
+    agua.visible = !dentro;
+    if (dentro) {
+      safari.niebla = { color: scene.fog.color.clone(), near: scene.fog.near, far: scene.fog.far };
+      scene.fog.color.set('#efe0bd');
+      scene.fog.near = 80;
+      scene.fog.far = 330;
+    } else if (safari.niebla) {
+      scene.fog.color.copy(safari.niebla.color);
+      scene.fog.near = safari.niebla.near;
+      scene.fog.far = safari.niebla.far;
+      safari.niebla = null;
+    }
+    if (!dentro) {
+      (safari.ocultos || []).forEach((o) => { o.visible = true; });
+      safari.ocultos = null;
+      return;
+    }
+    if (safari.ocultos) return;
+    const quedan = new Set([safari.grupo, nino.grupo, perro, agua, numeros.carrito && numeros.carrito.g]);
+    const c3 = new THREE.Box3();
+    safari.ocultos = [];
+    scene.children.forEach((o) => {
+      if (!o.visible || quedan.has(o) || o.isLight || o.isCamera || o.isPoints) return;
+      c3.setFromObject(o);
+      if (!c3.isEmpty() && c3.max.x - c3.min.x < 900) { o.visible = false; safari.ocultos.push(o); }
+    });
+  }
+
+  // ---------- Los saludos ----------
+  function empezarSaludo(a, retraso) {
+    a.estado = 'saluda';
+    a.tSaludo = -retraso;
+    a.vel = 0;
+    a.ultimoSaludo = reloj.elapsedTime;
+  }
+  // La primera vez que una manada saluda a Manuel, cuenta para la misión
+  function manadaSaluda(M, a) {
+    if (safari.tSonido <= 0) {
+      const [lista, tipo, vol] = SONIDOS_SAFARI[a.especie];
+      notas(lista, tipo, vol);
+      safari.tSonido = 0.7;
+    }
+    if (safari.saludadas.has(M.id)) return;
+    safari.saludadas.add(M.id);
+    avisar(`¡${M.nombre[0].toUpperCase() + M.nombre.slice(1)} te saludan! · ${safari.saludadas.size} de ${MANADAS.length}`, 2200);
+    ninoDice(`¡Hola, ${M.nombre.replace(/^(los|las) /, '')}!`, 1.8);
+    sumarNino('safari');
+    if (safari.saludadas.size === MANADAS.length) setTimeout(() => { sonPremio(); avisar('¡Todos los animales del safari te han saludado!', 3200); hablar('¡Todos los animales me han saludado!'); }, 1500);
+  }
+  function mostrarHola(a) {
+    const libre = safari.hola.find((h) => !h.a) || safari.hola.reduce((x, y) => (x.t > y.t ? x : y));
+    libre.a = a;
+    libre.t = 0;
+    libre.sp.visible = true;
+  }
+  const env = (g, d) => smoothstep(0, 0.4, g) * (1 - smoothstep(d - 0.6, d, g));
+
+  // ---------- Cada fotograma ----------
+  function actualizarSafari(dt) {
+    if (!safari.listo) return;
+    const t = reloj.elapsedTime;
+    safari.tSonido -= dt;
+    safari.tBocina = (safari.tBocina || 0) - dt;
+    // los porteros de la playa mueven la cabeza
+    (safari.porteros || []).forEach((o, k) => { const c = o.getObjectByName(o.name + '_Cabeza'); if (c) c.rotation.y = Math.sin(t * 0.8 + k) * 0.4; });
+    const J = safari.jeep;
+    if (!safari.grupo.visible) return;
+    // el jeep: más despacio cerca de las manadas que aún no han saludado
+    if (J.viaje) {
+      J.viaje.t += dt;
+      let objetivoV = 7;
+      for (const M of safari.manadas) if (!safari.saludadas.has(M.id) && distXZ(M.centro, J.g.position) < 32) objetivoV = 3;
+      J.v = damp(J.v, J.viaje.t < 1.5 ? 0 : objetivoV, 1.2, dt);
+      J.s += J.v * dt;
+    }
+    colocarJeep(J, dt);
+    const yo = ninoE.pos;
+    for (const a of safari.animales) {
+      const P = a.partes, sp = a.sp, g = a.g;
+      const dM = distXZ(a.pos, yo);
+      // saludan al pasar cerca (cada uno a su tiempo), y vuelven a saludar si Manuel vuelve un rato después
+      const radio = (a.especie === 'Suricata' || a.especie === 'Mono' ? 18 : a.sp.r >= 0.8 ? 32 : 26) + (ninoE.modo === 'atraccion' ? 8 : 0);
+      if (a.estado !== 'saluda' && dM < radio && t - a.ultimoSaludo > 25) empezarSaludo(a, Math.random() * 0.5 + Math.max(0, dM - 8) * 0.04);
+      let mov = 0;
+      const dxM = yo.x - a.pos.x, dzM = yo.z - a.pos.z, rumboM = Math.atan2(dxM, dzM);
+      let cabX = sp.pasta * (a.estado === 'pasta' ? 0.6 + 0.4 * Math.sin(t * 1.3 + a.fase) : 0), cabY = 0;
+      if (a.estado === 'saluda') {
+        a.tSaludo += dt;
+        if (!a.fijo || a.especie === 'Suricata') a.rumbo = angulo(a.rumbo, rumboM, 1 - Math.exp(-3 * dt));
+        cabY = clamp(Math.atan2(Math.sin(rumboM - a.rumbo), Math.cos(rumboM - a.rumbo)), -0.9, 0.9);
+        cabX = 0;
+        if (a.tSaludo > 0 && !a.saludoHecho) {
+          a.saludoHecho = true;
+          mostrarHola(a);
+          manadaSaluda(a.manada, a);
+        }
+        if (a.tSaludo > 3.4) { a.estado = 'mira'; a.saludoHecho = false; a.t = 4 + Math.random() * 3; }
+      } else if (a.estado === 'mira') {
+        a.t -= dt;
+        const rel = Math.atan2(Math.sin(rumboM - a.rumbo), Math.cos(rumboM - a.rumbo));
+        cabY = clamp(rel, -0.9, 0.9);
+        cabX = 0;
+        if (a.t <= 0 || dM > 35) { a.estado = 'pasta'; a.t = 2 + Math.random() * 4; }
+      } else if (!a.fijo && sp.vel > 0) {
+        if (a.estado === 'pasta') {
+          a.t -= dt;
+          if (a.t <= 0) { sitioManada(a, false); a.estado = 'anda'; }
+        } else if (a.estado === 'anda') {
+          const dx = a.obj.x - a.pos.x, dz = a.obj.z - a.pos.z, d = Math.hypot(dx, dz);
+          if (d < 0.6) { a.estado = 'pasta'; a.t = 3 + Math.random() * 6; } else {
+            a.rumbo = angulo(a.rumbo, Math.atan2(dx, dz), 1 - Math.exp(-2.5 * dt));
+            const v = sp.vel * (0.6 + 0.4 * a.es);
+            a.pos.x += Math.sin(a.rumbo) * v * dt;
+            a.pos.z += Math.cos(a.rumbo) * v * dt;
+            mov = 1;
+          }
+        }
+        if (dM < 25 && a.estado === 'pasta' && dM > 3) { cabY = clamp(Math.atan2(Math.sin(rumboM - a.rumbo), Math.cos(rumboM - a.rumbo)), -0.7, 0.7); cabX *= 0.3; }
+      } else if (dM < 25) {
+        cabY = clamp(Math.atan2(Math.sin(rumboM - a.rumbo), Math.cos(rumboM - a.rumbo)), -0.8, 0.8);
+      }
+      if (!a.fijo) {
+        a.pos.y = hSafari(a.pos.x, a.pos.z);
+        if (a.col) { a.col.x = a.pos.x; a.col.z = a.pos.z; }
+      }
+      a.fase += dt * (mov ? 7 / Math.sqrt(a.es) : 0);
+      // el cuerpo
+      g.position.copy(a.pos);
+      g.rotation.set(0, a.rumbo, 0);
+      if (mov) g.position.y += Math.abs(Math.sin(a.fase)) * 0.05 * a.es;
+      if (a.manada.agua) g.position.y += 0.45 * a.es + Math.sin(t * 1.1 + a.fase) * 0.05;
+      // las patas
+      P.patas.forEach((p) => { p.rotation.x = damp(p.rotation.x, mov ? Math.sin(a.fase + p.userData.fase) * 0.45 : 0, 10, dt); });
+      // la cola y las orejas, siempre un poquito
+      if (P.cola) P.cola.rotation.z = Math.sin(t * 2.2 + a.fase) * 0.3;
+      P.orejas.forEach((o) => { o.rotation.y = Math.sign(o.position.x) * Math.sin(t * 1.4 + a.fase) * 0.15; });
+      if (P.trompa) P.trompa.rotation.x = damp(P.trompa.rotation.x, Math.sin(t * 0.9 + a.fase) * 0.12, 3, dt);
+      if (P.mandibula) P.mandibula.rotation.x = damp(P.mandibula.rotation.x, 0, 6, dt);
+      P.alas.forEach((o) => { o.rotation.z = damp(o.rotation.z, 0, 6, dt); });
+      P.brazos.forEach((o) => { o.rotation.z = damp(o.rotation.z, 0, 6, dt); o.rotation.x = damp(o.rotation.x, 0, 6, dt); });
+      // el saludo de cada especie
+      if (a.estado === 'saluda' && a.tSaludo > 0) {
+        const s = a.tSaludo, k = env(s, 3.4);
+        switch (sp.saludo) {
+          case 'trompa':
+            P.trompa.rotation.x = -2.3 * k + Math.sin(s * 9) * 0.15 * k;
+            cabX = -0.25 * k;
+            P.orejas.forEach((o) => { o.rotation.y = Math.sign(o.position.x) * (0.2 + Math.sin(s * 9) * 0.5) * k; });
+            break;
+          case 'cuello':
+            cabX = 0.5 * k + Math.sin(s * 5) * 0.18 * k;
+            break;
+          case 'relincho':
+            g.rotation.x = -0.32 * k * (0.7 + 0.3 * Math.sin(s * 6));
+            g.position.y += 0.3 * k * a.es;
+            P.patas.forEach((p) => { if (p.position.z < 0) p.rotation.x = -0.9 * k + Math.sin(s * 10 + p.userData.fase) * 0.4 * k; });
+            cabX = -0.3 * k;
+            break;
+          case 'rugido':
+            cabX = -0.4 * k;
+            if (P.mandibula) P.mandibula.rotation.x = 0.55 * k * (0.75 + 0.25 * Math.sin(s * 12));
+            if (P.cola) P.cola.rotation.x = -0.9 * k;
+            break;
+          case 'bostezo':
+            cabX = -0.6 * k;
+            if (P.mandibula) P.mandibula.rotation.x = 1.0 * k;
+            P.orejas.forEach((o) => { o.rotation.z = Math.sin(s * 14) * 0.4 * k; });
+            break;
+          case 'cabeza':
+            cabX = Math.sin(s * 6) * 0.35 * k;
+            g.position.y += Math.abs(Math.sin(s * 6)) * 0.12 * k;
+            break;
+          case 'brinco': {
+            const salto = Math.abs(Math.sin(s * 4.5));
+            g.position.y += salto * 0.7 * k * a.es;
+            P.patas.forEach((p) => { p.rotation.x = (p.position.z > 0 ? -0.7 : 0.7) * salto * k; });
+            break;
+          }
+          case 'alas':
+            P.alas.forEach((o) => { o.rotation.z = Math.sign(o.position.x) * (1.0 + Math.sin(s * 14) * 0.45) * k; });
+            cabX = Math.sin(s * 5) * 0.25 * k;
+            if (a.especie === 'Avestruz') g.position.y += Math.abs(Math.sin(s * 5)) * 0.15 * k;
+            break;
+          case 'mano': {
+            const b = P.brazos.find((o) => o.position.x < 0) || P.brazos[0];
+            if (b) { b.rotation.z = -(2.5 + Math.sin(s * 11) * 0.35) * k; }
+            g.position.y += Math.abs(Math.sin(s * 4)) * 0.12 * k * a.es;
+            if (P.cabeza) P.cabeza.rotation.z = Math.sin(s * 4) * 0.2 * k;
+            break;
+          }
+        }
+      } else if (P.cabeza) P.cabeza.rotation.z = damp(P.cabeza.rotation.z, 0, 5, dt);
+      if (P.cabeza) {
+        a.cabX = damp(a.cabX, cabX, a.estado === 'saluda' ? 12 : 3, dt);
+        a.cabY = damp(a.cabY, cabY, 4, dt);
+        P.cabeza.rotation.x = a.cabX;
+        P.cabeza.rotation.y = a.cabY;
+      }
+    }
+    // los bocadillos de "¡Hola!" encima de los que saludan
+    for (const h of safari.hola) {
+      if (!h.a) continue;
+      h.t += dt;
+      const a = h.a;
+      h.sp.position.set(a.g.position.x, a.g.position.y + a.sp.alto * a.es + Math.min(h.t, 0.3) * 0.8, a.g.position.z);
+      const o = h.t < 0.2 ? h.t / 0.2 : 1 - smoothstep(2.2, 2.8, h.t);
+      h.sp.material.opacity = o;
+      h.sp.scale.set(1.8 * (0.6 + 0.4 * Math.min(1, h.t * 5)), 0.9 * (0.6 + 0.4 * Math.min(1, h.t * 5)), 1);
+      if (h.t > 2.8) { h.a = null; h.sp.visible = false; }
+    }
+  }
+  // Drako, sentado en el banco de atrás del jeep
+  function perroEnJeep() {
+    if (!safari.perroEnJeep || !safari.jeep) return false;
+    const J = safari.jeep;
+    J.g.updateMatrixWorld();
+    asientoPerro.set(0.35, 1.47, -1.0).applyMatrix4(J.g.matrixWorld);
+    estado.pos.copy(asientoPerro);
+    estado.rumbo = J.yaw;
+    perro.position.copy(asientoPerro);
+    perro.rotation.y = J.yaw;
+    return true;
+  }
+
   // ---------- Bucle principal ----------
   const reloj = new THREE.Clock();
   let autopiloto = false;
@@ -12296,6 +13037,12 @@
       irPistas: () => irAJuguetes(),
       irFeria: () => irAFeria(),
       irArroyo: () => irAlArroyo(),
+      irSafari: () => irAlSafari(),
+      jeep: () => subirJeep(),
+      bocina: () => tocarBocina(),
+      safari: () => ({ saludadas: [...safari.saludadas], saludando: safari.animales.filter((a) => a.estado === 'saluda').map((a) => a.especie),
+        jeep: safari.jeep && { s: +safari.jeep.s.toFixed(1), v: +safari.jeep.v.toFixed(1), viaje: !!safari.jeep.viaje, pos: safari.jeep.g.position.toArray().map((v) => +v.toFixed(1)) },
+        modo: ninoE.modo, atr: ninoE.atr && ninoE.atr.tipo, pos: ninoE.pos.toArray().map((v) => +v.toFixed(1)), perro: estado.pos.toArray().map((v) => +v.toFixed(1)), enJeep: safari.perroEnJeep }),
       arroyo: () => ({ vistos: arroyo.vistos, pos: ninoE.pos.toArray().map((v) => +v.toFixed(2)), nadando: ninoE.nadando, h: +hArroyo(ninoE.pos.x, ninoE.pos.z).toFixed(2),
         flotando: arroyo.hojasDatos.filter((h) => h.estado === 'flota').length, cayendo: arroyo.hojasDatos.filter((h) => h.estado === 'cae').length,
         saltando: arroyo.saltarines.filter((q) => q.activo).length }),
@@ -12358,6 +13105,7 @@
 
   function actualizarPerro(dt) {
     if (estado.descansando) return perroTumbado(dt);
+    if (perroEnJeep()) return;
     if (drakoIA.enBalancin) {
       // Sentado al otro lado del balancín (la posición la mueve el balancín)
       perro.position.copy(estado.pos);
@@ -12499,7 +13247,7 @@
       const v = ninoE.atr.vehiculo;
       cam.yaw = angulo(cam.yaw, v.rumbo + Math.PI, 1 - Math.exp(-3 * dt));
       cam.pitch = damp(cam.pitch, 0.26, 2, dt);
-      cam.dist = damp(cam.dist, ninoE.atr.tipo === 'coche' ? 9 : 6, 2, dt);
+      cam.dist = damp(cam.dist, ninoE.atr.tipo === 'coche' ? 9 : ninoE.atr.tipo === 'jeep' ? 10 : 6, 2, dt);
     }
     if (estaDentro(foco)) {
       // Dentro de casa, la cámara mira desde arriba para ver por encima de las paredes
@@ -12575,6 +13323,7 @@
         actualizarJuguetes(dt);
         actualizarFeria(dt);
         actualizarArroyo(dt);
+        actualizarSafari(dt);
       }
       actualizarSalpicaduras(dt);
       actualizarBotonAccion();
