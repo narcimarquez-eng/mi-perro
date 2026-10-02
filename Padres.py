@@ -259,6 +259,8 @@ def crear_persona(nombre, o):
         extras_torso.append(cin)
     punos = {}
     for sx, l in ((1, "L"), (-1, "R")):
+        if o.get("sin_punos"):  # manga corta: el puño iría con el antebrazo y quedaría flotando
+            break
         p = aro_en(o["manga"] * s, lambda c, sx=sx: c.x * sx > 0.17 * anchoH * s, 0.008 * s, mats["arriba"], "Puno")
         if p:
             punos[l] = p

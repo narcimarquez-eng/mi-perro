@@ -649,6 +649,74 @@
     white-space: nowrap;
   }
   .pistas-grito[hidden] { display: none; }
+  /* ---------- Historia ---------- */
+  .seguir {
+    position: fixed;
+    left: 50%;
+    bottom: calc(26px + env(safe-area-inset-bottom, 0px));
+    transform: translateX(-50%);
+    min-width: 132px;
+    max-width: calc(100% - 330px);
+    min-height: 62px;
+    padding: 8px 20px;
+    border: 0;
+    border-radius: 31px;
+    font: 800 20px "Baloo 2", "Nunito", system-ui, sans-serif;
+    color: #fffdf6;
+    background: #2f9e6a;
+    box-shadow: 0 5px 0 #1f6f49, 0 8px 16px rgba(18, 59, 74, 0.28);
+    cursor: pointer;
+    touch-action: manipulation;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .seguir:active { transform: translate(-50%, 4px); box-shadow: 0 1px 0 #1f6f49; }
+  .seguir:focus-visible { outline: 3px solid var(--tinta); outline-offset: 3px; }
+  body.en-historia .seguir { animation: latido 1.6s ease-in-out infinite; }
+  @keyframes latido { 50% { transform: translateX(-50%) scale(1.06); } }
+  @media (prefers-reduced-motion: reduce) { body.en-historia .seguir { animation: none; } }
+  .salir-historia {
+    position: fixed;
+    right: 20px;
+    top: calc(12px + env(safe-area-inset-top, 0px));
+    padding: 6px 12px;
+    border: 0;
+    border-radius: 14px;
+    font: 700 14px "Nunito", system-ui, sans-serif;
+    color: var(--tinta);
+    background: var(--cristal);
+    box-shadow: 0 2px 10px rgba(18, 59, 74, 0.12);
+    cursor: pointer;
+  }
+  .dialogo {
+    position: fixed;
+    left: 50%;
+    bottom: calc(104px + env(safe-area-inset-bottom, 0px));
+    transform: translateX(-50%);
+    width: min(560px, calc(100% - 32px));
+    padding: 14px 18px 14px;
+    border-radius: 18px;
+    background: var(--espuma);
+    box-shadow: 0 8px 24px rgba(18, 59, 74, 0.25);
+    cursor: pointer;
+  }
+  .dialogo-quien {
+    position: absolute;
+    top: -14px;
+    left: 16px;
+    padding: 2px 12px;
+    border-radius: 12px;
+    font: 800 16px "Baloo 2", "Nunito", system-ui, sans-serif;
+    color: #fffdf6;
+  }
+  .dialogo-texto { margin: 4px 0 0; font: 700 19px/1.35 "Nunito", system-ui, sans-serif; color: var(--tinta); }
+  @media (max-width: 520px) {
+    .seguir { font-size: 17px; min-width: 120px; max-width: calc(100% - 270px); padding: 8px 12px; }
+    .dialogo { bottom: calc(176px + env(safe-area-inset-bottom, 0px)); }
+    .dialogo-texto { font-size: 17px; }
+  }
+  body.pescando .seguir, body.en-carrera .seguir, body.en-carrera .dialogo { display: none; }
   .pistas-grito.sale { animation: grito 1.3s ease-out forwards; }
   @keyframes grito { 0% { transform: translate(-50%, -50%) scale(0.4); opacity: 0; } 15% { transform: translate(-50%, -50%) scale(1.15); opacity: 1; } 70% { transform: translate(-50%, -50%) scale(1); opacity: 1; } 100% { transform: translate(-50%, -60%) scale(1); opacity: 0; } }
   @media (prefers-reduced-motion: reduce) { .pistas-grito.sale { animation: none; } }
@@ -683,6 +751,13 @@
   <button class="accion guau" id="btn-guau" type="button">¡Guau!</button>
   <button class="accion" id="btn-saltar" type="button">Saltar</button>
 </div>
+
+<div class="dialogo" id="dialogo" hidden role="dialog" aria-live="polite">
+  <span class="dialogo-quien" id="dialogo-quien"></span>
+  <p class="dialogo-texto" id="dialogo-texto"></p>
+</div>
+<button class="seguir" id="btn-seguir" type="button">📖 Historia</button>
+<button class="salir-historia" id="btn-salir-historia" type="button" hidden aria-label="Dejar la historia y jugar libre">✕ Libre</button>
 
 <div class="pesca" id="pesca" hidden>
   <div class="pesca-cab"><strong id="pesca-titulo">Elige el cebo</strong><button type="button" class="pesca-salir" id="pesca-salir">Salir</button></div>
@@ -1278,8 +1353,9 @@
   const cargarOpcional = (n) => cargar(n).catch(() => null);
   Promise.all([cargar('playa.glb'), cargar('perro.glb'), cargar('nino.glb'), cargarOpcional('papa.glb'), cargarOpcional('mama.glb'),
     cargarOpcional('arrecife.glb'), cargarOpcional('coches.glb'), cargarOpcional('pistas.glb'), cargarOpcional('numeros.glb'), cargarOpcional('cochesjuguete.glb'), cargarOpcional('feria.glb'), cargarOpcional('safari.glb'),
+    cargarOpcional('papa_verano.glb'), cargarOpcional('mama.glb'), cargarOpcional('carlos.glb'), cargarOpcional('miguel.glb'),
     cargarOpcional('amigo1.glb'), cargarOpcional('amigo2.glb'), cargarOpcional('amigo3.glb'), cargarOpcional('amigo4.glb')])
-    .then(([playa, gPerro, gNino, gPapa, gMama, gArrecife, gCoches, gPistas, gNumeros, gJuguetes, gFeria, gSafari, ...gAmigos]) => {
+    .then(([playa, gPerro, gNino, gPapa, gMama, gArrecife, gCoches, gPistas, gNumeros, gJuguetes, gFeria, gSafari, gPapaV, gMama2, gCarlos, gMiguel, ...gAmigos]) => {
     prepararPlaya(playa);
     prepararPerro(gPerro);
     prepararNino(gNino);
@@ -1295,6 +1371,8 @@
     try { construirFeria(gFeria); } catch (e) { console.error('Feria:', e); }
     try { construirArroyo(); } catch (e) { console.error('Arroyo mágico:', e); }
     try { construirSafari(gSafari); } catch (e) { console.error('Safari:', e); }
+    try { construirHistoria(gPapaV, gMama2, gCarlos, gMiguel); } catch (e) { console.error('Historia:', e); }
+    try { construirGente(); } catch (e) { console.error('Gente de la feria:', e); }
     parque.toboganes.forEach((t) => {
       if (t.aro) return;
       const aro = new THREE.Mesh(new THREE.RingGeometry(0.4, 0.6, 32), new THREE.MeshBasicMaterial({ color: '#ffd42a', side: THREE.DoubleSide, transparent: true, opacity: 0.85 }));
@@ -1942,6 +2020,7 @@
   const distanciaEl = document.getElementById('tarea-distancia');
   const puntosEl = document.getElementById('puntos');
   function pintarTarea() {
+    if (historia.activa && jugador === 'nino') return pintarTareaHistoria();
     if (jugador === 'nino') return pintarTareaNino();
     const m = misionActual();
     puntosEl.innerHTML = MISIONES.map((_, i) =>
@@ -2074,7 +2153,7 @@
     if (m && m.id === 'boya' && distXZ(estado.pos, boya.position) < 1.8) sumar('boya');
 
     // Marcador y distancia (de la tarea del personaje con el que juegas)
-    const mj = jugador === 'nino' ? misionNino() : m;
+    const mj = historia.activa && jugador === 'nino' ? misionHistoria() : jugador === 'nino' ? misionNino() : m;
     const obj = mj && mj.objetivo();
     const quien = jugador === 'nino' ? ninoE.pos : estado.pos;
     marcador.visible = !!obj && !pesca.activa;
@@ -2184,6 +2263,8 @@
       const o = misionNino().objetivo();
       if (o) [ix, iy] = entradaHacia(o, E.pos, 0.3);
     }
+    const auto = entradaHistoria(dt);  // la historia lleva a Manuel hasta el sitio
+    if (auto) [ix, iy] = auto;
     if (teclas.has('KeyW') || teclas.has('ArrowUp')) iy += 1;
     if (teclas.has('KeyS') || teclas.has('ArrowDown')) iy -= 1;
     if (teclas.has('KeyD') || teclas.has('ArrowRight')) ix += 1;
@@ -2784,6 +2865,7 @@
     }
     if (balon.estado === 'mano') soltarBalon(new V3(0, 0, 0));
     const empezar = () => {
+      historiaEvento('tobogan');
       E.modo = 'tobogan';
       E.tob = { t, s: 0, v: 1.5, vmax: 0 };
       animarNino('skill');
@@ -3054,6 +3136,7 @@
     return mejor;
   }
   function sumarNino(id, n = 1) {
+    historiaEvento(id, n);
     const m = misionPor(id);
     if (!m || m.cuenta >= m.total) return;
     m.cuenta = Math.min(m.total, m.cuenta + n);
@@ -3459,6 +3542,7 @@
   }
 
   function pescado(esp) {
+    historiaEvento(esp.id === 'bota' ? 'bota' : 'pez');
     const talla = Math.round(esp.talla[0] + azar() * (esp.talla[1] - esp.talla[0]));
     const t = (talla - esp.talla[0]) / Math.max(1, esp.talla[1] - esp.talla[0]);
     const peso = esp.peso[0] + t * (esp.peso[1] - esp.peso[0]);
@@ -4414,6 +4498,7 @@
     if (E.modo !== 'atraccion') return;
     const a = E.atr;
     E.modo = 'libre';
+    historiaEvento('montar:' + a.tipo);  // la historia cuenta la atracción al bajarse
     if (a.salida) E.pos.copy(a.salida);
     E.enSuelo = false;
     E.vy = 0;
@@ -4444,6 +4529,7 @@
   const COLORES_BOLAS = ['#ff5a5f', '#ffd42a', '#2aa7b8', '#7cd35a', '#b99be6', '#ff9f43'];
   const TOTAL_ATRACCIONES = 11;
   function probar(id, nombre) {
+    historiaEvento('bolasAtr');
     if (bolas.probadas.has(id)) return;
     bolas.probadas.add(id);
     avisar(`${nombre} · ${bolas.probadas.size} de ${TOTAL_ATRACCIONES} atracciones`, 1800);
@@ -7498,7 +7584,7 @@
     const caja = new THREE.Box3();
     circuito.ocultos = [];
     scene.children.forEach((o) => {
-      if (!o.visible || quedan.has(o) || o.isLight || o.isCamera) return;
+      if (!o.visible || o.userData.siempre || quedan.has(o) || o.isLight || o.isCamera) return;
       caja.setFromObject(o);
       if (!caja.isEmpty() && caja.min.x > -500) { o.visible = false; circuito.ocultos.push(o); }
     });
@@ -7926,6 +8012,7 @@
       const podio = puesto <= 3;
       avisar(podio ? `¡Has quedado ${puesto}º! ¡Al podio!` : `Has quedado ${puesto}º. ¡Casi! Inténtalo otra vez`, 3200);
       ninoDice(puesto === 1 ? '¡He ganado!' : podio ? '¡Al podio!' : '¡La próxima gano!', 2.4);
+      historiaEvento('meta');
       if (podio) {
         sumarNino('carrera');
         if (!circuito.copas.has(circuito.pista.def.id)) { circuito.copas.add(circuito.pista.def.id); sumarNino('copas'); }
@@ -9001,7 +9088,7 @@
     const caja3 = new THREE.Box3();
     numeros.ocultos = [];
     scene.children.forEach((o) => {
-      if (!o.visible || quedan.has(o) || o.isLight || o.isCamera) return;
+      if (!o.visible || o.userData.siempre || quedan.has(o) || o.isLight || o.isCamera) return;
       caja3.setFromObject(o);
       if (!caja3.isEmpty() && caja3.max.z > -400 && caja3.min.z > -400 && caja3.min.x > -500 && caja3.max.x < 500) { o.visible = false; numeros.ocultos.push(o); }
     });
@@ -9135,6 +9222,7 @@
     setTimeout(() => { if (numeros.juego === J) cerrarJuego(); }, 1600);
   }
   function premiar(id, nivel, s, puesto) {
+    historiaEvento('juegoNum');
     const clave = `${id}-${nivel}`;
     const nuevo = !mejorEstrella(id);
     numeros.estrellas[clave] = Math.max(numeros.estrellas[clave] || 0, s);
@@ -10610,7 +10698,7 @@
     const c3 = new THREE.Box3();
     juguetes.ocultos = [];
     scene.children.forEach((o) => {
-      if (!o.visible || quedan.has(o) || o.isLight || o.isCamera) return;
+      if (!o.visible || o.userData.siempre || quedan.has(o) || o.isLight || o.isCamera) return;
       c3.setFromObject(o);
       if (!c3.isEmpty() && c3.min.z > -1100 && c3.max.x - c3.min.x < 2000) { o.visible = false; juguetes.ocultos.push(o); }
     });
@@ -10757,6 +10845,7 @@
       const s = A.intentos <= 1 ? 3 : A.intentos <= 3 ? 2 : 1;
       const nueva = !juguetes.estrellas[def.id];
       juguetes.estrellas[def.id] = Math.max(juguetes.estrellas[def.id] || 0, s);
+      historiaEvento('pista');
       pintarEstrellasJ(A.E);
       guardarPistasJ();
       if (nueva) sumarNino(def.sala ? 'paisajes' : 'pistas');
@@ -11113,7 +11202,7 @@
     const c3 = new THREE.Box3();
     feria.ocultos = [];
     scene.children.forEach((o) => {
-      if (!o.visible || quedan.has(o) || o.isLight || o.isCamera) return;
+      if (!o.visible || o.userData.siempre || quedan.has(o) || o.isLight || o.isCamera) return;
       c3.setFromObject(o);
       if (!c3.isEmpty() && c3.max.x - c3.min.x < 900) { o.visible = false; feria.ocultos.push(o); }
     });
@@ -11268,6 +11357,7 @@
           notas([[120 + Math.random() * 60, 0, 0.12]], 'square', 0.06);
           if (C.yo && (a === C.yo || b === C.yo)) {
             C.choques++;
+            historiaEvento('choque');
             grito(['¡Pum!', '¡Toma!', '¡Bum!', '¡Cataplum!'][C.choques % 4], 0.9);
             if (C.choques === 10) { avisar('¡10 choques! ¡Eres el rey de los autos de choque!', 2600); montada('choque'); }
           }
@@ -11932,6 +12022,7 @@
         G.add(baranda);
       });
       plataformas.push({ x0: bx - W, x1: bx + W, z0: bz - 1.1, z1: bz + 1.1, y: (x) => 0.95 + 0.45 * Math.cos((x - bx) / W * Math.PI / 2) });
+      arroyo.puente = new V3(bx - W - 1.5, 0, bz);  // al pie del puente (para la historia)
     }
     // ---------- Peces del fondo (truchas) ----------
     const cuerpoPez = new THREE.SphereGeometry(1, 14, 10);
@@ -12150,7 +12241,7 @@
     const c3 = new THREE.Box3();
     arroyo.ocultos = [];
     scene.children.forEach((o) => {
-      if (!o.visible || quedan.has(o) || o.isLight || o.isCamera || o.isPoints) return;
+      if (!o.visible || o.userData.siempre || quedan.has(o) || o.isLight || o.isCamera || o.isPoints) return;
       c3.setFromObject(o);
       if (!c3.isEmpty() && c3.max.x - c3.min.x < 900) { o.visible = false; arroyo.ocultos.push(o); }
     });
@@ -12375,6 +12466,7 @@
     scene.add(G);
     const P = {};
     gS.scene.children.forEach((o) => { P[o.name] = o; });
+    safari.copiar = (n) => copia(n);
     const copia = (nombre) => {
       const o = P[nombre].clone(true);
       o.traverse((m) => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } });
@@ -12861,7 +12953,7 @@
     const c3 = new THREE.Box3();
     safari.ocultos = [];
     scene.children.forEach((o) => {
-      if (!o.visible || quedan.has(o) || o.isLight || o.isCamera || o.isPoints) return;
+      if (!o.visible || o.userData.siempre || quedan.has(o) || o.isLight || o.isCamera || o.isPoints) return;
       c3.setFromObject(o);
       if (!c3.isEmpty() && c3.max.x - c3.min.x < 900) { o.visible = false; safari.ocultos.push(o); }
     });
@@ -12877,6 +12969,7 @@
   }
   // La primera vez que una manada saluda a Manuel, cuenta para la misión
   function manadaSaluda(M, a) {
+    historiaEvento('manada:' + M.id);
     if (safari.tSonido <= 0) {
       const [lista, tipo, vol] = SONIDOS_SAFARI[a.especie];
       notas(lista, tipo, vol);
@@ -13095,6 +13188,1130 @@
     return true;
   }
 
+  // =====================================================================
+  // ---------- La historia: un día con la familia y los primos ----------
+  // =====================================================================
+  // Capítulos que enlazan los sitios del juego. En cada sitio Manuel va acompañado (papá, mamá, el primo Carlos
+  // o el primo Miguel). Todo se avanza con el botón «Seguir»: pasa el diálogo, lleva a Manuel adonde tiene que ir
+  // y hace la acción que toque. Lo que se dice también se oye (Manuel aún no sabe leer).
+  const historia = {
+    activa: false, cap: 0, paso: 0, linea: 0, mision: null, auto: null, cuentas: {}, acomp: {}, ocupado: false,
+    props: [], escolta: null, tVoz: 0, terminada: false,
+  };
+  const PERSONAJES_H = {
+    manuel: { nombre: 'Manuel', color: '#e8463a', tono: 1.6, vel: 1.05, voz: 'nino' },
+    papa: { nombre: 'Papá', color: '#24497e', tono: 0.8, vel: 0.95, voz: 'hombre' },
+    mama: { nombre: 'Mamá', color: '#c2448a', tono: 1.15, vel: 1.0, voz: 'mujer' },
+    carlos: { nombre: 'Carlos', color: '#e07b1a', tono: 1.5, vel: 1.1, voz: 'nino' },
+    miguel: { nombre: 'Miguel', color: '#2e9a6a', tono: 1.0, vel: 1.02, voz: 'hombre' },
+    narrador: { nombre: '', color: '#123b4a', tono: 1.0, vel: 0.95, voz: 'mujer' },
+  };
+  // ---------- La voz ----------
+  let vocesES = null;
+  function vozPara(tipo) {
+    if (!window.speechSynthesis) return null;
+    if (!vocesES || !vocesES.length) vocesES = speechSynthesis.getVoices().filter((v) => /^es/i.test(v.lang));
+    if (!vocesES.length) return null;
+    const hombre = /jorge|pablo|diego|enrique|juan|carlos|alvaro|álvaro|miguel|male|hombre/i;
+    const mujer = /monica|mónica|paulina|lucia|lucía|helena|laura|elvira|marisol|female|mujer|google/i;
+    const es = vocesES.filter((v) => /es[-_]ES/i.test(v.lang));
+    const base = es.length ? es : vocesES;
+    if (tipo === 'hombre') return base.find((v) => hombre.test(v.name)) || base[0];
+    return base.find((v) => mujer.test(v.name)) || base[0];
+  }
+  function decirEnVoz(quien, texto) {
+    if (!window.speechSynthesis || historia.silencio) return;
+    try {
+      const P = PERSONAJES_H[quien] || PERSONAJES_H.narrador;
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(texto.replace(/[«»"]/g, ''));
+      u.lang = 'es-ES';
+      const v = vozPara(P.voz);
+      if (v) u.voice = v;
+      u.pitch = P.tono;
+      u.rate = P.vel;
+      speechSynthesis.speak(u);
+    } catch (e) { /* sin voz */ }
+  }
+  if (window.speechSynthesis) speechSynthesis.onvoiceschanged = () => { vocesES = null; };
+
+  // ---------- Los capítulos ----------
+  const SALA = (x, z) => new V3(INT.x + x, INT.y, INT.z + z);
+  const LS = (x, z) => new V3(SAFARI.x + x, 0, SAFARI.z + z);
+  const CAPITULOS = [
+    { id: 'casa', titulo: 'Capítulo 1 · ¡Buenos días!', lugar: 'casa', con: [], pasos: [
+      { tipo: 'hablar', lineas: [
+        ['mama', '¡Buenos días, Manuel! Hoy es un día muy especial.'],
+        ['papa', 'Vamos a pasar el día con los primos Carlos y Miguel. ¡Hay muchísimos sitios que visitar!'],
+        ['manuel', '¡Bien! ¿Y viene Drako?'],
+        ['mama', '¡Claro que sí! Pero primero, a desayunar.']] },
+      { tipo: 'mision', texto: 'Siéntate a la mesa a desayunar con papá y mamá', evento: 'comer', sitio: () => SALA(-4.0, -0.3) },
+      { tipo: 'hablar', lineas: [['papa', '¡Muy bien! Ahora coge tu mochila. Está en tu cuarto, junto a la cama.']] },
+      { tipo: 'mision', texto: 'Busca tu mochila en tu cuarto', prop: 'mochila', sitio: () => SALA(5.2, -2.6) },
+      { tipo: 'hablar', lineas: [['mama', '¡Ya estamos listos! Primero vamos al parque acuático. ¡Vamos todos juntos!']] },
+    ] },
+    { id: 'parque', titulo: 'Capítulo 2 · El parque acuático', lugar: 'playa', con: ['papa', 'mama'], llegada: () => new V3(-28, 0, -38), pasos: [
+      { tipo: 'hacer', fn: () => { if (!parque.puertaAbierta) abrirPuerta(); } },
+      { tipo: 'hablar', lineas: [
+        ['papa', '¡Ya hemos llegado al parque acuático! Mira cuántas piscinas y toboganes.'],
+        ['mama', '¡Oh, no! Se me han caído las gafas de sol en la piscina pequeña.'],
+        ['manuel', '¡Yo te las busco, mamá!']] },
+      { tipo: 'mision', texto: 'Busca las gafas de sol de mamá en la piscina pequeña', prop: 'gafas', sitio: () => new V3(-31, AGUA_PARQUE, -46) },
+      { tipo: 'hablar', lineas: [['mama', '¡Muchas gracias, Manuel! Eres un campeón.'], ['papa', '¿Nos tiramos por el tobogán de salto? ¡Vamos!']] },
+      { tipo: 'mision', texto: 'Tírate por el tobogán de salto', evento: 'tobogan', sitio: () => { const t = parque.toboganes.find((q) => q.id === 'salto'); return t ? t.entrada : null; } },
+      { tipo: 'hablar', lineas: [['manuel', '¡Ha sido increíble!'], ['papa', '¡Mira quién viene por la playa! Es tu primo Miguel.']] },
+    ] },
+    { id: 'pesca', titulo: 'Capítulo 3 · A pescar con Miguel', lugar: 'playa', con: ['miguel'], llegada: () => new V3(44, MUELLE.y, 22), pasos: [
+      { tipo: 'hablar', lineas: [
+        ['miguel', '¡Hola, Manuel! ¿Vienes a pescar conmigo al muelle?'],
+        ['manuel', '¡Sí! Pero no sé muy bien cómo se hace.'],
+        ['miguel', 'Es fácil: eliges el cebo, lanzas y cuando pique, ¡recoges! Yo te ayudo.']] },
+      { tipo: 'mision', texto: 'Pesca dos peces con Miguel en el muelle', evento: 'pez', n: 2, sitio: () => PESCA_SITIO },
+      { tipo: 'hablar', lineas: [
+        ['miguel', '¡Qué bien pescas! Yo solo he sacado una bota vieja. ¡Ja, ja!'],
+        ['miguel', '¿Sabes conducir un kart? Vamos al circuito, te enseño.']] },
+    ] },
+    { id: 'karts', titulo: 'Capítulo 4 · Las carreras de karts', lugar: 'circuito', con: ['miguel'], pasos: [
+      { tipo: 'hablar', lineas: [
+        ['miguel', 'Este es el circuito. Tus amigos te están esperando para correr.'],
+        ['miguel', 'Acelera en las rectas y frena un poco en las curvas. ¡Tú puedes!']] },
+      { tipo: 'mision', texto: 'Corre una carrera de karts y llega a la meta', evento: 'meta', sitio: () => (circuito.amigos[0] ? circuito.amigos[0].grupo.position : null), radio: 3,
+        accion: { texto: '¡A correr!', hacer: () => { circuito.eleccion = { vehiculo: 'kart', pista: 'verde' }; circuito.menu.hidden = true; empezarCarreraElegida(); } } },
+      { tipo: 'hablar', lineas: [
+        ['miguel', '¡Eres un piloto estupendo! Ahora te espera Carlos en el parque de bolas.'],
+        ['manuel', '¡Gracias, Miguel! ¡Hasta luego!']] },
+    ] },
+    { id: 'bolas', titulo: 'Capítulo 5 · El parque de bolas con Carlos', lugar: 'playa', con: ['carlos'], llegada: () => new V3(84, 0, -38), pasos: [
+      { tipo: 'hablar', lineas: [
+        ['carlos', '¡Hola, primo! ¿Jugamos al escondite en el parque de bolas?'],
+        ['manuel', '¡Vale! Tú te escondes y yo te busco.'],
+        ['carlos', '¡Cuenta hasta diez sin mirar!']] },
+      { tipo: 'hacer', fn: () => esconderCarlos() },
+      { tipo: 'hablar', lineas: [['manuel', 'Uno, dos, tres... ¡diez! ¿Dónde estará Carlos?']] },
+      { tipo: 'mision', texto: 'Juega al escondite: busca a Carlos en el parque de bolas', prop: 'carlosEscondido', sitio: () => historia.escondite },
+      { tipo: 'hablar', lineas: [['carlos', '¡Me has encontrado! Ahora vamos a saltar en las atracciones.']] },
+      { tipo: 'mision', texto: 'Prueba una atracción del parque de bolas con Carlos', evento: 'bolasAtr', sitio: () => atraccionBolasCerca() },
+      { tipo: 'hablar', lineas: [['carlos', '¡Qué divertido! ¿Vamos a la feria? ¡Dicen que hay una noria gigante!']] },
+    ] },
+    { id: 'feria', titulo: 'Capítulo 6 · La feria con Carlos', lugar: 'feria', con: ['carlos'], pasos: [
+      { tipo: 'hablar', lineas: [
+        ['carlos', '¡Halaaa! Cuánta gente y cuántas atracciones.'],
+        ['manuel', '¡Vamos a la noria!']] },
+      { tipo: 'mision', texto: 'Monta en la noria con Carlos', evento: 'montar:noria', sitio: () => FP(-32, 15.2) },
+      { tipo: 'hablar', lineas: [
+        ['carlos', '¡Desde arriba se veía todo! Oye, mira esa niña. Está llorando.'],
+        ['narrador', 'A una niña se le ha escapado su globo rojo. Se ha quedado enganchado en una farola.']] },
+      { tipo: 'mision', texto: 'Busca el globo rojo que se le escapó a la niña', prop: 'globo', sitio: () => historia.sitioGlobo },
+      { tipo: 'mision', texto: 'Llévale el globo a la niña', prop: 'nina', sitio: () => historia.sitioNina },
+      { tipo: 'hablar', lineas: [['carlos', '¡Qué contenta se ha puesto! Ahora, ¡a los autos de choque!']] },
+      { tipo: 'mision', texto: 'Choca tres veces en los autos de choque', evento: 'choque', n: 3, sitio: () => FP(28, 27.6) },
+      { tipo: 'hablar', lineas: [
+        ['carlos', '¡Pum, pum, pum! ¡Qué risa!'],
+        ['carlos', 'Me tengo que ir con mis papás. ¡Adiós, primo! Tu mamá te espera en el pueblo de los números.']] },
+    ] },
+    { id: 'numeros', titulo: 'Capítulo 7 · Los números con mamá', lugar: 'numeros', con: ['mama'], pasos: [
+      { tipo: 'hablar', lineas: [
+        ['mama', 'Bienvenido al pueblo de los números. Aquí viven unos amigos hechos de bloques.'],
+        ['mama', '¡Ay! El número siete se ha perdido. ¿Le ayudamos a volver con sus amigos?']] },
+      { tipo: 'mision', texto: 'Busca al número siete, que se ha perdido', prop: 'siete', sitio: () => historia.sitioSiete },
+      { tipo: 'mision', texto: 'Lleva al número siete con sus amigos, a la plaza', escolta: true, sitio: () => new V3(NUM.x, 0, NUM.z), radio: 6 },
+      { tipo: 'hablar', lineas: [['mama', '¡Muy bien! Ahora juega a un juego de números. Yo te ayudo a contar.']] },
+      { tipo: 'mision', texto: 'Supera un juego de números con mamá', evento: 'juegoNum', sitio: () => (numeros.puestos[0] ? numeros.puestos[0].sitio : null) },
+      { tipo: 'hablar', lineas: [['mama', '¡Qué listo eres! Ahora vamos a tu cuarto: ¡tengo una sorpresa con las pistas de coches!']] },
+    ] },
+    { id: 'pistas', titulo: 'Capítulo 8 · Las pistas de coches con mamá', lugar: 'juguetes', con: ['mama'], pasos: [
+      { tipo: 'hablar', lineas: [
+        ['mama', 'Mira cuántas pistas. Elige un coche y lánzalo con fuerza, pero no demasiada.'],
+        ['manuel', '¡Voy a hacer un rizo!']] },
+      { tipo: 'mision', texto: 'Supera una pista de coches', evento: 'pista', sitio: () => (juguetes.estaciones[0] ? juguetes.estaciones[0].sitio : null) },
+      { tipo: 'hablar', lineas: [['mama', '¡Bravo! Ahora papá te lleva al arroyo mágico. Ponte cómodo, ¡que hace calor!']] },
+    ] },
+    { id: 'arroyo', titulo: 'Capítulo 9 · El arroyo mágico con papá', lugar: 'arroyo', con: ['papa'], pasos: [
+      { tipo: 'hablar', lineas: [
+        ['papa', '¡Qué sitio tan bonito! Escucha el agua de la cascada.'],
+        ['papa', 'Mira, ahí hay una ranita perdida, junto a la cascada. Vamos a ayudarla.']] },
+      { tipo: 'mision', texto: 'Busca la ranita junto a la cascada', prop: 'rana', sitio: () => historia.sitioRana },
+      { tipo: 'mision', texto: 'Lleva la ranita al puente de madera', escolta: true, sitio: () => historia.sitioPuente, radio: 5 },
+      { tipo: 'hablar', lineas: [['papa', '¡Croac! Dice gracias. Ahora vamos a ver saltar a los peces.']] },
+      { tipo: 'mision', texto: 'Mira saltar dos peces con papá', evento: 'arroyo', n: 2, sitio: () => historia.sitioPuente },
+      { tipo: 'hablar', lineas: [['papa', '¡Qué saltos! ¿Te apetece bucear? Vamos al mar a ver el arrecife.']] },
+    ] },
+    { id: 'arrecife', titulo: 'Capítulo 10 · El fondo del mar con papá', lugar: 'arrecife', con: ['papa'], pasos: [
+      { tipo: 'hablar', lineas: [
+        ['papa', '¡Al agua! Mira qué peces de colores.'],
+        ['papa', 'Me encantan las tortugas. ¿Me ayudas a encontrarlas?']] },
+      { tipo: 'mision', texto: 'Busca las tortugas con papá', cerca: 'tortuga', sitio: () => zonaArrecife('tortuga'), radio: 7 },
+      { tipo: 'hablar', lineas: [['papa', '¡Qué bonitas! Dicen que por aquí hay un cofre del tesoro...']] },
+      { tipo: 'mision', texto: 'Encuentra el cofre del tesoro', cerca: 'tesoro', sitio: () => zonaArrecife('tesoro'), radio: 7 },
+      { tipo: 'hablar', lineas: [['manuel', '¡Monedas de oro!'], ['papa', '¡Somos piratas! Ahora vamos con mamá, que nos espera en el safari.']] },
+    ] },
+    { id: 'safari', titulo: 'Capítulo 11 · El safari con papá y mamá', lugar: 'safari', con: ['papa', 'mama'], pasos: [
+      { tipo: 'hablar', lineas: [
+        ['mama', '¡Bienvenido al safari! Aquí viven muchos animales.'],
+        ['papa', 'El guarda dice que hay un lagarto malito junto a la roca de los leones. ¿Le ayudamos?']] },
+      { tipo: 'mision', texto: 'Busca al lagarto enfermo junto a los leones', prop: 'lagarto', sitio: () => historia.sitioLagarto },
+      { tipo: 'hablar', lineas: [
+        ['mama', 'Le pongo una tirita y le damos agua. ¡Mira, ya está mejor!'],
+        ['narrador', '¡Una cría de elefante se ha perdido! Su mamá la está buscando.']] },
+      { tipo: 'mision', texto: 'Busca a la cría de elefante perdida', prop: 'elefantito', sitio: () => historia.sitioElefantito },
+      { tipo: 'mision', texto: 'Lleva al elefantito con su mamá elefante', escolta: true, sitio: () => (safari.manadas.find((m) => m.id === 'elefantes') || {}).centro, radio: 12 },
+      { tipo: 'hablar', lineas: [['papa', '¡Mira qué contenta está la mamá elefante! Ahora, ¡vamos en el jeep!']] },
+      { tipo: 'mision', texto: 'Sube al jeep y deja que te saluden tres manadas', evento: 'manada', n: 3, sitio: () => (safari.jeep ? safari.jeep.g.position : null), radio: 3.2 },
+      { tipo: 'hablar', lineas: [['mama', '¡Qué día tan bonito! Se está haciendo de noche. Volvemos a casa.']] },
+    ] },
+    { id: 'noche', titulo: 'Capítulo 12 · A dormir', lugar: 'casa', con: [], pasos: [
+      { tipo: 'hablar', lineas: [['papa', '¡Hora de cenar! Hoy has ayudado a mucha gente y a muchos animales.']] },
+      { tipo: 'mision', texto: 'Cena con papá y mamá', evento: 'comer', sitio: () => SALA(-4.0, -0.3) },
+      { tipo: 'hablar', lineas: [['mama', 'Y ahora, a la cama. Drako también está cansado.']] },
+      { tipo: 'mision', texto: 'Échate a dormir en tu cama', evento: 'dormir', sitio: () => SALA(6.0, -4.6) },
+      { tipo: 'hablar', lineas: [
+        ['mama', 'Buenas noches, Manuel. Te queremos mucho.'],
+        ['papa', 'Mañana, más aventuras.'],
+        ['narrador', 'Fin. ¡Gracias por jugar! Ahora puedes ir a donde quieras.']] },
+    ] },
+  ];
+  const zonaArrecife = (id) => { const z = ZONAS_ARRECIFE.find((q) => q.id === id); return z ? new V3(ARRECIFE.x + z.x, -4, ARRECIFE.z + z.z) : null; };
+  function atraccionBolasCerca() {
+    const [x0, x1, z0, z1] = [68, 100, -76, -44];
+    const ps = puntosAccion.filter((p) => p.pos.x > x0 && p.pos.x < x1 && p.pos.z > z0 && p.pos.z < z1 && (!p.visible || p.visible()));
+    return ps.length ? masCercanoA(ps.map((p) => p.pos), ninoE.pos) : new V3(84, 0, -60);
+  }
+
+  // ---------- Dónde está Manuel y cómo se va a cada sitio ----------
+  function zonaDe(p) {
+    if (p.x > 500) return 'arrecife';
+    if (p.x < -500) return 'circuito';
+    if (p.z > 300) return 'casa';
+    if (enJuguetes(p)) return 'juguetes';
+    if (enNumeros(p)) return 'numeros';
+    if (enFeria(p)) return 'feria';
+    if (enArroyo(p)) return 'arroyo';
+    if (enSafari(p)) return 'safari';
+    return 'playa';
+  }
+  const SALIR_DE = { arrecife: () => salirDelAgua(), circuito: () => volverDelCircuito(), casa: () => salirDeCasa(), juguetes: () => volverDeJuguetes(),
+    numeros: () => volverDeNumeros(), feria: () => volverDeFeria(), arroyo: () => volverDelArroyo(), safari: () => volverDelSafari() };
+  const ENTRAR_EN = { arrecife: () => irAlArrecife(), circuito: () => irAlCircuito(), casa: () => entrarEnCasa(), juguetes: () => irAJuguetes(),
+    numeros: () => irANumeros(), feria: () => irAFeria(), arroyo: () => irAlArroyo(), safari: () => irAlSafari() };
+  // Lleva a Manuel a una zona (pasando por la playa si hace falta) y luego llama a listo()
+  function viajarA(zona, llegada, listo) {
+    historia.ocupado = true;
+    if (ninoE.modo === 'atraccion') terminarAtraccion();
+    if (ninoE.modo === 'pescar') try { terminarPesca(); } catch (e) { /* ya no pesca */ }
+    let actual = zonaDe(ninoE.pos);
+    if (actual === 'juguetes' && zona !== 'juguetes') { volverDeJuguetes(); actual = 'casa'; return setTimeout(() => viajarA(zona, llegada, listo), 900); }
+    const paso2 = () => {
+      if (zona !== 'playa' && zonaDe(ninoE.pos) !== zona) ENTRAR_EN[zona]();
+      setTimeout(() => {
+        if (llegada) {
+          fundido(() => {
+            const p = llegada();
+            ninoE.pos.set(p.x, Math.max(p.y, suelo(p.x, p.z)), p.z);
+            ninoE.vy = 0;
+            estado.pos.set(p.x + 1.4, suelo(p.x + 1.4, p.z + 0.8), p.z + 0.8);
+            cam.objetivo.copy(ninoE.pos);
+          });
+        }
+        setTimeout(() => { historia.ocupado = false; colocarAcompanantes(true); if (listo) listo(); }, llegada ? 700 : 300);
+      }, zona !== 'playa' ? 900 : 0);
+    };
+    if (actual !== 'playa' && actual !== zona) { SALIR_DE[actual](); setTimeout(paso2, 900); } else paso2();
+  }
+
+  // ---------- Acompañantes ----------
+  function prepararAcompanante(g, clave) {
+    if (!g) return null;
+    const p = prepararPadre(g);
+    p.clave = clave;
+    p.globo = crearGlobo();
+    p.vel = 0;
+    p.rumbo = 0;
+    p.grupo.visible = false;
+    p.grupo.userData.siempre = true;
+    let raiz = null, mano = null;
+    p.grupo.traverse((o) => { if (o.isBone && o.name === 'raiz') raiz = o; if (o.isBone && o.name === 'mano_R') mano = o; });
+    p.grupo.updateMatrixWorld(true);
+    p.cadera = raiz ? raiz.getWorldPosition(new V3()).y : 0.9;
+    p.mano = mano;
+    scene.add(p.grupo);
+    return p;
+  }
+  function construirHistoria(gPapaV, gMama2, gCarlos, gMiguel) {
+    historia.acomp.papa = prepararAcompanante(gPapaV, 'papa');
+    historia.acomp.mama = prepararAcompanante(gMama2, 'mama');
+    historia.acomp.carlos = prepararAcompanante(gCarlos, 'carlos');
+    historia.acomp.miguel = prepararAcompanante(gMiguel, 'miguel');
+    // la caña de Miguel
+    const M = historia.acomp.miguel;
+    if (M && M.mano) {
+      const cana = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.02, 2.2, 6), new THREE.MeshStandardMaterial({ color: '#3a2a1c' }));
+      cana.position.set(0, 1.0, 0.05);
+      cana.visible = false;
+      M.mano.add(cana);
+      M.cana = cana;
+    }
+    try {
+      const g = JSON.parse(localStorage.getItem('playa-del-perro-historia') || '{}');
+      if (Number.isInteger(g.cap)) historia.cap = clamp(g.cap, 0, CAPITULOS.length - 1);
+      historia.terminada = !!g.fin;
+    } catch (e) { /* sin guardar */ }
+    pintarBotonHistoria();
+  }
+  function guardarHistoria() {
+    try { localStorage.setItem('playa-del-perro-historia', JSON.stringify({ cap: historia.cap, fin: historia.terminada })); } catch (e) { /* sin guardar */ }
+  }
+  const capitulo = () => CAPITULOS[historia.cap];
+  const pasoActual = () => (historia.activa ? capitulo().pasos[historia.paso] : null);
+  // Quién habla: el acompañante, o papá y mamá de casa
+  function personaQueHabla(quien) {
+    if (quien === 'manuel' || quien === 'narrador') return null;
+    const a = historia.acomp[quien];
+    if (a && a.grupo.visible) return a;
+    if ((quien === 'papa' || quien === 'mama') && dentro[quien] && estaDentro(ninoE.pos)) return dentro[quien];
+    return null;
+  }
+  function colocarAcompanantes(cerca) {
+    const lista = historia.activa ? capitulo().con : [];
+    Object.entries(historia.acomp).forEach(([k, p], i) => {
+      if (!p) return;
+      const va = lista.includes(k);
+      p.grupo.visible = va;
+      if (p.cana) p.cana.visible = va && capitulo().id === 'pesca';
+      if (va && cerca) {
+        const lado = lista.indexOf(k) === 0 ? -1 : 1;
+        const x = ninoE.pos.x + Math.cos(ninoE.rumbo) * 1.4 * lado - Math.sin(ninoE.rumbo) * 1.2;
+        const z = ninoE.pos.z - Math.sin(ninoE.rumbo) * 1.4 * lado - Math.cos(ninoE.rumbo) * 1.2;
+        p.grupo.position.set(x, ninoE.modo === 'bucear' ? ninoE.pos.y : suelo(x, z), z);
+        p.rumbo = ninoE.rumbo;
+      }
+    });
+  }
+
+  // ---------- Empezar, avanzar y terminar ----------
+  function empezarHistoria() {
+    if (!listo) return;
+    if (jugador === 'perro') cambiarJugador();
+    if (jugador !== 'nino') return;
+    if (historia.terminada) { historia.terminada = false; historia.cap = 0; }
+    historia.activa = true;
+    document.body.classList.add('en-historia');
+    empezarCapitulo(historia.cap);
+  }
+  function salirDeHistoria() {
+    historia.activa = false;
+    historia.auto = null;
+    historia.mision = null;
+    quitarProps();
+    document.body.classList.remove('en-historia');
+    dialogoEl.hidden = true;
+    colocarAcompanantes(false);
+    pintarTarea();
+    pintarBotonHistoria();
+  }
+  function empezarCapitulo(k, espera = 0) {
+    // si Manuel está bajando por un tobogán o celebrando, primero que termine
+    if (['tobogan', 'volando', 'celebrar', 'recoger'].includes(ninoE.modo) && espera < 16) {
+      historia.ocupado = true;
+      return setTimeout(() => empezarCapitulo(k, espera + 1), 500);
+    }
+    historia.cap = k;
+    historia.paso = 0;
+    historia.linea = 0;
+    historia.mision = null;
+    guardarHistoria();
+    quitarProps();
+    const C = capitulo();
+    avisar(C.titulo, 2600);
+    decirEnVoz('narrador', C.titulo.replace('·', '.'));
+    viajarA(C.lugar, C.llegada || null, () => { colocarAcompanantes(true); empezarPaso(); });
+  }
+  function empezarPaso() {
+    const P = pasoActual();
+    if (!P) return siguienteCapitulo();
+    historia.linea = 0;
+    historia.mision = null;
+    if (P.tipo === 'hablar') return mostrarLinea();
+    if (P.tipo === 'hacer') { P.fn(); historia.paso++; return setTimeout(empezarPaso, 300); }
+    if (P.tipo === 'mision') {
+      dialogoEl.hidden = true;
+      historia.mision = { P, cuenta: 0, n: P.n || 1, hecha: false, t: 0 };
+      historia.cuentas = {};
+      if (P.prop) crearProp(P.prop);
+      if (P.escolta && historia.escolta) historia.escolta.sigue = true;
+      avisar(P.texto, 2600);
+      setTimeout(() => decirEnVoz('narrador', P.texto), 300);
+      pintarTarea();
+    }
+  }
+  function mostrarLinea() {
+    const P = pasoActual();
+    const [quien, texto] = P.lineas[historia.linea];
+    const per = PERSONAJES_H[quien];
+    dialogoQuienEl.textContent = per.nombre;
+    dialogoQuienEl.style.background = per.color;
+    dialogoQuienEl.hidden = !per.nombre;
+    dialogoTextoEl.textContent = texto;
+    dialogoEl.hidden = false;
+    decirEnVoz(quien, texto);
+    const p = personaQueHabla(quien);
+    if (p) { diga(p, texto.length > 34 ? texto.slice(0, 32) + '…' : texto, 3); if (p.acciones && p.acciones.hablar) { animarPadre(p, 'hablar'); p.hablaHasta = reloj.elapsedTime + 2.5; } }
+    if (quien === 'manuel') ninoDice(texto.length > 34 ? texto.slice(0, 32) + '…' : texto, 2.6);
+  }
+  function siguienteLinea() {
+    const P = pasoActual();
+    historia.linea++;
+    if (historia.linea < P.lineas.length) return mostrarLinea();
+    dialogoEl.hidden = true;
+    historia.paso++;
+    empezarPaso();
+  }
+  function misionCumplida() {
+    const m = historia.mision;
+    if (!m || m.hecha) return;
+    m.hecha = true;
+    historia.auto = null;
+    sonPremio();
+    avisar('¡Misión cumplida!', 1800);
+    decirEnVoz('narrador', '¡Muy bien! ¡Misión cumplida!');
+    if (ninoE.modo === 'libre') ninoCelebra('¡Bien!');
+    Object.values(historia.acomp).forEach((p) => { if (p && p.grupo.visible && p.acciones.celebrar) { animarPadre(p, 'celebrar'); p.hablaHasta = reloj.elapsedTime + 1.8; } });
+    // si estaba en un minijuego con su panel (números, pistas, pesca), se cierra solo un poco después
+    const enJuego = !!numeros.juego || !!juguetes.activa || ninoE.modo === 'pescar';
+    setTimeout(() => {
+      try {
+        if (numeros.juego) cerrarJuego();
+        if (juguetes.activa && !juguetes.lanzamiento) cerrarEstacion();
+        if (ninoE.modo === 'pescar') terminarPesca();
+      } catch (e) { /* ya estaba cerrado */ }
+      historia.paso++;
+      historia.mision = null;
+      empezarPaso();
+    }, enJuego ? 3800 : 2200);
+  }
+  function siguienteCapitulo() {
+    quitarProps();
+    if (historia.cap + 1 >= CAPITULOS.length) {
+      historia.terminada = true;
+      historia.cap = 0;
+      guardarHistoria();
+      sonPremio();
+      avisar('¡Fin de la historia!', 3200);
+      return salirDeHistoria();
+    }
+    empezarCapitulo(historia.cap + 1);
+  }
+  // Algo ha pasado en el juego (comer, pescar, montar...): cuenta para la misión si es lo que se pide
+  function historiaEvento(nombre, n = 1) {
+    const m = historia.mision;
+    if (!historia.activa || !m || m.hecha || !m.P.evento) return;
+    if (nombre !== m.P.evento) {
+      // 'manada:cebras': cada manada distinta cuenta una vez
+      if (!nombre.startsWith(m.P.evento + ':')) return;
+      m.vistos = m.vistos || new Set();
+      if (m.vistos.has(nombre)) return;
+      m.vistos.add(nombre);
+    }
+    m.cuenta += n;
+    pintarTarea();
+    if (m.cuenta >= m.n) misionCumplida();
+  }
+
+  // ---------- El botón «Seguir» ----------
+  function pulsarSeguir() {
+    if (!listo) return;
+    if (!historia.activa) return empezarHistoria();
+    if (historia.ocupado) return;
+    const P = pasoActual();
+    if (!P) return;
+    if (P.tipo === 'hablar') return siguienteLinea();
+    const m = historia.mision;
+    if (!m || m.hecha) return;
+    const E = ninoE;
+    if (E.modo === 'celebrar') return;
+    const s0 = P.sitio && P.sitio();
+    // sentado a la mesa, en el sofá o en la cama, pero la misión está en otro sitio: se levanta
+    if (E.modo === 'atraccion' && E.atr && !E.atr.fijo && s0 && distXZ(E.pos, s0) > (P.radio || 1.6) + 1) { terminarAtraccion(); return; }
+    if (E.modo === 'atraccion' || E.modo === 'pescar' || E.modo === 'tobogan' || E.modo === 'volando') return decirEnVoz('narrador', P.texto);
+    const s = P.sitio && P.sitio();
+    const radio = P.radio || 1.6;
+    if (s && (distXZ(E.pos, s) > radio || (E.modo !== 'bucear' && Math.abs(E.pos.y - s.y) > 1.4 && Math.abs(E.pos.y - suelo(s.x, s.z)) > 1.4))) return irAlSitio(s, radio);
+    if (E.modo === 'bucear') return decirEnVoz('narrador', P.texto);
+    const acc = P.accion && (!P.accion.si || P.accion.si()) ? P.accion : accionNino();
+    if (acc && acc.hacer) return acc.hacer();
+    decirEnVoz('narrador', P.texto);
+  }
+  // Manuel va solo hasta el sitio: andando si está cerca; si está lejos, aparece allí
+  function irAlSitio(s, radio, ya) {
+    const E = ninoE;
+    const d = distXZ(E.pos, s);
+    // dentro de casa hay paredes: mejor aparecer allí; si ya iba andando y se vuelve a pulsar, también
+    const lejos = ya || historia.auto || d > 16 || E.modo === 'bucear' || estaDentro(E.pos) || Math.abs((E.pos.y) - suelo(s.x, s.z, s.y + 0.5)) > 1.4;
+    if (!lejos && E.modo === 'libre') {
+      historia.auto = { s: s.clone(), radio: Math.max(0.6, radio * 0.6), t: 0, dAnt: d, tSin: 0 };
+      return;
+    }
+    historia.ocupado = true;
+    fundido(() => {
+      const ang = Math.atan2(E.pos.x - s.x, E.pos.z - s.z);
+      const r = Math.min(radio * 0.5, 1.0);
+      const x = s.x + Math.sin(ang) * r, z = s.z + Math.cos(ang) * r;
+      if (E.modo === 'bucear') E.pos.set(x, s.y, z);
+      else E.pos.set(x, suelo(x, z, s.y + 0.5) + 0.02, z);
+      E.vy = 0;
+      E.vel = 0;
+      E.rumbo = Math.atan2(s.x - x, s.z - z);
+      cam.objetivo.copy(E.pos);
+      if (E.modo !== 'bucear') estado.pos.set(x + 1.2, suelo(x + 1.2, z + 0.6, s.y + 0.5), z + 0.6);
+      colocarAcompanantes(true);
+      historia.auto = null;
+    });
+    setTimeout(() => { historia.ocupado = false; }, 650);
+  }
+  // Lo que pide el joystick cuando Manuel va solo (lo usa controlarNino)
+  function entradaHistoria(dt) {
+    const A = historia.auto;
+    if (!A) return null;
+    A.t += dt;
+    const d = distXZ(ninoE.pos, A.s);
+    if (d < A.radio) { historia.auto = null; return null; }
+    // si no avanza (una pared, una valla...), aparece allí
+    if (d < A.dAnt - 0.3) { A.dAnt = d; A.tSin = 0; } else A.tSin += dt;
+    if (A.t > 9 || A.tSin > 1.5) { historia.auto = null; irAlSitio(A.s, A.radio, true); return null; }
+    const [ix, iy] = entradaHacia(A.s, ninoE.pos, A.radio * 0.5);
+    const f = Math.hypot(ix, iy) || 1;
+    return [ix / f * (d > 4 ? 1 : 0.7), iy / f * (d > 4 ? 1 : 0.7)];
+  }
+
+  // ---------- Objetos de las misiones ----------
+  function quitarProps() {
+    historia.props.forEach((o) => { if (o.parent) o.parent.remove(o); });
+    historia.props = [];
+    for (let i = puntosAccion.length - 1; i >= 0; i--) if (puntosAccion[i].historia) puntosAccion.splice(i, 1);
+    historia.escolta = null;
+    const C = historia.acomp.carlos;
+    if (C) C.escondido = false;
+  }
+  function ponerProp(o, padre = scene) {
+    o.traverse((m) => { if (m.isMesh) m.castShadow = true; });
+    padre.add(o);
+    historia.props.push(o);
+    return o;
+  }
+  function puntoHistoria(pos, texto, hacer, radio = 1.8) {
+    puntosAccion.push({ pos, radio, alto: 2.5, texto, hacer, historia: true, visible: () => historia.activa && !!historia.mision && !historia.mision.hecha });
+  }
+  const matH = (c, e) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.6, emissive: e || '#000000' });
+  function brillo(pos, padre = scene) {
+    // Un aro de luz para ver dónde está la cosa que hay que buscar
+    const aro = new THREE.Mesh(new THREE.RingGeometry(0.55, 0.75, 32), new THREE.MeshBasicMaterial({ color: '#ffe066', transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false }));
+    aro.rotation.x = -Math.PI / 2;
+    aro.position.copy(pos).add(new V3(0, 0.05, 0));
+    aro.userData.aro = true;
+    return ponerProp(aro, padre);
+  }
+  function crearLagarto() {
+    const g = new THREE.Group();
+    const verde = matH('#8fae6a');
+    const cuerpo = new THREE.Mesh(new THREE.CapsuleGeometry(0.11, 0.45, 6, 12), verde);
+    cuerpo.rotation.x = Math.PI / 2;
+    cuerpo.position.y = 0.12;
+    const cabeza = new THREE.Mesh(new THREE.SphereGeometry(0.12, 14, 10), verde);
+    cabeza.scale.set(1, 0.8, 1.35);
+    cabeza.position.set(0, 0.15, 0.38);
+    const cola = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.7, 10), verde);
+    cola.rotation.x = -Math.PI / 2;
+    cola.position.set(0, 0.1, -0.6);
+    g.add(cuerpo, cabeza, cola);
+    [[-1, 1], [1, 1], [-1, -1], [1, -1]].forEach(([sx, sz]) => {
+      const p = new THREE.Mesh(new THREE.CapsuleGeometry(0.03, 0.12, 4, 6), verde);
+      p.position.set(sx * 0.14, 0.05, sz * 0.18);
+      p.rotation.z = sx * 1.1;
+      g.add(p);
+    });
+    [-1, 1].forEach((sx) => {
+      const o = new THREE.Mesh(new THREE.SphereGeometry(0.035, 10, 8), matH('#ffffff'));
+      o.position.set(sx * 0.07, 0.22, 0.45);
+      const pu = new THREE.Mesh(new THREE.SphereGeometry(0.018, 8, 6), matH('#1a1d24'));
+      pu.position.set(sx * 0.075, 0.225, 0.48);
+      g.add(o, pu);
+    });
+    g.userData.cuerpo = [cuerpo, cabeza, cola];
+    return g;
+  }
+  function crearRana() {
+    const g = new THREE.Group();
+    const verde = matH('#5cc04a');
+    const c = new THREE.Mesh(new THREE.SphereGeometry(0.16, 16, 12), verde);
+    c.scale.set(1.1, 0.75, 1);
+    c.position.y = 0.12;
+    g.add(c);
+    [-1, 1].forEach((sx) => {
+      const o = new THREE.Mesh(new THREE.SphereGeometry(0.06, 12, 8), matH('#ffffff'));
+      o.position.set(sx * 0.08, 0.24, 0.07);
+      const pu = new THREE.Mesh(new THREE.SphereGeometry(0.03, 8, 6), matH('#1a1d24'));
+      pu.position.set(sx * 0.085, 0.25, 0.12);
+      const pata = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 8), verde);
+      pata.scale.set(1, 0.5, 1.4);
+      pata.position.set(sx * 0.15, 0.05, -0.05);
+      g.add(o, pu, pata);
+    });
+    const boca = new THREE.Mesh(new THREE.TorusGeometry(0.06, 0.01, 6, 16, Math.PI), matH('#2a5a20'));
+    boca.position.set(0, 0.11, 0.15);
+    boca.rotation.z = Math.PI;
+    g.add(boca);
+    return g;
+  }
+  function crearGafasSol() {
+    const g = new THREE.Group();
+    const negro = matH('#1a1a1a');
+    [-1, 1].forEach((sx) => {
+      const l = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.02, 20), matH('#3a2a5a', '#120a20'));
+      l.rotation.x = Math.PI / 2;
+      l.position.set(sx * 0.11, 0, 0);
+      g.add(l);
+      const pat = new THREE.Mesh(new THREE.BoxGeometry(0.015, 0.015, 0.22), negro);
+      pat.position.set(sx * 0.2, 0.02, -0.11);
+      g.add(pat);
+    });
+    const pu = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.015, 0.015), negro);
+    g.add(pu);
+    g.scale.setScalar(1.6);
+    return g;
+  }
+  function crearGloboRojo(colorG = '#e8322a') {
+    const g = new THREE.Group();
+    const b = new THREE.Mesh(new THREE.SphereGeometry(0.32, 20, 16), new THREE.MeshStandardMaterial({ color: colorG, roughness: 0.3 }));
+    b.scale.set(1, 1.18, 1);
+    b.position.y = 1.4;
+    const hilo = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 1.1, 4), matH('#f0f0f0'));
+    hilo.position.y = 0.55;
+    g.add(b, hilo);
+    return g;
+  }
+  function crearMochila() {
+    const g = new THREE.Group();
+    const azul = matH('#2a7ae0');
+    const c = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.5, 0.22), azul);
+    c.position.y = 0.25;
+    const tapa = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.16, 0.24), matH('#ffd21f'));
+    tapa.position.y = 0.45;
+    const bolsillo = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.18, 0.06), matH('#e8463a'));
+    bolsillo.position.set(0, 0.18, 0.13);
+    g.add(c, tapa, bolsillo);
+    return g;
+  }
+  function crearProp(tipo) {
+    const E = ninoE;
+    if (tipo === 'mochila') {
+      const p = SALA(5.2, -2.6);
+      const m = ponerProp(crearMochila());
+      m.position.copy(p);
+      brillo(p);
+      puntoHistoria(p, 'Coger la mochila', () => { m.visible = false; ninoDice('¡Mi mochila!', 1.6); misionCumplida(); });
+    } else if (tipo === 'gafas') {
+      const p = new V3(-31, AGUA_PARQUE + 0.04, -46);
+      const m = ponerProp(crearGafasSol());
+      m.position.copy(p);
+      m.userData.flota = p.y;
+      puntoHistoria(p, 'Coger las gafas', () => { m.visible = false; ninoDice('¡Las encontré!', 1.6); misionCumplida(); }, 2.2);
+    } else if (tipo === 'carlosEscondido') {
+      puntoHistoria(historia.escondite, '¡Te pillé!', () => {
+        const C = historia.acomp.carlos;
+        if (C) { C.escondido = false; diga(C, '¡Me has pillado!', 2); }
+        misionCumplida();
+      }, 2.2);
+    } else if (tipo === 'globo') {
+      // el globo, enganchado en la farola que hay junto al tiovivo de las sillas
+      const p = FP(-14, 6);
+      historia.sitioGlobo = p;
+      const farola = feria.piezas && feria.piezas.FarolaFeria;
+      const g = ponerProp(crearGloboRojo('#e8322a'), feria.grupo);
+      g.position.set(p.x, p.y + 2.2, p.z);
+      g.userData.mece = true;
+      if (farola) { const f = farola.clone(); f.position.set(p.x - 0.3, p.y, p.z); ponerProp(f, feria.grupo); }
+      brillo(p, feria.grupo);
+      historia.globo = g;
+      puntoHistoria(p, 'Coger el globo', () => {
+        g.userData.mece = false;
+        historia.globoEnMano = true;
+        ninoDice('¡Lo tengo!', 1.6);
+        misionCumplida();
+      }, 2.2);
+      // la niña que lo ha perdido
+      historia.sitioNina = FP(6, -18);
+      const nina = crearNina();
+      if (nina) { nina.grupo.position.copy(historia.sitioNina); nina.grupo.rotation.y = Math.PI; historia.nina = nina; }
+    } else if (tipo === 'nina') {
+      const p = historia.sitioNina;
+      brillo(p, feria.grupo);
+      if (historia.nina) diga(historia.nina, '¡Mi globo!', 3);
+      puntoHistoria(p, 'Dar el globo', () => {
+        historia.globoEnMano = false;
+        const g = historia.globo;
+        if (g && historia.nina) { g.position.copy(historia.nina.grupo.position).add(new V3(0.3, 0.2, 0)); }
+        if (historia.nina) { diga(historia.nina, '¡Gracias!', 2.5); if (historia.nina.acciones.celebrar) animarPadre(historia.nina, 'celebrar'); }
+        misionCumplida();
+      }, 2.2);
+    } else if (tipo === 'siete') {
+      const p = new V3(NUM.x + 34, 0.02, NUM.z + 18);
+      historia.sitioSiete = p;
+      const s7 = personajeNum(7);
+      s7.g.position.copy(p);
+      s7.g.rotation.y = -2.2;
+      ponerProp(s7.g, numeros.grupo);
+      brillo(p, numeros.grupo);
+      historia.escolta = { g: s7.g, sigue: false, salto: 0.3 };
+      puntoHistoria(p, '¡Ven, Siete!', () => { ninoDice('¡Ven conmigo, Siete!', 1.8); misionCumplida(); }, 2.4);
+    } else if (tipo === 'rana') {
+      const q = arroyo.pts[30];
+      const p = new V3(ARROYO.x + q.x + 6, 0, ARROYO.z + q.z + 3);
+      p.y = hArroyo(p.x, p.z);
+      historia.sitioRana = p;
+      const pu = arroyo.puente || null;
+      historia.sitioPuente = pu ? new V3(pu.x, 0, pu.z) : (() => { const r = arroyo.pts[500]; return new V3(ARROYO.x + r.x + 6, 0, ARROYO.z + r.z); })();
+      historia.sitioPuente.y = hArroyo(historia.sitioPuente.x, historia.sitioPuente.z);
+      const r = ponerProp(crearRana(), arroyo.grupo);
+      r.scale.setScalar(1.5);
+      r.position.copy(p);
+      brillo(p, arroyo.grupo);
+      historia.escolta = { g: r, sigue: false, salto: 0.5, rana: true };
+      puntoHistoria(p, 'Coger la ranita', () => { ninoDice('¡Ven, ranita!', 1.6); misionCumplida(); }, 2.2);
+    } else if (tipo === 'lagarto') {
+      const R = safari.roca;
+      const p = new V3(R.position.x + 7, 0, R.position.z + 6);
+      p.y = hSafari(p.x, p.z);
+      historia.sitioLagarto = p;
+      const l = ponerProp(crearLagarto(), safari.grupo);
+      l.position.copy(p);
+      l.rotation.y = -0.8;
+      l.userData.malito = true;
+      l.userData.cuerpo.forEach((m) => { m.material = m.material.clone(); m.material.color.set('#a9b48a'); });
+      historia.lagarto = l;
+      brillo(p, safari.grupo);
+      puntoHistoria(p, 'Curar al lagarto', () => {
+        l.userData.malito = false;
+        l.userData.curado = 0;
+        l.userData.cuerpo.forEach((m) => m.material.color.set('#4fbf3a'));
+        const tirita = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.04, 0.08), matH('#f2c8a0'));
+        tirita.position.set(0, 0.24, 0.05);
+        l.add(tirita);
+        ninoDice('¡Ya estás mejor, lagarto!', 2);
+        misionCumplida();
+      }, 2.2);
+    } else if (tipo === 'elefantito') {
+      const p = LS(20, -10);
+      p.y = hSafari(p.x, p.z);
+      historia.sitioElefantito = p;
+      if (safari.copiar) {
+        const e = safari.copiar('Elefante');
+        e.scale.setScalar(0.5);
+        e.position.copy(p);
+        e.rotation.y = 2.4;
+        ponerProp(e, safari.grupo);
+        historia.escolta = { g: e, sigue: false, salto: 0, elefante: true };
+        brillo(p, safari.grupo);
+      }
+      puntoHistoria(p, 'Ven, elefantito', () => { ninoDice('¡Ven, pequeñín!', 1.6); notas([[392, 0, 0.12], [523, 0.1, 0.3]], 'sawtooth', 0.04); misionCumplida(); }, 2.6);
+    }
+  }
+  // La niña del globo (una de las amigas de Manuel, con otra ropa)
+  function crearNina() {
+    const base = circuito.amigos[0];
+    if (!base) return null;
+    const g = clonarPersona(base.grupo, ['#ffb3d1', '#7e57c2']);
+    const p = { grupo: g, cabeza: g.getObjectByName('cabeza') || g, altoGlobo: 0.45, globo: crearGlobo() };
+    p.mixer = new THREE.AnimationMixer(g);
+    p.acciones = {};
+    Object.values(base.acciones || {}).forEach((a) => { const c = a.getClip(); p.acciones[c.name] = p.mixer.clipAction(c); });
+    p.actual = null;
+    animarPadre(p, 'reposo');
+    g.visible = true;
+    ponerProp(g, feria.grupo);
+    historia.nina = p;
+    return p;
+  }
+  // Copia una persona con esqueleto (cada copia con sus huesos) y le cambia el color de la ropa
+  function clonarPersona(origen, colores) {
+    const copia = origen.clone(true);
+    const huesos = {};
+    copia.traverse((o) => { if (o.isBone) huesos[o.name] = o; });
+    const orig = [];
+    origen.traverse((o) => { if (o.isSkinnedMesh) orig.push(o); });
+    let k = 0;
+    copia.traverse((o) => {
+      if (!o.isSkinnedMesh) return;
+      const s = orig[k++];
+      const sk = new THREE.Skeleton(s.skeleton.bones.map((b) => huesos[b.name]), s.skeleton.boneInverses);
+      o.bind(sk, s.bindMatrix);
+      o.frustumCulled = false;
+      if (colores) {
+        o.material = (Array.isArray(o.material) ? o.material : [o.material]).map((m) => {
+          const c = m.clone();
+          if (/Camiseta|Arriba|Blusa|Cuero/i.test(m.name)) c.color.set(colores[0]);
+          else if (/Pantalon|Vaquero/i.test(m.name)) c.color.set(colores[1]);
+          return c;
+        });
+        if (o.material.length === 1) o.material = o.material[0];
+      }
+    });
+    return copia;
+  }
+  // Carlos se esconde en el parque de bolas
+  function esconderCarlos() {
+    const C = historia.acomp.carlos;
+    const sitios = [new V3(97.5, 0, -73.5), new V3(70.5, 0, -73), new V3(98, 0, -52)];
+    const s = sitios[Math.floor(Math.random() * sitios.length)];
+    s.y = suelo(s.x, s.z);
+    historia.escondite = s;
+    if (C) {
+      fundido(() => {
+        C.escondido = true;
+        C.grupo.position.copy(s);
+        C.rumbo = Math.atan2(84 - s.x, -60 - s.z);
+      });
+    }
+  }
+
+  // ---------- Cada fotograma ----------
+  const _hv = new V3(), _hs = new V3();
+  function actualizarHistoria(dt) {
+    const t = reloj.elapsedTime;
+    // Acompañantes
+    const E = ninoE;
+    const lista = historia.activa ? capitulo().con : [];
+    let lado = -1;
+    for (const k of lista) {
+      const p = historia.acomp[k];
+      if (!p || !p.grupo.visible) continue;
+      p.mixer.update(dt);
+      moverAcompanante(p, lado, dt, t);
+      lado = -lado;
+      if (p.globo.hasta > t) ponerEnPantalla(p.globo.el, p.cabeza, p.altoGlobo + 0.15);
+      else if (!p.globo.el.hidden) p.globo.el.hidden = true;
+    }
+    if (historia.nina) {
+      historia.nina.mixer.update(dt);
+      const g = historia.nina.globo;
+      if (g.hasta > t && feria.grupo.visible) ponerEnPantalla(g.el, historia.nina.cabeza, 0.6);
+      else if (!g.el.hidden) g.el.hidden = true;
+    }
+    // Props
+    for (const o of historia.props) {
+      if (o.userData.aro) { o.rotation.z += dt; o.material.opacity = 0.55 + 0.3 * Math.sin(t * 4); o.visible = !!historia.mision && !historia.mision.hecha; }
+      if (o.userData.flota !== undefined) { o.position.y = o.userData.flota + Math.sin(t * 2) * 0.03; o.rotation.y += dt * 0.4; }
+      if (o.userData.mece) o.rotation.z = Math.sin(t * 1.4) * 0.12;
+      if (o.userData.malito) { o.rotation.z = Math.sin(t * 1.2) * 0.05; }
+      if (o.userData.curado !== undefined) {
+        o.userData.curado += dt;
+        const c = o.userData.curado;
+        if (c < 2) { o.position.y = hSafari(o.position.x, o.position.z) + Math.abs(Math.sin(c * 8)) * 0.25; o.rotation.y += dt * 4; } else if (c < 6) {
+          o.position.x += Math.sin(o.rotation.y) * dt * 1.5;
+          o.position.z += Math.cos(o.rotation.y) * dt * 1.5;
+          o.position.y = hSafari(o.position.x, o.position.z);
+        }
+      }
+    }
+    // Manuel lleva el globo
+    if (historia.globoEnMano && historia.globo) {
+      nino.huesos.RightHand && nino.huesos.RightHand.getWorldPosition(_hv);
+      historia.globo.position.set(_hv.x, _hv.y - 0.1, _hv.z);
+    }
+    // Lo que sigue a Manuel (el número siete, la ranita, el elefantito)
+    const es = historia.escolta;
+    if (es && es.sigue) {
+      const g = es.g;
+      _hs.set(E.pos.x - Math.sin(E.rumbo) * 1.6, 0, E.pos.z - Math.cos(E.rumbo) * 1.6);
+      const dx = _hs.x - g.position.x, dz = _hs.z - g.position.z, d = Math.hypot(dx, dz);
+      if (d > 20) { g.position.set(_hs.x, 0, _hs.z); }
+      if (d > 0.4) {
+        const v = Math.min(d * 2, 5);
+        g.position.x += dx / d * v * dt;
+        g.position.z += dz / d * v * dt;
+        g.rotation.y = angulo(g.rotation.y, Math.atan2(dx, dz), 1 - Math.exp(-6 * dt));
+      }
+      const h = suelo(g.position.x, g.position.z);
+      g.position.y = Math.max(h, es.rana ? h : h) + (d > 0.4 ? Math.abs(Math.sin(t * 9)) * es.salto : 0);
+    }
+    if (!historia.activa) return;
+    // Misiones que se cumplen al llegar o al estar cerca
+    const m = historia.mision;
+    if (m && !m.hecha) {
+      m.t += dt;
+      const P = m.P;
+      if (P.escolta || P.cerca) {
+        const s = P.sitio && P.sitio();
+        const quien = P.escolta && es ? es.g.position : E.pos;
+        if (s && distXZ(quien, s) < (P.radio || 4) && (!P.cerca || Math.abs(E.pos.y - s.y) < 8)) {
+          if (P.escolta && es) { es.sigue = false; if (es.elefante) { notas([[392, 0, 0.12], [523, 0.1, 0.12], [784, 0.2, 0.5]], 'sawtooth', 0.05); } }
+          misionCumplida();
+        }
+      }
+    }
+    // Recordar la misión de vez en cuando si Manuel está parado
+    historia.tVoz += dt;
+  }
+  function moverAcompanante(p, lado, dt, t) {
+    const E = ninoE, g = p.grupo;
+    const hablando = p.hablaHasta && p.hablaHasta > t;
+    if (p.escondido) {
+      g.rotation.set(0, p.rumbo, 0);
+      animarPadre(p, 'reposo');
+      return;
+    }
+    // Bajo el agua: nada al lado de Manuel
+    if (E.modo === 'bucear') {
+      const ox = Math.cos(E.rumbo) * 1.8 * lado - Math.sin(E.rumbo) * 0.8, oz = -Math.sin(E.rumbo) * 1.8 * lado - Math.cos(E.rumbo) * 0.8;
+      _hv.set(E.pos.x + ox, E.pos.y + 0.2 + Math.sin(t * 1.3) * 0.15, E.pos.z + oz);
+      if (g.position.distanceTo(_hv) > 15) g.position.copy(_hv);
+      g.position.lerp(_hv, 1 - Math.exp(-2 * dt));
+      p.rumbo = angulo(p.rumbo, E.rumbo, 1 - Math.exp(-3 * dt));
+      g.rotation.set(1.3, p.rumbo, 0, 'YXZ');
+      animarPadre(p, 'nadar');
+      return;
+    }
+    // En el jeep: papá delante y mamá detrás, con Drako
+    if (E.modo === 'atraccion' && E.atr && E.atr.tipo === 'jeep' && safari.jeep) {
+      const J = safari.jeep;
+      J.g.updateMatrixWorld();
+      _hv.set(p.clave === 'papa' ? 0.45 : -0.4, p.clave === 'papa' ? 1.3 : 1.47, p.clave === 'papa' ? 0.1 : -1.0).applyMatrix4(J.g.matrixWorld);
+      g.position.set(_hv.x, _hv.y - p.cadera + 0.05, _hv.z);
+      g.rotation.set(J.g.rotation.x, J.yaw, 0, 'YXZ');
+      animarPadre(p, 'sentado');
+      return;
+    }
+    // En la feria, Carlos se sienta al lado de Manuel en las atracciones con asiento
+    if (E.modo === 'atraccion' && E.atr && p.clave === 'carlos' && ['noria', 'rusa', 'sillas', 'torre'].includes(E.atr.tipo)) {
+      const a = E.atr;
+      const ry = a.ry || 0;
+      g.position.set(nino.grupo.position.x + Math.cos(ry) * 0.62, (a.asientoY ?? a.pos.y) + 0.05 - p.cadera, nino.grupo.position.z - Math.sin(ry) * 0.62);
+      g.rotation.set(a.rx || 0, ry, a.rz || 0, 'YXZ');
+      animarPadre(p, 'sentado');
+      return;
+    }
+    g.rotation.x = 0;
+    g.rotation.z = 0;
+    // Se queda mirando mientras Manuel está en una atracción, pescando o en el tobogán
+    const quieto = E.modo !== 'libre' && E.modo !== 'descansar';
+    let objetivo = null;
+    if (!quieto) {
+      const ox = Math.cos(E.rumbo) * 1.3 * lado - Math.sin(E.rumbo) * 1.1, oz = -Math.sin(E.rumbo) * 1.3 * lado - Math.cos(E.rumbo) * 1.1;
+      objetivo = _hv.set(E.pos.x + ox, 0, E.pos.z + oz);
+    }
+    if (E.modo === 'pescar' && p.clave === 'miguel') objetivo = _hv.set(PESCA_SITIO.x - 1.3, 0, PESCA_SITIO.z - 0.4);
+    let v = 0;
+    if (objetivo) {
+      const dx = objetivo.x - g.position.x, dz = objetivo.z - g.position.z, d = Math.hypot(dx, dz);
+      if (d > 30 || Math.abs(g.position.y - E.pos.y) > 6) { g.position.set(objetivo.x, suelo(objetivo.x, objetivo.z, E.pos.y + 0.5), objetivo.z); }
+      else if (d > 0.5) {
+        v = Math.min(d * 1.6, d > 6 ? 4.5 : 2.2);
+        const nx = g.position.x + dx / d * v * dt, nz = g.position.z + dz / d * v * dt;
+        if (profundidad(nx, nz) < 0.7 || profundidad(E.pos.x, E.pos.z) > 0.7) { g.position.x = nx; g.position.z = nz; } else v = 0;
+        p.rumbo = angulo(p.rumbo, Math.atan2(dx, dz), 1 - Math.exp(-6 * dt));
+      }
+    }
+    if (v < 0.2) {
+      const mira = Math.atan2(E.pos.x - g.position.x, E.pos.z - g.position.z);
+      p.rumbo = angulo(p.rumbo, E.modo === 'pescar' && p.clave === 'miguel' ? 0 : mira, 1 - Math.exp(-3 * dt));
+    }
+    const yS = suelo(g.position.x, g.position.z, g.position.y + 0.5);
+    g.position.y = damp(g.position.y, yS, 12, dt);
+    g.rotation.y = p.rumbo;
+    if (hablando) return;
+    if (v > 0.2) {
+      animarPadre(p, 'andar');
+      if (p.actual) p.actual.timeScale = clamp(v / 1.4, 0.7, 2.2);
+    } else {
+      animarPadre(p, 'reposo');
+      if (p.actual) p.actual.timeScale = 1;
+    }
+  }
+
+  // ---------- La pantalla: el diálogo y el botón ----------
+  const dialogoEl = document.getElementById('dialogo');
+  const dialogoQuienEl = document.getElementById('dialogo-quien');
+  const dialogoTextoEl = document.getElementById('dialogo-texto');
+  const btnSeguir = document.getElementById('btn-seguir');
+  const btnSalirHistoria = document.getElementById('btn-salir-historia');
+  btnSeguir.addEventListener('click', (e) => { e.stopPropagation(); pulsarSeguir(); });
+  btnSalirHistoria.addEventListener('click', (e) => { e.stopPropagation(); salirDeHistoria(); avisar('Juego libre. Pulsa «Historia» para seguir donde lo dejaste', 2600); });
+  dialogoEl.addEventListener('click', (e) => { e.stopPropagation(); pulsarSeguir(); });
+  let textoSeguir = '';
+  function pintarBotonHistoria() {
+    let t = '📖 Historia';
+    if (historia.activa) {
+      const P = pasoActual();
+      if (historia.ocupado) t = '…';
+      else if (!P || P.tipo === 'hablar') t = 'Seguir ▶';
+      else if (historia.mision && !historia.mision.hecha) {
+        const E = ninoE;
+        const s = P.sitio && P.sitio();
+        if (E.modo === 'atraccion' && E.atr && !E.atr.fijo && s && distXZ(E.pos, s) > (P.radio || 1.6) + 1) t = 'Levantarse ▶';
+        else if (E.modo === 'atraccion' || E.modo === 'pescar' || E.modo === 'tobogan') t = '🔊 Repetir';
+        else if (s && distXZ(E.pos, s) > (P.radio || 1.6)) t = '¡Vamos! ▶';
+        else if (E.modo !== 'bucear') { const a = P.accion || accionNino(); t = a && a.hacer ? `${a.texto} ▶` : '🔊 Repetir'; } else t = '🔊 Repetir';
+      } else t = '…';
+    }
+    if (t !== textoSeguir) {
+      textoSeguir = t;
+      btnSeguir.textContent = t;
+    }
+    btnSalirHistoria.hidden = !historia.activa;
+  }
+  function pintarTareaHistoria() {
+    const C = capitulo();
+    puntosEl.innerHTML = CAPITULOS.map((_, i) => `<i class="${i < historia.cap ? 'hecha' : i === historia.cap ? 'actual' : ''}"></i>`).join('');
+    const m = historia.mision;
+    tituloEl.textContent = m ? m.P.texto : C.titulo;
+    progresoEl.textContent = m && m.n > 1 ? `${m.cuenta} de ${m.n}` : C.titulo.split(' · ')[0];
+  }
+  const misionHistoria = () => {
+    const m = historia.mision;
+    if (!m || m.hecha) return null;
+    return { objetivo: () => (m.P.sitio ? m.P.sitio() : null) };
+  };
+
+  // =====================================================================
+  // ---------- Gente en la feria: paseantes y pasajeros en las atracciones ----------
+  // =====================================================================
+  // Copias de los amigos (niños) y de papá y mamá (mayores) con otros colores de ropa y de pelo.
+  const gente = { listo: false, paseantes: [], pasajeros: [] };
+  const ROPA = ['#e8463a', '#2a7ae0', '#3dbe4a', '#ffd21f', '#e64aa6', '#ff8a1f', '#7e57c2', '#26a6a6', '#f4f1ea', '#5b6b7a', '#c0392b', '#8bc34a'];
+  const PANTALON = ['#2f4f7a', '#3b3f4c', '#5d7fa8', '#c9b48a', '#2c3342', '#6a4fb0', '#e8e2d0'];
+  const PELOS = ['#1c1410', '#3b2414', '#6b3f22', '#b58150', '#d0a24e', '#2a1a10'];
+  function personaFeria(base, k, adulto) {
+    const g = clonarPersona(base.grupo, [ROPA[(k * 5) % ROPA.length], PANTALON[(k * 3) % PANTALON.length]]);
+    g.traverse((o) => {
+      if (!o.isSkinnedMesh) return;
+      o.frustumCulled = true;
+      o.castShadow = false;
+      (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => { if (/Pelo|Ceja/i.test(m.name)) m.color.set(PELOS[(k * 7) % PELOS.length]); });
+    });
+    // sin casco ni gafas de sol: los amigos llevan el casco de kart en una malla aparte
+    g.traverse((o) => { if (o.isMesh && o.name === 'Casco') o.visible = false; });
+    g.visible = true;
+    const p = { grupo: g, mixer: new THREE.AnimationMixer(g), acciones: {}, actual: null, adulto };
+    Object.values(base.acciones || {}).forEach((a) => { const c = a.getClip(); p.acciones[c.name] = p.mixer.clipAction(c); });
+    let raiz = null;
+    g.traverse((o) => { if (o.isBone && o.name === 'raiz') raiz = o; });
+    g.position.set(0, 0, 0);
+    g.rotation.set(0, 0, 0);
+    g.updateMatrixWorld(true);
+    p.cadera = raiz ? raiz.getWorldPosition(new V3()).y : 0.6;
+    return p;
+  }
+  function construirGente() {
+    if (!feria.listo || !circuito.amigos.length) return;
+    const ninos = circuito.amigos.filter(Boolean);
+    const mayores = [dentro.papa, dentro.mama, historia.acomp.papa].filter((p) => p && p.acciones && p.acciones.andar);
+    const sentadosM = [historia.acomp.papa].filter((p) => p && p.acciones && p.acciones.sentado);
+    let k = 0;
+    const nuevoNino = () => personaFeria(ninos[k % ninos.length], k++, false);
+    const nuevoMayor = () => personaFeria(mayores[k % mayores.length], k++, true);
+    // ---------- Pasajeros ----------
+    const sentar = (p, padre, x, y, z, ry = 0) => {
+      p.grupo.position.set(x, y - p.cadera, z);
+      p.grupo.rotation.set(0, ry, 0);
+      padre.add(p.grupo);
+      animarPadre(p, p.acciones.sentado ? 'sentado' : 'conducir');
+      if (p.actual) p.actual.time = Math.random() * 2;
+      gente.pasajeros.push(p);
+      return p;
+    };
+    const N = feria.noria;
+    if (N) N.gondolas.forEach((g, i) => {
+      if (i % 2) return;
+      const p = sentar(i % 4 === 0 && sentadosM.length ? personaFeria(sentadosM[0], k++, true) : nuevoNino(), g, -0.32, -1.1, 0);
+      p.gondola = i;
+      if (i % 4 === 2) sentar(nuevoNino(), g, 0.32, -1.1, 0).gondola = i;
+    });
+    const C = feria.choque;
+    if (C) C.autos.forEach((a, i) => { if (i > 0) sentar(nuevoNino(), a.m, 0, 0.6, -0.1); });
+    const R = feria.rusa;
+    if (R) R.tren.forEach((v, i) => { if (i > 0) { sentar(nuevoNino(), v, -0.3, 0.9, 0.45); sentar(nuevoNino(), v, 0.3, 0.9, 0.45); } });
+    const S = feria.sillas;
+    if (S) S.sillas.forEach((s, i) => { if (i % 2 === 1) sentar(nuevoNino(), s, 0, -2.83, 0).silla = i; });
+    const T = feria.torre;
+    if (T) [1.2, 2.4, 3.6, 4.8].forEach((a) => sentar(nuevoNino(), T.anillo, Math.sin(a) * 2.05, 0.1, Math.cos(a) * 2.05, a));
+    // ---------- Paseantes ----------
+    for (let i = 0; i < 18; i++) {
+      const p = i % 3 === 2 && mayores.length ? nuevoMayor() : nuevoNino();
+      const s = sitioPaseo();
+      p.grupo.position.copy(s);
+      p.destino = sitioPaseo();
+      p.espera = Math.random() * 3;
+      p.rumbo = Math.random() * 6.28;
+      p.vel = p.adulto ? 1.2 : 1.4;
+      feria.grupo.add(p.grupo);
+      animarPadre(p, 'reposo');
+      gente.paseantes.push(p);
+      // algunos van en pareja: un mayor con un niño de la mano
+      if (p.adulto && i % 2 === 0) {
+        const h = nuevoNino();
+        h.lider = p;
+        h.grupo.position.copy(s).add(new V3(0.8, 0, 0));
+        h.rumbo = p.rumbo;
+        feria.grupo.add(h.grupo);
+        animarPadre(h, 'reposo');
+        gente.paseantes.push(h);
+      }
+    }
+    gente.listo = true;
+  }
+  // Un sitio libre de la explanada de la feria (sin meterse en las atracciones)
+  function sitioPaseo() {
+    for (let i = 0; i < 30; i++) {
+      const x = FERIA.x + (Math.random() * 2 - 1) * 42, z = FERIA.z - 8 + (Math.random() * 2 - 1) * 48;
+      if (colisiones.some((c) => Math.hypot(c.x - x, c.z - z) < c.r + 2)) continue;
+      if (cajas.some((c) => c.activa && x > c.x0 - 2 && x < c.x1 + 2 && z > c.z0 - 2 && z < c.z1 + 2)) continue;
+      if (plataformas.some((q) => x > q.x0 - 1 && x < q.x1 + 1 && z > q.z0 - 1 && z < q.z1 + 1)) continue;
+      return new V3(x, SUELO_FERIA, z);
+    }
+    return FP(0, -20);
+  }
+  const _gv = new V3();
+  function actualizarGente(dt) {
+    if (!gente.listo || !feria.grupo.visible) return;
+    const N = feria.noria;
+    for (const p of gente.pasajeros) {
+      p.mixer.update(dt);
+      // en la góndola donde se sube Manuel no hay nadie más
+      if (p.gondola !== undefined) p.grupo.visible = !(N.viaje && N.viaje.k === p.gondola);
+    }
+    for (const p of gente.paseantes) {
+      p.mixer.update(dt);
+      const g = p.grupo;
+      let v = 0;
+      if (p.lider) {
+        // de la mano de su mayor
+        const L = p.lider.grupo;
+        _gv.set(L.position.x + Math.cos(p.lider.rumbo) * 0.75, SUELO_FERIA, L.position.z - Math.sin(p.lider.rumbo) * 0.75);
+        const d = g.position.distanceTo(_gv);
+        if (d > 0.15) { v = Math.min(d * 3, 2.2); g.position.lerp(_gv, Math.min(1, v * dt / d)); }
+        p.rumbo = angulo(p.rumbo, p.lider.rumbo, 1 - Math.exp(-5 * dt));
+      } else if (p.espera > 0) {
+        p.espera -= dt;
+      } else {
+        const dx = p.destino.x - g.position.x, dz = p.destino.z - g.position.z, d = Math.hypot(dx, dz);
+        if (d < 0.6) { p.destino = sitioPaseo(); p.espera = 1 + Math.random() * 5; } else {
+          v = p.vel;
+          p.rumbo = angulo(p.rumbo, Math.atan2(dx, dz), 1 - Math.exp(-4 * dt));
+          g.position.x += Math.sin(p.rumbo) * v * dt;
+          g.position.z += Math.cos(p.rumbo) * v * dt;
+          _gv.copy(g.position);
+          chocar(_gv, 0.3);
+          if (_gv.distanceTo(g.position) > 0.02 && Math.random() < dt * 2) p.destino = sitioPaseo();
+          g.position.x = _gv.x; g.position.z = _gv.z;
+        }
+      }
+      // que no atraviesen a Manuel
+      const dm = distXZ(g.position, ninoE.pos);
+      if (dm < 0.7 && dm > 0.01) { g.position.x = ninoE.pos.x + (g.position.x - ninoE.pos.x) / dm * 0.7; g.position.z = ninoE.pos.z + (g.position.z - ninoE.pos.z) / dm * 0.7; }
+      g.position.y = suelo(g.position.x, g.position.z, g.position.y + 0.5);
+      g.rotation.y = p.rumbo;
+      animarPadre(p, v > 0.2 ? 'andar' : 'reposo');
+    }
+  }
+
   // ---------- Bucle principal ----------
   const reloj = new THREE.Clock();
   let autopiloto = false;
@@ -13112,6 +14329,16 @@
       irFeria: () => irAFeria(),
       irArroyo: () => irAlArroyo(),
       irSafari: () => irAlSafari(),
+      historia: () => ({ activa: historia.activa, cap: historia.cap, capId: CAPITULOS[historia.cap].id, paso: historia.paso, linea: historia.linea, ocupado: historia.ocupado,
+        mision: historia.mision && historia.mision.P.texto, cuenta: historia.mision && historia.mision.cuenta, boton: btnSeguir.textContent, accion: btnAccion.textContent,
+        modo: ninoE.modo, zona: zonaDe(ninoE.pos), pos: ninoE.pos.toArray().map((v) => +v.toFixed(1)),
+        acomp: Object.fromEntries(Object.entries(historia.acomp).filter(([, p]) => p && p.grupo.visible).map(([k, p]) => [k, p.grupo.position.toArray().map((v) => +v.toFixed(1))])) }),
+      capitulo: (k) => { if (jugador === 'perro') cambiarJugador(); historia.activa = true; document.body.classList.add('en-historia'); empezarCapitulo(k); },
+      seguir: () => pulsarSeguir(),
+      evento: (n) => historiaEvento(n),
+      bajar: () => terminarAtraccion(),
+      gente: () => ({ paseantes: gente.paseantes.length, pasajeros: gente.pasajeros.length, andando: gente.paseantes.filter((p) => p.actual && p.actual.getClip().name === 'andar').length }),
+      eventoMision: () => { const m = historia.mision; if (!m || m.hecha || !m.P.evento) return null; return m.P.evento === 'manada' ? 'manada:' + ['cebras', 'jirafas', 'elefantes', 'gacelas'][m.cuenta] : m.P.evento; },
       jeep: () => subirJeep(),
       bocina: () => tocarBocina(),
       safari: () => ({ saludadas: [...safari.saludadas], saludando: safari.animales.filter((a) => a.estado === 'saluda').map((a) => a.especie),
@@ -13398,9 +14625,12 @@
         actualizarFeria(dt);
         actualizarArroyo(dt);
         actualizarSafari(dt);
+        actualizarHistoria(dt);
+        actualizarGente(dt);
       }
       actualizarSalpicaduras(dt);
       actualizarBotonAccion();
+      pintarBotonHistoria();
       if (jugador === 'nino') {
         actualizarEstadoNino();
         if (parque.patitosActiva && Math.floor(reloj.elapsedTime * 2) !== Math.floor((reloj.elapsedTime - dt) * 2)) pintarTarea();
