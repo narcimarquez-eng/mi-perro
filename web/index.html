@@ -856,7 +856,7 @@
   const flotadores = [];  // plataformas flotantes de la prueba del parque (se rellena al construirlo)
   const plataformas = [];  // superficies elevadas: cubierta y pasarela del barco pirata
   function suelo(x, z, yActual) {
-    if (x > 500) return lechoArrecife(x, z);  // el arrecife, mar adentro
+    if (x > 500) return z < -500 ? 0.02 : lechoArrecife(x, z);  // el castillo del terror o el arrecife, mar adentro
     if (x < -500) return 0.02;                // el circuito de karts, tierra adentro
     if (z < -400) return 0.02;                // el pueblo de los números, tras las dunas
     let h = x > 200 && x < 500 && z > -400 && z < 300 ? SUELO_FERIA                  // la feria es llana
@@ -1353,9 +1353,9 @@
   const cargarOpcional = (n) => cargar(n).catch(() => null);
   Promise.all([cargar('playa.glb'), cargar('perro.glb'), cargar('nino.glb'), cargarOpcional('papa.glb'), cargarOpcional('mama.glb'),
     cargarOpcional('arrecife.glb'), cargarOpcional('coches.glb'), cargarOpcional('pistas.glb'), cargarOpcional('numeros.glb'), cargarOpcional('cochesjuguete.glb'), cargarOpcional('feria.glb'), cargarOpcional('safari.glb'),
-    cargarOpcional('papa_verano.glb'), cargarOpcional('mama.glb'), cargarOpcional('carlos.glb'), cargarOpcional('miguel.glb'),
+    cargarOpcional('papa_verano.glb'), cargarOpcional('mama.glb'), cargarOpcional('carlos.glb'), cargarOpcional('miguel.glb'), cargarOpcional('halloween.glb'),
     cargarOpcional('amigo1.glb'), cargarOpcional('amigo2.glb'), cargarOpcional('amigo3.glb'), cargarOpcional('amigo4.glb')])
-    .then(([playa, gPerro, gNino, gPapa, gMama, gArrecife, gCoches, gPistas, gNumeros, gJuguetes, gFeria, gSafari, gPapaV, gMama2, gCarlos, gMiguel, ...gAmigos]) => {
+    .then(([playa, gPerro, gNino, gPapa, gMama, gArrecife, gCoches, gPistas, gNumeros, gJuguetes, gFeria, gSafari, gPapaV, gMama2, gCarlos, gMiguel, gHalloween, ...gAmigos]) => {
     prepararPlaya(playa);
     prepararPerro(gPerro);
     prepararNino(gNino);
@@ -1371,6 +1371,7 @@
     try { construirFeria(gFeria); } catch (e) { console.error('Feria:', e); }
     try { construirArroyo(); } catch (e) { console.error('Arroyo mágico:', e); }
     try { construirSafari(gSafari); } catch (e) { console.error('Safari:', e); }
+    try { construirCastillo(gHalloween); } catch (e) { console.error('Castillo del terror:', e); }
     try { construirHistoria(gPapaV, gMama2, gCarlos, gMiguel); } catch (e) { console.error('Historia:', e); }
     try { construirGente(); } catch (e) { console.error('Gente de la feria:', e); }
     parque.toboganes.forEach((t) => {
@@ -1621,6 +1622,9 @@
       // Dentro de casa (el interior está lejos, sobre el mar): no salir del jardín
       pos.x = clamp(pos.x, INT.x - 28, INT.x + 28);
       pos.z = clamp(pos.z, INT.z - 28, INT.z + 28);
+    } else if (enCastillo(pos)) {
+      pos.x = clamp(pos.x, CASTILLO.x - 60, CASTILLO.x + 60);
+      pos.z = clamp(pos.z, CASTILLO.z - 78, CASTILLO.z + 68);
     } else if (pos.x > 500) {
       // En el arrecife (Manuel bucea con sus propios límites)
     } else if (pos.x < -500) {
@@ -2338,6 +2342,7 @@
     const E = ninoE;
     let zona = 'arena', texto;
     if (E.modo === 'bucear') { zona = 'agua'; texto = `Buceando · ${Math.max(0, Math.round(-E.pos.y))} m`; }
+    else if (enCastillo(E.pos)) { const sc = salaC(E.pos); texto = sc >= 0 ? `Castillo del terror · ${SALAS_C[sc].nombre[0].toUpperCase() + SALAS_C[sc].nombre.slice(1)}` : 'En el cementerio del castillo'; }
     else if (enSafari(E.pos)) { zona = E.nadando || E.pos.y < 0.2 ? 'agua' : 'arena'; texto = E.nadando ? 'Nadando en la charca' : `${E.modo === 'atraccion' && E.atr && E.atr.tipo === 'jeep' ? 'De safari en el jeep' : 'En el safari'} · Saludos ${safari.saludadas.size}/${MANADAS.length}`; }
     else if (E.modo === 'atraccion' && E.atr && E.atr.tipo === 'coche') texto = `Conduciendo · ${Math.round(Math.abs(E.atr.vehiculo.vel) * 3.6)} km/h`;
     else if (enCircuito(E.pos)) texto = circuito.fase === 'carrera' || circuito.fase === 'cuenta' ? `${circuito.pista ? circuito.pista.def.nombre : 'Carrera'} · ${Math.round(Math.abs(circuito.yo ? circuito.yo.vel : 0) * 3.6)} km/h` : 'En el circuito de karts';
@@ -3113,6 +3118,8 @@
         const pend = safari.manadas.filter((M) => !safari.saludadas.has(M.id)).map((M) => M.centro);
         return pend.length ? masCercanoA(pend, ninoE.pos) : null;
       } },
+    { id: 'castillo', titulo: 'Supera las 5 pruebas del castillo del terror (verja con calabazas en las dunas)', total: 5, cuenta: 0,
+      objetivo: () => (enCastillo(ninoE.pos) ? objetivoCastillo() : PUERTA_CASTILLO) },
     { id: 'copas', titulo: 'Gana una copa (podio) en los 4 circuitos: verde, ciudad, playa y bosque', total: 4, cuenta: 0,
       objetivo: () => (!enCircuito(ninoE.pos) ? PUERTA_CIRCUITO : circuito.fase === 'paddock' && circuito.amigos[0] ? circuito.amigos[0].grupo.position : null) },
   ];
@@ -3123,6 +3130,7 @@
     enCircuito(ninoE.pos) && !hechaNino('carrera') ? misionPor('carrera') : enCircuito(ninoE.pos) && !hechaNino('copas') ? misionPor('copas') :
     enArroyo(ninoE.pos) && !hechaNino('arroyo') ? misionPor('arroyo') :
     enSafari(ninoE.pos) && !hechaNino('safari') ? misionPor('safari') :
+    enCastillo(ninoE.pos) && !hechaNino('castillo') ? misionPor('castillo') :
     enFeria(ninoE.pos) && !hechaNino('feria') ? misionPor('feria') :
     enJuguetes(ninoE.pos) && salaDe(ninoE.pos) === SALAS[1] && !hechaNino('paisajes') ? misionPor('paisajes') :
     enJuguetes(ninoE.pos) && !hechaNino('pistas') ? misionPor('pistas') :
@@ -3596,6 +3604,15 @@
       bajo: [48, 53, 55, 48, 45, 53, 55, 48],  // una nota cada 4 corcheas
       ritmo: true,
       volumen: 0.16,
+    },
+    // En el castillo del terror: lenta, en menor y con notas que dan miedo
+    terror: {
+      corchea: 60 / 92 / 2,
+      melodia: [62, 65, 69, 68, 67, 65, 64, 65, 62, 65, 69, 72, 71, 68, 64, -1,
+        62, 65, 69, 68, 67, 64, 61, 64, 62, 61, 62, 65, 64, 61, 57, -1],
+      bajo: [38, 38, 37, 37, 36, 36, 37, 37],
+      ritmo: false,
+      volumen: 0.11,
     },
     // En la casa: tranquila, más lenta, sin percusión
     casa: {
@@ -4121,7 +4138,7 @@
     const E = ninoE;
     const quien = jugador === 'nino' ? E.pos : estado.pos;
     const enCasa = fueraDe(quien.x, -quien.z, CASA) < 4 || estaDentro(quien);
-    if (!estado.descansando && E.modo !== 'descansar') musica.proximo = enCasa ? 'casa' : 'playa';
+    if (!estado.descansando && E.modo !== 'descansar') musica.proximo = enCastillo(quien) ? 'terror' : enCasa ? 'casa' : 'playa';
     drakoIA.llamado = Math.max(0, drakoIA.llamado - dt);
     if (E.modo === 'descansar') {
       if (reloj.elapsedTime > casa.bocadillo) {
@@ -5619,7 +5636,7 @@
   // El arrecife está lejos, mar adentro (x = 700): la barca del muelle lleva allí a Manuel y a Drako.
   // Las piezas (corales, rocas, peces, tortuga, cofre y barca) vienen de Arrecife.py (arrecife.glb).
   const ARRECIFE = new V3(700, 0, 0);
-  const enArrecife = (p) => p.x > 500;
+  const enArrecife = (p) => p.x > 500 && p.z > -500;  // más allá, el castillo del terror
   const arrecife = {
     activo: false, grupo: new THREE.Group(), piezas: {}, techo: null, zonas: [], descubiertas: new Set(),
     barcaMuelle: null, barcaMar: null, cubierta: 0.55, tortuga: null, tapa: null, abriendo: 0,
@@ -13189,6 +13206,1125 @@
   }
 
   // =====================================================================
+  // ---------- El castillo del terror (Halloween) ----------
+  // =====================================================================
+  // Un cementerio de noche y un castillo con cuatro salas, cada una con su prueba. Los monstruos y los objetos
+  // vienen de Halloween.py (halloween.glb); el castillo, la luz de luna, los rayos y los sustos se hacen aquí.
+  const CASTILLO = new V3(700, 0, -900);
+  const enCastillo = (p) => p.x > 500 && p.z < -500;
+  const PUERTA_CASTILLO = new V3(14, 0, -92);     // verja con calabazas en las dunas
+  const CL = (x, z, y = 0) => new V3(CASTILLO.x + x, y, CASTILLO.z + z);
+  const castillo = {
+    listo: false, grupo: new THREE.Group(), P: {}, fase: 0, premio: false, ocultos: null, luz: null,
+    ataudes: [], abiertos: 0, calabacitas: [], cogidas: 0, echadas: false, velas: [], encendidas: 0, saludado: false,
+    puertas: [], manos: [], murcielagos: [], aranas: [], fantasmas: [], armaduras: [], cuadros: [], llamas: [], ojos: [],
+    rayo: 0, tRayo: 6, sustoFantasma: false, sacudida: 0, humo: [], confeti: null, fiesta: null, monstruo: null, bruja: null,
+    momia: null, esqueletos: [], linterna: null, cesto: null, calabazaPremio: null, calabazaCasa: null, tBu: 0,
+  };
+  const SALAS_C = [
+    { nombre: 'la sala de los fantasmas', z0: -6, z1: 14 },
+    { nombre: 'la biblioteca de la bruja', z0: -26, z1: -6 },
+    { nombre: 'la cripta', z0: -46, z1: -26 },
+    { nombre: 'el gran salón del monstruo', z0: -72, z1: -46 },
+  ];
+  const salaC = (p) => { const z = p.z - CASTILLO.z; return Math.abs(p.x - CASTILLO.x) < 22 ? SALAS_C.findIndex((s) => z > s.z0 && z < s.z1) : -1; };
+
+  // ---------- Sonidos que dan miedo ----------
+  function sonidoTerror(tipo) {
+    try {
+      const ctx = audioCtx(), t = ctx.currentTime, out = ctx.destination;
+      const ruido = (dur) => {
+        const b = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate), d = b.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+        const s = ctx.createBufferSource();
+        s.buffer = b;
+        return s;
+      };
+      const env = (g, v, a, dur) => { g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v, t + a); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); };
+      if (tipo === 'trueno') {
+        const s = ruido(2.6), f = ctx.createBiquadFilter(), g = ctx.createGain();
+        f.type = 'lowpass'; f.frequency.setValueAtTime(900, t); f.frequency.exponentialRampToValueAtTime(120, t + 2.2);
+        env(g, 0.5, 0.04, 2.5);
+        s.connect(f).connect(g).connect(out); s.start(t); s.stop(t + 2.6);
+      } else if (tipo === 'buu') {
+        const o = ctx.createOscillator(), l = ctx.createOscillator(), lg = ctx.createGain(), g = ctx.createGain();
+        o.type = 'sine'; o.frequency.setValueAtTime(330, t); o.frequency.exponentialRampToValueAtTime(170, t + 1.4);
+        l.frequency.value = 6; lg.gain.value = 18; l.connect(lg).connect(o.frequency);
+        env(g, 0.16, 0.15, 1.5);
+        o.connect(g).connect(out); o.start(t); l.start(t); o.stop(t + 1.6); l.stop(t + 1.6);
+      } else if (tipo === 'crujido') {
+        const o = ctx.createOscillator(), f = ctx.createBiquadFilter(), g = ctx.createGain(), l = ctx.createOscillator(), lg = ctx.createGain();
+        o.type = 'sawtooth'; o.frequency.setValueAtTime(80, t); o.frequency.linearRampToValueAtTime(150, t + 1.6);
+        f.type = 'bandpass'; f.frequency.value = 900; f.Q.value = 3;
+        l.frequency.value = 26; lg.gain.value = 0.05; l.connect(lg).connect(g.gain);
+        g.gain.setValueAtTime(0.06, t); g.gain.linearRampToValueAtTime(0.0001, t + 1.7);
+        o.connect(f).connect(g).connect(out); o.start(t); l.start(t); o.stop(t + 1.8); l.stop(t + 1.8);
+      } else if (tipo === 'rugido') {
+        const o = ctx.createOscillator(), g = ctx.createGain(), s = ruido(1.6), f = ctx.createBiquadFilter(), g2 = ctx.createGain();
+        o.type = 'sawtooth'; o.frequency.setValueAtTime(95, t); o.frequency.exponentialRampToValueAtTime(48, t + 1.5);
+        env(g, 0.22, 0.08, 1.6);
+        f.type = 'lowpass'; f.frequency.value = 500; env(g2, 0.25, 0.05, 1.4);
+        o.connect(g).connect(out); s.connect(f).connect(g2).connect(out);
+        o.start(t); s.start(t); o.stop(t + 1.7); s.stop(t + 1.6);
+      } else if (tipo === 'risa') {
+        notas([[880, 0, 0.1], [740, 0.12, 0.1], [880, 0.24, 0.1], [740, 0.36, 0.1], [988, 0.48, 0.1], [784, 0.6, 0.1], [1047, 0.72, 0.25]], 'triangle', 0.07);
+      } else if (tipo === 'murcielagos') {
+        notas(Array.from({ length: 14 }, (_, k) => [2800 + Math.random() * 1600, k * 0.06, 0.04]), 'square', 0.015);
+      } else if (tipo === 'susto') {
+        notas([[466, 0, 0.7], [494, 0, 0.7], [523, 0, 0.7], [233, 0, 0.7]], 'sawtooth', 0.035);
+      } else if (tipo === 'magia') {
+        notas([[523, 0, 0.12], [659, 0.08, 0.12], [784, 0.16, 0.12], [1047, 0.24, 0.12], [1319, 0.32, 0.3]], 'sine', 0.08);
+      } else if (tipo === 'cadenas') {
+        notas(Array.from({ length: 6 }, (_, k) => [1800 + Math.random() * 600, k * 0.09, 0.05]), 'triangle', 0.03);
+      }
+    } catch (e) { /* sin sonido */ }
+  }
+
+  // ---------- Construcción ----------
+  function texturaPiedra(base = '#5c5866', junta = '#2c2a33') {
+    const l = document.createElement('canvas');
+    l.width = l.height = 256;
+    const c = l.getContext('2d');
+    c.fillStyle = junta;
+    c.fillRect(0, 0, 256, 256);
+    for (let f = 0; f < 8; f++) {
+      for (let k = -1; k < 5; k++) {
+        const x = k * 64 + (f % 2) * 32, y = f * 32;
+        const v = 0.8 + Math.random() * 0.35;
+        const b = new THREE.Color(base).multiplyScalar(v);
+        c.fillStyle = `#${b.getHexString()}`;
+        c.fillRect(x + 2, y + 2, 60, 28);
+      }
+    }
+    for (let i = 0; i < 400; i++) { c.fillStyle = `rgba(0,0,0,${Math.random() * 0.15})`; c.fillRect(Math.random() * 256, Math.random() * 256, 3, 3); }
+    const t = new THREE.CanvasTexture(l);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.encoding = THREE.sRGBEncoding;
+    return t;
+  }
+  // Caja de piedra con la textura a escala (2 m por baldosa)
+  function bloquePiedra(sx, sy, sz, mat) {
+    const g = new THREE.BoxGeometry(sx, sy, sz);
+    const uv = g.attributes.uv;
+    const dims = [[sz, sy], [sz, sy], [sx, sz], [sx, sz], [sx, sy], [sx, sy]];
+    for (let f = 0; f < 6; f++) for (let k = 0; k < 4; k++) {
+      const i = f * 4 + k;
+      uv.setXY(i, uv.getX(i) * dims[f][0] / 2.5, uv.getY(i) * dims[f][1] / 2.5);
+    }
+    const m = new THREE.Mesh(g, mat);
+    m.castShadow = m.receiveShadow = true;
+    return m;
+  }
+  function construirCastillo(gH) {
+    if (!gH) return;
+    const G = castillo.grupo;
+    G.visible = false;
+    scene.add(G);
+    gH.scene.children.forEach((o) => { castillo.P[o.name] = o; });
+    const copia = (n) => {
+      const o = castillo.P[n].clone(true);
+      o.traverse((m) => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } });
+      return o;
+    };
+    castillo.copiar = copia;
+    const poner = (n, x, z, ry = 0, es = 1, y = 0) => { const o = copia(n); o.position.copy(CL(x, z, y)); o.rotation.y = ry; o.scale.setScalar(es); G.add(o); return o; };
+    try { castillo.premio = localStorage.getItem('playa-del-perro-castillo') === 'si'; } catch (e) { /* sin guardar */ }
+
+    // ---------- Suelo: hierba oscura del cementerio, camino y losas dentro ----------
+    const piso = new THREE.Mesh(new THREE.PlaneGeometry(220, 220, 110, 110), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 }));
+    piso.rotation.x = -Math.PI / 2;
+    const pos = piso.geometry.attributes.position, cols = new Float32Array(pos.count * 3), c = new THREE.Color();
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i), z = -pos.getY(i);
+      c.set('#2f3a2c').lerp(new THREE.Color('#3f4a33'), 0.5 + 0.5 * Math.sin(x * 0.3) * Math.cos(z * 0.27));
+      if (Math.abs(x) < 1.8 && z > 14 && z < 70) c.set('#6b6458');  // camino de losas
+      c.convertSRGBToLinear();
+      cols.set([c.r, c.g, c.b], i * 3);
+    }
+    piso.geometry.setAttribute('color', new THREE.BufferAttribute(cols, 3));
+    piso.position.set(CASTILLO.x, 0.0, CASTILLO.z);
+    piso.receiveShadow = true;
+    G.add(piso);
+    const losas = new THREE.Mesh(new THREE.PlaneGeometry(44, 86), new THREE.MeshStandardMaterial({ map: texturaPiedra('#3a3644', '#1c1a22'), roughness: 0.9 }));
+    losas.material.map.repeat.set(10, 20);
+    losas.rotation.x = -Math.PI / 2;
+    losas.position.copy(CL(0, -29, 0.03));
+    losas.receiveShadow = true;
+    G.add(losas);
+    const alfombra = new THREE.Mesh(new THREE.PlaneGeometry(3, 82), new THREE.MeshStandardMaterial({ color: '#4a0e1a', roughness: 1 }));
+    alfombra.rotation.x = -Math.PI / 2;
+    alfombra.position.copy(CL(0, -30, 0.05));
+    G.add(alfombra);
+
+    // ---------- Muros, torres y puertas ----------
+    const piedra = new THREE.MeshStandardMaterial({ map: texturaPiedra(), roughness: 0.95 });
+    const muro = (x0, z0, x1, z1, h, grosor = 1) => {
+      const sx = Math.max(Math.abs(x1 - x0), grosor), sz = Math.max(Math.abs(z1 - z0), grosor);
+      const m = bloquePiedra(sx, h, sz, piedra);
+      m.position.copy(CL((x0 + x1) / 2, (z0 + z1) / 2, h / 2));
+      G.add(m);
+      const cx = CASTILLO.x + (x0 + x1) / 2, cz = CASTILLO.z + (z0 + z1) / 2;
+      cajas.push({ x0: cx - sx / 2, x1: cx + sx / 2, z0: cz - sz / 2, z1: cz + sz / 2, activa: true });
+      // almenas arriba
+      const n = Math.floor(Math.max(sx, sz) / 1.6);
+      for (let k = 0; k < n; k += 2) {
+        const al = bloquePiedra(sx > sz ? 0.8 : grosor + 0.1, 0.8, sx > sz ? grosor + 0.1 : 0.8, piedra);
+        al.position.copy(CL(sx > sz ? Math.min(x0, x1) + 0.4 + k * 1.6 : (x0 + x1) / 2, sx > sz ? (z0 + z1) / 2 : Math.min(z0, z1) + 0.4 + k * 1.6, h + 0.4));
+        G.add(al);
+      }
+    };
+    const H = 5.5;
+    muro(-22, 14, -2.5, 14, H); muro(2.5, 14, 22, 14, H);             // fachada con la puerta
+    muro(-22.5, 14.5, -22.5, -72.5, H); muro(22.5, 14.5, 22.5, -72.5, H); // lados
+    muro(-22, -72.5, 22, -72.5, H);                                     // fondo
+    [-6, -26, -46].forEach((z) => { muro(-22, z, -2, z, 4.2, 0.8); muro(2, z, 22, z, 4.2, 0.8); });
+    const tejado = new THREE.MeshStandardMaterial({ color: '#3a2448', roughness: 0.8 });
+    const torre = (x, z, r, h) => {
+      const t = new THREE.Mesh(new THREE.CylinderGeometry(r, r * 1.08, h, 18), piedra);
+      t.geometry.attributes.uv.array.forEach((v, i, a) => { a[i] = i % 2 ? v * h / 2.5 : v * 2 * Math.PI * r / 2.5; });
+      t.position.copy(CL(x, z, h / 2));
+      t.castShadow = true;
+      G.add(t);
+      const tj = new THREE.Mesh(new THREE.ConeGeometry(r * 1.25, r * 2.2, 18), tejado);
+      tj.position.copy(CL(x, z, h + r * 1.1));
+      tj.castShadow = true;
+      G.add(tj);
+      colisiones.push({ x: CASTILLO.x + x, z: CASTILLO.z + z, r: r + 0.2 });
+      // ventana con luz
+      const v = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 1.5), new THREE.MeshBasicMaterial({ color: '#ffb347', toneMapped: false }));
+      v.position.copy(CL(x, z + r + 0.02, h * 0.7));
+      G.add(v);
+      castillo.ojos.push({ m: v, fase: Math.random() * 6, ventana: true });
+    };
+    torre(-23, 15, 3.4, 12); torre(23, 15, 3.4, 12); torre(-23, -73, 3.6, 14); torre(23, -73, 3.6, 14); torre(-4.5, 15.5, 2, 9); torre(4.5, 15.5, 2, 9);
+    const madera = new THREE.MeshStandardMaterial({ color: '#4a2e1c', roughness: 0.8 });
+    const hierro = new THREE.MeshStandardMaterial({ color: '#2a2a30', roughness: 0.4, metalness: 0.6 });
+    // puertas: la grande de la fachada (dos hojas) y una en cada pared de dentro
+    const hoja = (x, z, ancho, alto, lado) => {
+      const piv = new THREE.Group();
+      piv.position.copy(CL(x, z));
+      const h = new THREE.Mesh(new THREE.BoxGeometry(ancho, alto, 0.2), madera);
+      h.position.set(-lado * ancho / 2, alto / 2, 0);
+      h.castShadow = true;
+      piv.add(h);
+      for (let k = 0; k < 3; k++) {
+        const b = new THREE.Mesh(new THREE.BoxGeometry(ancho * 0.95, 0.12, 0.24), hierro);
+        b.position.set(-lado * ancho / 2, 0.6 + k * (alto - 1.2) / 2, 0);
+        piv.add(b);
+      }
+      G.add(piv);
+      return piv;
+    };
+    const puerta = (z, ancho, alto, dos) => {
+      const hojas = dos ? [hoja(-ancho / 2, z, ancho / 2, alto, -1), hoja(ancho / 2, z, ancho / 2, alto, 1)] : [hoja(-ancho / 2, z, ancho, alto, -1)];
+      const caja = { x0: CASTILLO.x - ancho / 2, x1: CASTILLO.x + ancho / 2, z0: CASTILLO.z + z - 0.3, z1: CASTILLO.z + z + 0.3, activa: true };
+      cajas.push(caja);
+      const P = { hojas, caja, abierta: false, t: 0 };
+      castillo.puertas.push(P);
+      return P;
+    };
+    puerta(14, 5, 4.6, true);
+    [-6, -26, -46].forEach((z) => puerta(z, 4, 3.4, false));
+
+    // ---------- Antorchas ----------
+    const antorcha = (x, z, y = 3, luz = false) => {
+      const g = new THREE.Group();
+      const palo = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.04, 0.6, 6), madera);
+      const llama = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.35, 8), new THREE.MeshBasicMaterial({ color: '#ffb347', toneMapped: false }));
+      llama.position.y = 0.45;
+      g.add(palo, llama);
+      g.position.copy(CL(x, z, y));
+      G.add(g);
+      castillo.llamas.push({ m: llama, fase: Math.random() * 6 });
+      if (luz) { const l = new THREE.PointLight('#ff9a3c', 1.2, 14, 2); l.position.copy(CL(x, z, y + 0.6)); G.add(l); castillo.llamas[castillo.llamas.length - 1].luz = l; }
+    };
+    antorcha(-3.2, 15.2, 3, true); antorcha(3.2, 15.2, 3);
+    for (const z of [10, -2, -12, -20, -50, -60]) { antorcha(-21.6, z, 2.8); antorcha(21.6, z, 2.8); }
+
+    // ---------- La luna, las estrellas y la niebla ----------
+    const luna = new THREE.Mesh(new THREE.SphereGeometry(9, 24, 16), new THREE.MeshBasicMaterial({ color: '#fff4c8', fog: false, toneMapped: false }));
+    luna.position.copy(CL(-70, -160, 70));
+    G.add(luna);
+    const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: texturaHalo(), color: '#fff2b0', transparent: true, opacity: 0.55, depthWrite: false, fog: false }));
+    halo.scale.set(60, 60, 1);
+    halo.position.copy(luna.position);
+    G.add(halo);
+    const ne = 500, est = new Float32Array(ne * 3);
+    for (let i = 0; i < ne; i++) {
+      const a = Math.random() * Math.PI * 2, b = Math.random() * 1.2 + 0.15;
+      est.set([CASTILLO.x + Math.cos(a) * Math.cos(b) * 300, Math.sin(b) * 300, CASTILLO.z + Math.sin(a) * Math.cos(b) * 300], i * 3);
+    }
+    const gEst = new THREE.BufferGeometry();
+    gEst.setAttribute('position', new THREE.BufferAttribute(est, 3));
+    G.add(new THREE.Points(gEst, new THREE.PointsMaterial({ color: '#ffffff', size: 1.4, fog: false, sizeAttenuation: false })));
+    const texN = texturaNiebla();
+    for (let i = 0; i < 16; i++) {
+      const n = new THREE.Mesh(new THREE.PlaneGeometry(26, 26), new THREE.MeshBasicMaterial({ map: texN, transparent: true, opacity: 0.2, depthWrite: false, color: '#8a84a8' }));
+      n.rotation.x = -Math.PI / 2;
+      n.position.copy(CL((Math.random() - 0.5) * 70, 20 + Math.random() * 50, 0.3 + Math.random() * 0.5));
+      n.userData.v = 0.2 + Math.random() * 0.4;
+      G.add(n);
+      castillo.humo.push({ m: n, niebla: true });
+    }
+
+    // ---------- El cementerio ----------
+    const rnd = (() => { let s = 31; return () => ((s = (s * 16807) % 2147483647) / 2147483647); })();
+    for (let i = 0; i < 30; i++) {
+      const lado = i % 2 ? 1 : -1, x = lado * (5 + rnd() * 16), z = 20 + rnd() * 42;
+      const t = poner(i % 3 ? 'Tumba' : 'TumbaCruz', x, z, (rnd() - 0.5) * 0.5, 0.85 + rnd() * 0.4);
+      t.rotation.z = (rnd() - 0.5) * 0.15;
+      colisiones.push({ x: t.position.x, z: t.position.z, r: 0.45 });
+    }
+    [[-12, 40], [14, 52], [-20, 24], [19, 30], [-9, 60], [24, 62], [-28, 50], [30, 44]].forEach(([x, z], k) => {
+      poner('ArbolMuerto', x, z, k * 1.3, 1 + (k % 3) * 0.25);
+      colisiones.push({ x: CASTILLO.x + x, z: CASTILLO.z + z, r: 0.4 });
+    });
+    // verja de hierro con la entrada en medio
+    for (let x = -34; x <= 34; x += 0.8) {
+      if (Math.abs(x) < 2.6) continue;
+      const b = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 2, 5), hierro);
+      b.position.copy(CL(x, 66, 1));
+      G.add(b);
+      const pu = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.2, 5), hierro);
+      pu.position.copy(CL(x, 66, 2.1));
+      G.add(pu);
+    }
+    [-1, 1].forEach((l) => { const tr = new THREE.Mesh(new THREE.BoxGeometry(33, 0.08, 0.08), hierro); tr.position.copy(CL(l * 19, 66, 1.7)); G.add(tr); });
+    // calabazas con la cara encendida a los lados del camino
+    for (let k = 0; k < 8; k++) {
+      const z = 22 + k * 5.5, l = k % 2 ? 1 : -1;
+      const ca = poner('Calabaza', l * 2.6, z, l > 0 ? -1.2 : 1.2, 0.8);
+      encenderCara(ca);
+    }
+    // manos de zombi escondidas bajo tierra, junto al camino
+    [[-3.2, 52], [3.4, 44], [-3, 36], [3.2, 28], [-3.4, 20]].forEach(([x, z]) => {
+      const m = poner('Mano', x, z, Math.random() * 6);
+      m.position.y = -0.7;
+      castillo.manos.push({ m, t: -1, base: m.position.clone() });
+      const tierra = new THREE.Mesh(new THREE.CircleGeometry(0.5, 12), new THREE.MeshStandardMaterial({ color: '#2a2018' }));
+      tierra.rotation.x = -Math.PI / 2;
+      tierra.position.copy(m.position).setY(0.02);
+      G.add(tierra);
+    });
+    // ojos que brillan entre los árboles
+    const matOjo = new THREE.MeshBasicMaterial({ color: '#ffe23a', toneMapped: false });
+    [[-16, 34, 1.2], [18, 58, 1.0], [-26, 58, 2.6], [26, 26, 1.4], [-8, 64, 0.8]].forEach(([x, z, y]) => {
+      const g = new THREE.Group();
+      [-0.12, 0.12].forEach((dx) => { const o = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 6), matOjo); o.position.x = dx; o.scale.y = 0.6; g.add(o); });
+      g.position.copy(CL(x, z, y));
+      g.lookAt(CL(0, 40, 1));
+      G.add(g);
+      castillo.ojos.push({ m: g, fase: Math.random() * 6 });
+    });
+    // murciélagos que vuelan alrededor de las torres
+    for (let k = 0; k < 12; k++) {
+      const b = copia('Murcielago');
+      b.scale.setScalar(1.5);
+      G.add(b);
+      castillo.murcielagos.push({ m: b, c: CL(k % 2 ? -23 : 23, k < 6 ? 15 : -73, 13 + (k % 3) * 2), r: 5 + (k % 4) * 1.5, w: 0.8 + Math.random() * 0.6, fase: k, alas: [b.getObjectByName('Murcielago_AlaI'), b.getObjectByName('Murcielago_AlaD')] });
+    }
+    // un gato negro en el muro
+    const gatoN = poner('Gato', 6, 14.6, 0, 1.6, H + 0.8);
+    castillo.gato = gatoN;
+
+    // ---------- Sala 1: los fantasmas y los ataúdes ----------
+    [[-17, 8, Math.PI / 2], [17, 4, -Math.PI / 2], [-15, -2.5, 0.2]].forEach(([x, z, ry], i) => {
+      const a = poner('Ataud', x, z, ry, 1.15);
+      const tapa = a.getObjectByName('Ataud_Tapa');
+      colisiones.push({ x: a.position.x, z: a.position.z, r: 0.9 });
+      const frente = CL(x, z).add(new V3(Math.sin(ry), 0, Math.cos(ry)).multiplyScalar(-0.1)).add(new V3(x < 0 ? 1.6 : -1.6, 0, 0));
+      const A = { m: a, tapa, abierto: false, t: 0, i, sitio: frente };
+      castillo.ataudes.push(A);
+      puntosAccion.push({ pos: frente, radio: 2, alto: 2, texto: 'Abrir el ataúd', hacer: () => abrirAtaud(A), visible: () => castillo.fase === 1 && !A.abierto && enCastillo(ninoE.pos) });
+    });
+    castillo.esqueletoAtaud = poner('Esqueleto', 0, 0, 0, 1);
+    castillo.esqueletoAtaud.visible = false;
+    castillo.llave = poner('Llave', 0, 0, 0, 2.2);
+    castillo.llave.visible = false;
+    for (let k = 0; k < 3; k++) {
+      const f = copia('Fantasma');
+      f.traverse((m) => { if (m.isMesh) { m.material = m.material.clone(); m.material.transparent = true; m.material.opacity = 0.82; m.castShadow = false; } });
+      G.add(f);
+      castillo.fantasmas.push({ m: f, fase: k * 2.1, r: 6 + k * 2, cz: 4, brazos: [f.getObjectByName('Fantasma_BrazoI'), f.getObjectByName('Fantasma_BrazoD')] });
+    }
+    const luzFantasmas = new THREE.PointLight('#7f8cff', 1.1, 26, 2);
+    luzFantasmas.position.copy(CL(0, 4, 5));
+    G.add(luzFantasmas);
+    castillo.luzFantasmas = luzFantasmas;
+    [[-4, 11], [4, 11], [-4, -4], [4, -4]].forEach(([x, z]) => {
+      const a = poner('Armadura', x, z, Math.PI, 1);
+      castillo.armaduras.push({ m: a, cab: a.getObjectByName('Armadura_Cabeza') });
+      colisiones.push({ x: a.position.x, z: a.position.z, r: 0.45 });
+    });
+    [[-21.9, 7, 1], [-21.9, -1, 1], [21.9, 7, -1], [21.9, -1, -1]].forEach(([x, z, l], k) => crearCuadro(CL(x, z, 2.6), l, k, G));
+    [[-9, 12.5], [9, 12.5], [-9, -4.5], [9, -4.5]].forEach(([x, z]) => { poner('Candelabro', x, z, 0, 1.2); colisiones.push({ x: CASTILLO.x + x, z: CASTILLO.z + z, r: 0.3 }); });
+
+    // ---------- Sala 2: la biblioteca de la bruja ----------
+    const libros = texturaLibros();
+    [[-21.2, -16, 1], [21.2, -16, -1]].forEach(([x, z, l]) => {
+      // la cara con los libros mira hacia dentro de la sala
+      const mats = [madera, madera, madera, madera, madera, madera];
+      mats[l > 0 ? 0 : 1] = new THREE.MeshStandardMaterial({ map: libros });
+      const est = new THREE.Mesh(new THREE.BoxGeometry(1.2, 3.6, 16), mats);
+      est.position.copy(CL(x, z, 1.8));
+      cajas.push({ x0: est.position.x - 0.6, x1: est.position.x + 0.6, z0: est.position.z - 8, z1: est.position.z + 8, activa: true });
+      G.add(est);
+    });
+    castillo.bruja = poner('Bruja', 0, -21.5, 0, 1.15);
+    castillo.caldero = poner('Caldero', 0, -18.5, 0, 1.3);
+    colisiones.push({ x: CASTILLO.x, z: CASTILLO.z - 18.5, r: 0.9 }, { x: CASTILLO.x, z: CASTILLO.z - 21.5, r: 0.5 });
+    castillo.escoba = poner('Escoba', 0, -21.5, 0, 1.2);
+    castillo.escoba.visible = false;
+    const luzCaldero = new THREE.PointLight('#6dff5a', 1.4, 10, 2);
+    luzCaldero.position.copy(CL(0, -18.5, 1.6));
+    G.add(luzCaldero);
+    castillo.luzCaldero = luzCaldero;
+    puntosAccion.push({ pos: CL(0, -16.6), radio: 1.9, alto: 2, texto: 'Echar al caldero', hacer: echarAlCaldero, visible: () => castillo.fase === 2 && castillo.cogidas >= 3 && !castillo.echadas && enCastillo(ninoE.pos) });
+    const mesa = (x, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.9, 1), madera); m.position.copy(CL(x, z, 0.45)); m.castShadow = true; G.add(m); colisiones.push({ x: m.position.x, z: m.position.z, r: 0.75 }); };
+    mesa(-16, -9); mesa(16, -23);
+    [[-16, -9, 0.92], [16, -23, 0.92], [-12, -24, 0]].forEach(([x, z, y], i) => {
+      const ca = poner('Calabacita', x, z, i, 1.3, y);
+      const sitio = CL(x, z).add(new V3(x < 0 ? 1.4 : -1.4, 0, 0));
+      const C = { m: ca, cogida: false, sitio };
+      castillo.calabacitas.push(C);
+      puntosAccion.push({ pos: sitio, radio: 1.8, alto: 2, texto: 'Coger la calabacita', hacer: () => cogerCalabacita(C), visible: () => castillo.fase === 2 && !C.cogida && enCastillo(ninoE.pos) });
+    });
+    poner('Gato', -21, -20, Math.PI / 2, 1.3, 3.65);
+    for (let k = 0; k < 4; k++) {
+      const a = copia('Arana');
+      a.scale.setScalar(1.6);
+      G.add(a);
+      const hilo = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 1, 4), new THREE.MeshBasicMaterial({ color: '#dddddd' }));
+      G.add(hilo);
+      const x = [-9, 8, -5, 11][k], z = [-10, -13, -22, -19][k];
+      castillo.aranas.push({ m: a, hilo, x, z, y: 3.6, baja: 0, fase: k * 1.7 });
+    }
+    // libros que vuelan
+    castillo.librosV = [];
+    for (let k = 0; k < 6; k++) {
+      const b = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.08, 0.3), new THREE.MeshStandardMaterial({ color: ['#8e2a2a', '#2a5a8e', '#2a8e4a', '#8e7a2a'][k % 4] }));
+      G.add(b);
+      castillo.librosV.push({ m: b, fase: k * 1.05 });
+    }
+
+    // ---------- Sala 3: la cripta ----------
+    castillo.momia = poner('Momia', 0, -38, 0, 1.1);
+    castillo.momia.userData.partes = { bi: castillo.momia.getObjectByName('Momia_BrazoI'), bd: castillo.momia.getObjectByName('Momia_BrazoD'), pi: castillo.momia.getObjectByName('Momia_PiernaI'), pd: castillo.momia.getObjectByName('Momia_PiernaD') };
+    [[-18, -36, Math.PI / 2], [18, -36, -Math.PI / 2]].forEach(([x, z, ry]) => {
+      const e = poner('Esqueleto', x, z, ry, 1);
+      castillo.esqueletos.push(e);
+    });
+    [[-8, -32], [8, -32], [-8, -42], [8, -42]].forEach(([x, z]) => { const s = poner('Ataud', x, z, 0, 1); colisiones.push({ x: s.position.x, z: s.position.z, r: 0.8 }); });
+    [[-15, -29], [15, -29], [-15, -43], [15, -43]].forEach(([x, z], i) => {
+      const ped = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.45, 1, 10), piedra);
+      ped.position.copy(CL(x, z, 0.5));
+      G.add(ped);
+      colisiones.push({ x: ped.position.x, z: ped.position.z, r: 0.45 });
+      const v = poner('Vela', x, z, 0, 2.2, 1.0);
+      const llama = v.getObjectByName('Vela_Llama');
+      llama.visible = false;
+      const luz = new THREE.PointLight('#ffb347', 0, 12, 2);
+      luz.position.copy(CL(x, z, 2.1));
+      G.add(luz);
+      const sitio = CL(x, z).add(new V3(x < 0 ? 1.3 : -1.3, 0, 0));
+      const V = { m: v, llama, luz, encendida: false, sitio };
+      castillo.velas.push(V);
+      puntosAccion.push({ pos: sitio, radio: 1.8, alto: 2, texto: 'Encender la vela', hacer: () => encenderVela(V), visible: () => castillo.fase === 3 && !V.encendida && enCastillo(ninoE.pos) });
+    });
+    const linterna = new THREE.PointLight('#ffd9a0', 0, 9, 2);
+    G.add(linterna);
+    castillo.linterna = linterna;
+
+    // ---------- Sala 4: el gran salón del monstruo ----------
+    const trono = new THREE.Group();
+    const terciopelo = new THREE.MeshStandardMaterial({ color: '#6e1a2a', roughness: 0.9 });
+    const oro = new THREE.MeshStandardMaterial({ color: '#c9a227', roughness: 0.35, metalness: 0.7 });
+    const asiento = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.1, 1.8), terciopelo); asiento.position.y = 0.55;
+    const resp = new THREE.Mesh(new THREE.BoxGeometry(2.4, 4, 0.4), terciopelo); resp.position.set(0, 2, -0.9);
+    const marco = new THREE.Mesh(new THREE.BoxGeometry(2.7, 4.3, 0.3), oro); marco.position.set(0, 2.1, -1.05);
+    trono.add(asiento, resp, marco);
+    trono.position.copy(CL(0, -66));
+    trono.traverse((m) => { if (m.isMesh) m.castShadow = true; });
+    G.add(trono);
+    colisiones.push({ x: CASTILLO.x, z: CASTILLO.z - 66, r: 1.4 });
+    const mo = poner('Monstruo', 0, -65.6, 0, 1);
+    castillo.monstruo = { m: mo, cab: mo.getObjectByName('Monstruo_Cabeza'), bi: mo.getObjectByName('Monstruo_BrazoI'), bd: mo.getObjectByName('Monstruo_BrazoD'),
+      pi: mo.getObjectByName('Monstruo_PiernaI'), pd: mo.getObjectByName('Monstruo_PiernaD'), estado: 'sentado', t: 0 };
+    puntosAccion.push({ pos: CL(0, -60), radio: 2.4, alto: 2, texto: 'Saludar al monstruo', hacer: saludarMonstruo, visible: () => castillo.fase === 4 && !castillo.saludado && enCastillo(ninoE.pos) });
+    // el premio, en un pedestal (aparece al final)
+    const ped = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.7, 1, 16), oro);
+    ped.position.copy(CL(5, -60, 0.5));
+    G.add(ped);
+    colisiones.push({ x: ped.position.x, z: ped.position.z, r: 0.65 });
+    castillo.cesto = poner('Cesto', 5.3, -60, 0.4, 1.5, 1.0);
+    castillo.calabazaPremio = poner('Calabaza', 4.6, -59.8, 0.3, 0.75, 1.0);
+    encenderCara(castillo.calabazaPremio);
+    castillo.cesto.visible = castillo.calabazaPremio.visible = false;
+    castillo.sitioPremio = CL(5, -58.3);
+    puntosAccion.push({ pos: castillo.sitioPremio, radio: 2, alto: 2, texto: 'Coger el premio', hacer: cogerPremio, visible: () => castillo.fase === 4 && castillo.saludado && castillo.fiesta && castillo.fiesta.t > 1 && enCastillo(ninoE.pos) });
+    // los invitados a la fiesta (aparecen cuando el monstruo saluda)
+    castillo.invitados = ['Esqueleto', 'Momia', 'Fantasma', 'Esqueleto', 'Gato', 'Fantasma'].map((n, k) => {
+      const o = poner(n, 0, -56, 0, n === 'Gato' ? 1.6 : 1);
+      o.visible = false;
+      return { m: o, n, k };
+    });
+    const luzSalon = new THREE.PointLight('#c86bff', 1.2, 30, 2);
+    luzSalon.position.copy(CL(0, -58, 6));
+    G.add(luzSalon);
+    castillo.luzSalon = luzSalon;
+    for (const z of [-48, -56, -64, -70]) { poner('Candelabro', -18, z, 0, 1.4); poner('Candelabro', 18, z, 0, 1.4); }
+    // confeti de la fiesta
+    const nc = 300, pc = new Float32Array(nc * 3), cc = new Float32Array(nc * 3);
+    for (let i = 0; i < nc; i++) { const col = new THREE.Color(['#ff8a1f', '#9b59b6', '#3dbe4a', '#ffd21f'][i % 4]); cc.set([col.r, col.g, col.b], i * 3); }
+    const gc = new THREE.BufferGeometry();
+    gc.setAttribute('position', new THREE.BufferAttribute(pc, 3));
+    gc.setAttribute('color', new THREE.BufferAttribute(cc, 3));
+    castillo.confeti = new THREE.Points(gc, new THREE.PointsMaterial({ size: 0.18, vertexColors: true }));
+    castillo.confeti.visible = false;
+    castillo.confeti.frustumCulled = false;
+    G.add(castillo.confeti);
+
+    // ---------- La luz de la luna ----------
+    castillo.luna = new THREE.DirectionalLight('#9fb4ff', 0);
+    castillo.luna.position.copy(CL(-40, 20, 60));
+    castillo.luna.target.position.copy(CL(0, -20));
+    G.add(castillo.luna, castillo.luna.target);
+
+    // ---------- La verja de la playa ----------
+    const yP = suelo_(PUERTA_CASTILLO.x, PUERTA_CASTILLO.z);
+    const entrada = new THREE.Group();
+    [-2.4, 2.4].forEach((dx) => {
+      const pil = bloquePiedra(0.9, 3.4, 0.9, piedra);
+      pil.position.set(dx, 1.7, 0);
+      entrada.add(pil);
+      const ca = copia('Calabaza');
+      ca.position.set(dx, 3.4, 0);
+      ca.scale.setScalar(0.8);
+      encenderCara(ca);
+      entrada.add(ca);
+      colisiones.push({ x: PUERTA_CASTILLO.x + dx, z: PUERTA_CASTILLO.z, r: 0.55 });
+    });
+    const arco = new THREE.Mesh(new THREE.TorusGeometry(2.4, 0.08, 6, 24, Math.PI), hierro);
+    arco.position.y = 3.2;
+    entrada.add(arco);
+    for (let x = -1.8; x <= 1.8; x += 0.45) {
+      const b = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 3.2 + Math.sqrt(Math.max(0, 5.76 - x * x)) * 0.0, 5), hierro);
+      b.position.set(x, 1.6, -0.3);
+      b.visible = Math.abs(x) > 0.9;
+      entrada.add(b);
+    }
+    const murc = copia('Murcielago');
+    murc.position.set(0, 5.2, 0);
+    murc.scale.setScalar(2);
+    entrada.add(murc);
+    castillo.murcPuerta = murc;
+    entrada.position.set(PUERTA_CASTILLO.x, yP, PUERTA_CASTILLO.z);
+    scene.add(entrada);
+    const letrero = cartel('CASTILLO DEL TERROR', 4.6, 0.8);
+    letrero.position.set(PUERTA_CASTILLO.x, yP + 4.4, PUERTA_CASTILLO.z + 0.3);
+    scene.add(letrero);
+    puntosAccion.push({ pos: new V3(PUERTA_CASTILLO.x, yP, PUERTA_CASTILLO.z), radio: 2.2, alto: 3, texto: 'Castillo del terror', hacer: irAlCastillo });
+    puntosAccion.push({ pos: CL(0, 16.5), radio: 2.4, alto: 2, texto: 'Llamar a la puerta', hacer: llamarPuerta, visible: () => castillo.fase === 0 && enCastillo(ninoE.pos) });
+    // vuelta a la playa, por la verja del cementerio
+    puntosAccion.push({ pos: CL(0, 67), radio: 2.4, alto: 3, texto: 'A la playa', hacer: volverDelCastillo, visible: () => enCastillo(ninoE.pos) && ninoE.modo === 'libre' });
+    const cartelV = cartel('A LA PLAYA', 2.2, 0.55);
+    cartelV.position.copy(CL(-4.2, 66.3, 2.3));
+    cartelV.rotation.y = Math.PI;
+    G.add(cartelV);
+    // la calabaza del premio, en el cuarto de Manuel (si ya la ha ganado)
+    castillo.calabazaCasa = copia('Calabaza');
+    castillo.calabazaCasa.position.set(INT.x + 6.6, INT.y, INT.z - 2.6);
+    castillo.calabazaCasa.scale.setScalar(0.7);
+    encenderCara(castillo.calabazaCasa);
+    castillo.calabazaCasa.visible = castillo.premio;
+    scene.add(castillo.calabazaCasa);
+    castillo.listo = true;
+  }
+  const suelo_ = (x, z) => suelo(x, z);
+  function encenderCara(ca) {
+    const cara = ca.getObjectByName('Calabaza_Cara');
+    if (cara) cara.traverse((m) => { if (m.isMesh) { m.material = m.material.clone(); m.material.emissive = new THREE.Color('#ffb02e'); m.material.emissiveIntensity = 1.6; } });
+  }
+  function texturaHalo() {
+    const l = document.createElement('canvas');
+    l.width = l.height = 128;
+    const c = l.getContext('2d');
+    const g = c.createRadialGradient(64, 64, 10, 64, 64, 64);
+    g.addColorStop(0, 'rgba(255,255,255,0.9)'); g.addColorStop(0.3, 'rgba(255,255,255,0.25)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+    c.fillStyle = g; c.fillRect(0, 0, 128, 128);
+    return new THREE.CanvasTexture(l);
+  }
+  function texturaNiebla() {
+    const l = document.createElement('canvas');
+    l.width = l.height = 128;
+    const c = l.getContext('2d');
+    for (let i = 0; i < 18; i++) {
+      const x = 20 + Math.random() * 88, y = 20 + Math.random() * 88, r = 15 + Math.random() * 30;
+      const g = c.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0, 'rgba(255,255,255,0.35)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+      c.fillStyle = g; c.fillRect(0, 0, 128, 128);
+    }
+    return new THREE.CanvasTexture(l);
+  }
+  function texturaLibros() {
+    const l = document.createElement('canvas');
+    l.width = 512; l.height = 128;
+    const c = l.getContext('2d');
+    c.fillStyle = '#3a2416'; c.fillRect(0, 0, 512, 128);
+    for (let f = 0; f < 4; f++) {
+      let x = 2;
+      while (x < 508) {
+        const w = 6 + Math.random() * 10;
+        c.fillStyle = ['#8e2a2a', '#2a5a8e', '#2a8e4a', '#8e7a2a', '#5a2a8e', '#c9b48a'][Math.floor(Math.random() * 6)];
+        c.fillRect(x, f * 32 + 4 + Math.random() * 4, w - 1, 26);
+        x += w;
+      }
+      c.fillStyle = '#2a1a10'; c.fillRect(0, f * 32 + 30, 512, 3);
+    }
+    const t = new THREE.CanvasTexture(l);
+    t.encoding = THREE.sRGBEncoding;
+    t.wrapS = THREE.RepeatWrapping;
+    t.repeat.set(4, 1);
+    return t;
+  }
+  // Cuadros de antepasados con ojos que siguen a Manuel
+  function crearCuadro(p, lado, k, G) {
+    const l = document.createElement('canvas');
+    l.width = 128; l.height = 160;
+    const c = l.getContext('2d');
+    c.fillStyle = ['#2a3a4a', '#3a2a3a', '#2a3a2a', '#4a3a2a'][k]; c.fillRect(0, 0, 128, 160);
+    c.fillStyle = '#1a1416';
+    c.beginPath(); c.ellipse(64, 70, 30, 38, 0, 0, Math.PI * 2); c.fill();
+    c.beginPath(); c.ellipse(64, 150, 52, 40, 0, 0, Math.PI * 2); c.fill();
+    if (k % 2) { c.fillStyle = '#1a1416'; c.beginPath(); c.moveTo(30, 40); c.lineTo(64, -10); c.lineTo(98, 40); c.fill(); }
+    const t = new THREE.CanvasTexture(l);
+    t.encoding = THREE.sRGBEncoding;
+    const g = new THREE.Group();
+    const marco = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.85, 0.1), new THREE.MeshStandardMaterial({ color: '#b8962e', roughness: 0.4, metalness: 0.6 }));
+    const lienzo = new THREE.Mesh(new THREE.PlaneGeometry(1.25, 1.6), new THREE.MeshStandardMaterial({ map: t }));
+    lienzo.position.z = 0.06;
+    g.add(marco, lienzo);
+    const ojos = [];
+    [-0.12, 0.12].forEach((dx) => {
+      const b = new THREE.Mesh(new THREE.SphereGeometry(0.06, 10, 8), new THREE.MeshBasicMaterial({ color: '#f4f0e0' }));
+      b.position.set(dx, 0.25, 0.07);
+      b.scale.z = 0.4;
+      const pu = new THREE.Mesh(new THREE.SphereGeometry(0.03, 8, 6), new THREE.MeshBasicMaterial({ color: '#c0392b' }));
+      pu.position.z = 0.05;
+      b.add(pu);
+      g.add(b);
+      ojos.push(pu);
+    });
+    g.position.copy(p);
+    g.rotation.y = lado > 0 ? Math.PI / 2 : -Math.PI / 2;
+    G.add(g);
+    castillo.cuadros.push({ g, ojos });
+  }
+
+  // ---------- Las pruebas ----------
+  function avanzarCastillo(evento, texto) {
+    castillo.fase++;
+    sumarNino('castillo');
+    historiaEvento(evento);
+    avisar(texto, 2600);
+    if (castillo.fase <= 4) {
+      const P = castillo.puertas[castillo.fase - 1];
+      if (P && castillo.fase > 1) abrirPuertaC(P);
+    }
+    pintarTarea();
+  }
+  function abrirPuertaC(P) {
+    if (P.abierta) return;
+    P.abierta = true;
+    P.t = 0;
+    P.caja.activa = false;
+    sonidoTerror('crujido');
+  }
+  function llamarPuerta() {
+    if (castillo.fase !== 0) return;
+    ninoDice('¡Toc, toc, toc!', 1.4);
+    notas([[180, 0, 0.08], [180, 0.25, 0.08], [180, 0.5, 0.08]], 'square', 0.12);
+    setTimeout(() => {
+      abrirPuertaC(castillo.puertas[0]);
+      castillo.rayo = 0.5;
+      sonidoTerror('trueno');
+      sonidoTerror('murcielagos');
+      castillo.bandada = 3;
+      avanzarCastillo('castilloPuerta', '¡La puerta se abre sola!');
+      setTimeout(() => ninoDice('¡Hala, qué miedo!', 2), 600);
+    }, 900);
+  }
+  function abrirAtaud(A) {
+    if (A.abierto || castillo.fase !== 1) return;
+    A.abierto = true;
+    A.t = 0;
+    castillo.abiertos++;
+    sonidoTerror('crujido');
+    const n = castillo.abiertos;
+    if (n === 1) {
+      // ¡sale un esqueleto riéndose!
+      const e = castillo.esqueletoAtaud;
+      e.position.copy(A.m.position);
+      e.rotation.y = A.m.rotation.y + Math.PI;
+      e.visible = true;
+      e.userData.t = 0;
+      setTimeout(() => { sonidoTerror('susto'); ninoDice('¡AAAH! ¡Un esqueleto!', 2); setTimeout(() => sonidoTerror('risa'), 500); }, 400);
+      avisar('¡Un esqueleto! Aquí no está la llave', 2200);
+    } else if (n === 2) {
+      castillo.bandadaAtaud = { c: A.m.position.clone(), t: 0 };
+      sonidoTerror('murcielagos');
+      ninoDice('¡Murciélagos!', 1.8);
+      avisar('¡Murciélagos! Aquí tampoco está la llave', 2200);
+    } else {
+      const ll = castillo.llave;
+      ll.position.copy(A.m.position).add(new V3(0, 0.8, 0));
+      ll.visible = true;
+      ll.userData.t = 0;
+      sonidoTerror('magia');
+      ninoDice('¡La llave dorada!', 2);
+      setTimeout(() => { ll.visible = false; avanzarCastillo('castilloLlave', '¡Tienes la llave! Se abre la biblioteca'); }, 2200);
+    }
+  }
+  function cogerCalabacita(C) {
+    if (C.cogida) return;
+    C.cogida = true;
+    C.m.visible = false;
+    castillo.cogidas++;
+    sonidoTerror('magia');
+    ninoDice(castillo.cogidas < 3 ? `¡${castillo.cogidas === 1 ? 'Una' : 'Dos'} calabacita${castillo.cogidas > 1 ? 's' : ''}!` : '¡Ya tengo las tres!', 1.8);
+    historiaEvento('castilloCalabacita');
+    pintarTarea();
+  }
+  function echarAlCaldero() {
+    if (castillo.echadas) return;
+    castillo.echadas = true;
+    castillo.explosion = 0;
+    sonidoTerror('magia');
+    setTimeout(() => sonidoTerror('risa'), 600);
+    diga2(castillo.bruja, '¡Ji, ji, ji! ¡Poción perfecta!');
+    setTimeout(() => { castillo.brujaVuela = 0; castillo.escoba.visible = true; avanzarCastillo('castilloPocion', '¡La bruja abre la puerta de la cripta!'); }, 2200);
+  }
+  function encenderVela(V) {
+    if (V.encendida) return;
+    V.encendida = true;
+    V.llama.visible = true;
+    V.luz.intensity = 1.5;
+    castillo.encendidas++;
+    notas([[660, 0, 0.1], [880, 0.08, 0.2]], 'sine', 0.06);
+    if (castillo.encendidas === 2) { sonidoTerror('susto'); castillo.sustoMomia = 0; ninoDice('¡La momia se mueve!', 2); }
+    pintarTarea();
+    if (castillo.encendidas >= 4) setTimeout(() => avanzarCastillo('castilloVelas', '¡Cripta iluminada! Se abre el gran salón'), 800);
+  }
+  function saludarMonstruo() {
+    if (castillo.saludado) return;
+    castillo.saludado = true;
+    const M = castillo.monstruo;
+    M.estado = 'levanta';
+    M.t = 0;
+    ninoDice('¡Hola, señor monstruo!', 2);
+    historiaEvento('castilloSaludo');
+    setTimeout(() => { sonidoTerror('rugido'); castillo.sacudida = 1.2; castillo.rayo = 0.4; diga2(M, '¡GRRRRR!'); }, 1300);
+    setTimeout(() => { sonidoTerror('risa'); diga2(M, '¡Ja, ja! ¡Feliz Halloween!'); empezarFiesta(); }, 3600);
+  }
+  function empezarFiesta() {
+    castillo.fiesta = { t: 0 };
+    castillo.confeti.visible = true;
+    const pc = castillo.confeti.geometry.attributes.position;
+    for (let i = 0; i < pc.count; i++) pc.setXYZ(i, CASTILLO.x + (Math.random() - 0.5) * 30, 4 + Math.random() * 8, CASTILLO.z - 58 + (Math.random() - 0.5) * 20);
+    castillo.invitados.forEach((I) => { I.m.visible = true; });
+    castillo.cesto.visible = castillo.calabazaPremio.visible = true;
+    sonPremio();
+    avisar('¡Fiesta de Halloween!', 2400);
+  }
+  function cogerPremio() {
+    if (castillo.fase !== 4) return;
+    castillo.cesto.visible = false;
+    castillo.calabazaPremio.visible = false;
+    castillo.premio = true;
+    castillo.enMano = true;
+    try { localStorage.setItem('playa-del-perro-castillo', 'si'); } catch (e) { /* sin guardar */ }
+    if (castillo.calabazaCasa) castillo.calabazaCasa.visible = true;
+    sonPremio();
+    ninoDice('¡Un cesto de chuches y una calabaza!', 2.6);
+    avanzarCastillo('castilloPremio', '¡Castillo del terror superado! La calabaza te espera en tu cuarto');
+  }
+  function diga2(obj, texto) {
+    // bocadillo encima de un monstruo
+    if (!castillo.globo) castillo.globo = crearGlobo();
+    castillo.globo.el.textContent = texto;
+    castillo.globo.el.hidden = false;
+    castillo.globo.hasta = reloj.elapsedTime + 2.6;
+    castillo.globo.obj = obj.m || obj;
+    castillo.globo.alto = obj === castillo.monstruo ? 3.2 : 2.3;
+  }
+  // El sitio al que hay que ir en cada prueba (para la flecha y para el botón «Seguir»)
+  function objetivoCastillo() {
+    const f = castillo.fase;
+    if (f === 0) return CL(0, 16.5);
+    if (f === 1) { const A = castillo.ataudes.find((q) => !q.abierto); return A ? A.sitio : null; }
+    if (f === 2) { const C = castillo.calabacitas.find((q) => !q.cogida); return C ? C.sitio : CL(0, -16.6); }
+    if (f === 3) { const V = castillo.velas.find((q) => !q.encendida); return V ? V.sitio : null; }
+    if (f === 4) return castillo.saludado ? castillo.sitioPremio : CL(0, -60);
+    return null;
+  }
+  function reiniciarCastillo() {
+    castillo.fase = 0;
+    castillo.abiertos = castillo.cogidas = castillo.encendidas = 0;
+    castillo.echadas = castillo.saludado = false;
+    castillo.fiesta = null;
+    castillo.enMano = false;
+    castillo.brujaVuela = undefined;
+    castillo.escoba.visible = false;
+    castillo.confeti.visible = false;
+    castillo.esqueletoAtaud.visible = false;
+    castillo.puertas.forEach((P) => { P.abierta = false; P.t = 0; P.caja.activa = true; P.hojas.forEach((h) => { h.rotation.y = 0; }); });
+    castillo.ataudes.forEach((A) => { A.abierto = false; if (A.tapa) A.tapa.rotation.y = 0; });
+    castillo.calabacitas.forEach((C) => { C.cogida = false; C.m.visible = true; });
+    castillo.velas.forEach((V) => { V.encendida = false; V.llama.visible = false; V.luz.intensity = 0; });
+    castillo.invitados.forEach((I) => { I.m.visible = false; });
+    const M = castillo.monstruo;
+    M.estado = 'sentado';
+    M.t = 0;
+    castillo.sustoFantasma = false;
+  }
+
+  // ---------- Ir y volver (de noche) ----------
+  function irAlCastillo() {
+    if (!castillo.listo) return;
+    fundido(() => {
+      if (ninoE.modo === 'atraccion') terminarAtraccion();
+      if (balon.estado === 'mano') { balon.estado = 'libre'; balon.pos.set(PUERTA_CASTILLO.x + 2, suelo(PUERTA_CASTILLO.x + 2, PUERTA_CASTILLO.z + 3) + 0.5, PUERTA_CASTILLO.z + 3); balon.vel.set(0, 0, 0); }
+      if (castillo.fase >= 5) reiniciarCastillo();
+      ninoE.modo = 'libre';
+      const p = CL(0, 57);
+      ninoE.pos.set(p.x, 0.02, p.z);
+      ninoE.rumbo = Math.PI;
+      ninoE.vy = 0;
+      estado.pos.set(p.x + 1.5, 0.02, p.z + 1);
+      estado.descansando = false;
+      cam.yaw = 0;
+      cam.pitch = 0.25;
+      cam.dist = 8;
+      cam.objetivo.copy(ninoE.pos);
+      if (numeros.carrito && numeros.tieneCarrito) colocarCarritoDetras();
+      ocultarParaCastillo(true);
+      setTimeout(pintarTarea, 50);
+      setTimeout(() => { sonidoTerror('trueno'); castillo.rayo = 0.5; avisar('¡El castillo del terror!', 2400); }, 400);
+      setTimeout(() => ninoDice('¡Uy, qué oscuro!', 2), 1500);
+    });
+  }
+  function volverDelCastillo() {
+    fundido(() => {
+      ocultarParaCastillo(false);
+      castillo.enMano = false;
+      ninoE.modo = 'libre';
+      ninoE.pos.set(PUERTA_CASTILLO.x, 0, PUERTA_CASTILLO.z + 3);
+      ninoE.pos.y = suelo(ninoE.pos.x, ninoE.pos.z);
+      ninoE.rumbo = 0;
+      estado.pos.set(PUERTA_CASTILLO.x + 1.5, 0, PUERTA_CASTILLO.z + 3.5);
+      estado.pos.y = suelo(estado.pos.x, estado.pos.z);
+      cam.yaw = Math.PI;
+      cam.pitch = 0.36;
+      cam.dist = 6.5;
+      cam.objetivo.copy(ninoE.pos);
+      if (numeros.carrito && numeros.tieneCarrito) colocarCarritoDetras();
+    });
+  }
+  function ocultarParaCastillo(dentro) {
+    castillo.grupo.visible = dentro;
+    agua.visible = !dentro;
+    cielo.visible = !dentro;
+    if (dentro) {
+      castillo.antes = { niebla: scene.fog, fondo: scene.background, exp: renderer.toneMappingExposure, sol: sol.intensity, hemi: luzHemi ? luzHemi.intensity : 0,
+        hemiC: luzHemi ? luzHemi.color.clone() : null, hemiS: luzHemi ? luzHemi.groundColor.clone() : null };
+      scene.fog = new THREE.Fog('#1a1430', 18, 95);
+      scene.background = new THREE.Color('#120e24');
+      sol.intensity = 0.25;
+      if (luzHemi) { luzHemi.intensity = 0.55; luzHemi.color.set('#6f6aa8'); luzHemi.groundColor.set('#1e1a2a'); }
+      castillo.luna.intensity = 0.9;
+      renderer.toneMappingExposure = 0.9;
+    } else if (castillo.antes) {
+      const A = castillo.antes;
+      scene.fog = A.niebla;
+      scene.background = A.fondo;
+      renderer.toneMappingExposure = A.exp;
+      sol.intensity = A.sol;
+      if (luzHemi) { luzHemi.intensity = A.hemi; luzHemi.color.copy(A.hemiC); luzHemi.groundColor.copy(A.hemiS); }
+      castillo.luna.intensity = 0;
+      castillo.antes = null;
+    }
+    if (!dentro) {
+      (castillo.ocultos || []).forEach((o) => { o.visible = true; });
+      castillo.ocultos = null;
+      return;
+    }
+    if (castillo.ocultos) return;
+    const quedan = new Set([castillo.grupo, nino.grupo, perro, agua, numeros.carrito && numeros.carrito.g]);
+    const c3 = new THREE.Box3();
+    castillo.ocultos = [];
+    scene.children.forEach((o) => {
+      if (!o.visible || o.userData.siempre || quedan.has(o) || o.isLight || o.isCamera || o.isPoints) return;
+      c3.setFromObject(o);
+      if (!c3.isEmpty() && c3.max.x - c3.min.x < 900) { o.visible = false; castillo.ocultos.push(o); }
+    });
+  }
+
+  // ---------- Cada fotograma ----------
+  const _cv = new V3();
+  function actualizarCastillo(dt) {
+    if (!castillo.listo) return;
+    const t = reloj.elapsedTime, E = ninoE;
+    if (castillo.murcPuerta && !castillo.grupo.visible) {
+      castillo.murcPuerta.rotation.y = Math.sin(t) * 0.5;
+      castillo.murcPuerta.children.forEach((c) => { if (c.name.includes('Ala')) c.rotation.z = Math.sign(c.position.x) * Math.sin(t * 12) * 0.6; });
+    }
+    if (castillo.calabazaCasa && castillo.calabazaCasa.visible) castillo.calabazaCasa.rotation.y = Math.sin(t * 0.5) * 0.2;
+    if (!castillo.grupo.visible) return;
+    const L = (p) => ({ x: p.x - CASTILLO.x, z: p.z - CASTILLO.z });
+    const yo = L(E.pos);
+    const sala = salaC(E.pos);
+    // ---------- Rayos y truenos ----------
+    castillo.tRayo -= dt;
+    if (castillo.tRayo < 0) { castillo.tRayo = 9 + Math.random() * 9; castillo.rayo = 0.45; setTimeout(() => sonidoTerror('trueno'), 300 + Math.random() * 500); }
+    if (castillo.rayo > 0) {
+      castillo.rayo -= dt;
+      const f = castillo.rayo > 0 && Math.sin(castillo.rayo * 60) > 0 ? 1 : 0;
+      if (luzHemi) luzHemi.intensity = 0.55 + f * 2.5;
+      scene.background.set(f ? '#5a5490' : '#120e24');
+      if (castillo.rayo <= 0) scene.background.set('#120e24');
+    } else if (luzHemi) luzHemi.intensity = damp(luzHemi.intensity, sala === 2 ? 0.12 : sala >= 0 ? 0.3 : 0.55, 3, dt);
+    sol.intensity = damp(sol.intensity, sala >= 0 ? 0.05 : 0.25, 3, dt);
+    renderer.toneMappingExposure = damp(renderer.toneMappingExposure, sala === 2 ? 0.65 : sala >= 0 ? 0.75 : 0.9, 3, dt);
+    castillo.luna.intensity = damp(castillo.luna.intensity, sala >= 0 ? 0.35 : 0.9, 3, dt);
+    castillo.luzFantasmas.intensity = 1.0 + 0.4 * Math.sin(t * 2.3);
+    // la linterna de Manuel en la cripta
+    castillo.linterna.intensity = damp(castillo.linterna.intensity, sala === 2 ? 1.6 : 0, 4, dt);
+    castillo.linterna.position.set(E.pos.x, E.pos.y + 1.8, E.pos.z);
+    // ---------- Antorchas, ojos, niebla ----------
+    castillo.llamas.forEach((l) => { const s = 0.85 + 0.25 * Math.sin(t * 13 + l.fase) * Math.sin(t * 7.3 + l.fase); l.m.scale.set(s, 0.8 + s * 0.4, s); if (l.luz) l.luz.intensity = 1 + 0.4 * s; });
+    castillo.ojos.forEach((o) => { if (!o.ventana) o.m.visible = Math.sin(t * 0.7 + o.fase) > -0.6 && (t * 3 + o.fase * 7) % 6 > 0.25; });
+    castillo.humo.forEach((h) => { if (h.niebla) { h.m.position.x += h.m.userData.v * dt; if (h.m.position.x > CASTILLO.x + 40) h.m.position.x = CASTILLO.x - 40; } });
+    if (castillo.gato) { const c = castillo.gato.getObjectByName('Gato_Cola'); if (c) c.rotation.z = Math.sin(t * 2) * 0.4; }
+    // ---------- Murciélagos ----------
+    castillo.murcielagos.forEach((b, k) => {
+      let c = b.c, r = b.r;
+      if (castillo.bandada > 0) { c = CL(0, 12, 6); r = 3 + (k % 5); }
+      const a = t * b.w + b.fase;
+      b.m.position.set(c.x + Math.cos(a) * r, c.y + Math.sin(a * 2.3) * 0.8, c.z + Math.sin(a) * r);
+      b.m.rotation.y = -a;
+      b.alas.forEach((w) => { if (w) w.rotation.z = Math.sign(w.position.x) * Math.sin(t * 18 + k) * 0.7; });
+    });
+    if (castillo.bandada > 0) castillo.bandada -= dt;
+    // ---------- Manos de zombi: salen al pasar ----------
+    castillo.manos.forEach((M) => {
+      const d = Math.hypot(M.base.x - E.pos.x, M.base.z - E.pos.z);
+      if (M.t < 0 && d < 3.2) { M.t = 0; sonidoTerror('susto'); if (Math.random() < 0.6) ninoDice(['¡Aaah! ¡Una mano!', '¡Socorro!', '¡Qué susto!'][Math.floor(Math.random() * 3)], 1.6); }
+      if (M.t >= 0) {
+        M.t += dt;
+        const s = M.t < 0.3 ? M.t / 0.3 : M.t < 4 ? 1 : Math.max(0, 1 - (M.t - 4) / 0.6);
+        M.m.position.y = M.base.y + s * 0.75;
+        M.m.rotation.z = Math.sin(M.t * 8) * 0.25 * s;
+        if (M.t > 4.6 && d > 6) M.t = -1;
+      }
+    });
+    // ---------- Puertas ----------
+    castillo.puertas.forEach((P, i) => {
+      if (!P.abierta) return;
+      P.t = Math.min(1, P.t + dt * 0.5);
+      const a = smoothstep(0, 1, P.t) * 1.6;
+      P.hojas.forEach((h, k) => { h.rotation.y = (P.hojas.length > 1 ? (k ? -a : a) : -a); });
+    });
+    // ---------- Sala 1 ----------
+    castillo.fantasmas.forEach((f, k) => {
+      const a = t * 0.5 + f.fase;
+      let x = Math.cos(a) * f.r * 0.9, z = f.cz + Math.sin(a) * 5, y = 1.0 + Math.sin(t * 1.3 + k) * 0.5;
+      // susto: el primer fantasma vuela hacia Manuel al entrar en la sala
+      if (k === 0 && sala === 0 && !castillo.sustoFantasma) { castillo.sustoFantasma = true; castillo.sustoT = 0; sonidoTerror('buu'); setTimeout(() => ninoDice('¡Un fantasma!', 1.8), 300); }
+      if (k === 0 && castillo.sustoT !== undefined && castillo.sustoT < 2.2) {
+        castillo.sustoT += dt;
+        const s = Math.sin(Math.min(1, castillo.sustoT / 2.2) * Math.PI);
+        x = x * (1 - s) + yo.x * s;
+        z = z * (1 - s) + (yo.z - 1.2) * s;
+        y = y * (1 - s) + 1.2 * s;
+      }
+      f.m.position.copy(CL(x, z, y));
+      f.m.rotation.y = -a + Math.PI;
+      f.brazos.forEach((b) => { if (b) b.rotation.x = -0.6 + Math.sin(t * 3 + k) * 0.4; });
+    });
+    castillo.armaduras.forEach((A) => {
+      if (!A.cab) return;
+      const dx = E.pos.x - A.m.position.x, dz = E.pos.z - A.m.position.z;
+      const rel = Math.atan2(dx, dz) - A.m.rotation.y;
+      A.cab.rotation.y = damp(A.cab.rotation.y, clamp(Math.atan2(Math.sin(rel), Math.cos(rel)), -1.2, 1.2), 3, dt);
+    });
+    castillo.cuadros.forEach((C) => {
+      C.ojos.forEach((o) => {
+        C.g.worldToLocal(_cv.copy(E.pos).setY(E.pos.y + 1));
+        o.position.set(clamp(_cv.x * 0.01, -0.025, 0.025), clamp((_cv.y - 0.25) * 0.01, -0.02, 0.02), 0.05);
+      });
+    });
+    castillo.ataudes.forEach((A) => { if (A.abierto && A.tapa) { A.t = Math.min(1, A.t + dt * 1.5); A.tapa.rotation.y = -smoothstep(0, 1, A.t) * 1.9; } });
+    const e = castillo.esqueletoAtaud;
+    if (e.visible) {
+      e.userData.t += dt;
+      const s = Math.min(1, e.userData.t * 1.5);
+      e.position.y = -1.2 + s * 1.3;
+      const md = e.getObjectByName('Esqueleto_Mandibula');
+      if (md) md.rotation.x = Math.abs(Math.sin(t * 14)) * 0.4;
+      bailarEsqueleto(e, t);
+    }
+    if (castillo.llave.visible) { castillo.llave.userData.t += dt; castillo.llave.position.y += dt * 0.3; castillo.llave.rotation.y += dt * 4; }
+    if (castillo.bandadaAtaud) {
+      const B = castillo.bandadaAtaud;
+      B.t += dt;
+      castillo.murcielagos.slice(0, 6).forEach((b, k) => { const a = B.t * 3 + k; b.m.position.set(B.c.x + Math.cos(a) * (1 + B.t * 2), 1 + B.t * 2.5, B.c.z + Math.sin(a) * (1 + B.t * 2)); });
+      if (B.t > 2.5) castillo.bandadaAtaud = null;
+    }
+    // ---------- Sala 2: la bruja, las arañas y los libros ----------
+    const B = castillo.bruja;
+    if (B) {
+      const bd = B.getObjectByName('Bruja_BrazoD'), bc = B.getObjectByName('Bruja_Cabeza');
+      if (castillo.brujaVuela !== undefined) {
+        castillo.brujaVuela += dt;
+        const a = castillo.brujaVuela * 0.8;
+        B.position.copy(CL(Math.cos(a) * 12, -16 + Math.sin(a) * 7, 3 + Math.sin(a * 2) * 0.6));
+        B.rotation.y = -a;
+        castillo.escoba.position.copy(B.position).add(new V3(0, 0.6, 0));
+        castillo.escoba.rotation.set(0, -a + Math.PI / 2, 0.1);
+        if (Math.floor(castillo.brujaVuela / 6) !== Math.floor((castillo.brujaVuela - dt) / 6)) sonidoTerror('risa');
+      } else {
+        if (bd) bd.rotation.y = Math.sin(t * 2) * 0.5;  // remueve el caldero
+        if (bc) bc.rotation.y = Math.sin(t * 0.7) * 0.3;
+        if (sala === 1 && t - castillo.tBu > 9) { castillo.tBu = t; sonidoTerror('risa'); }
+      }
+    }
+    const poc = castillo.caldero && castillo.caldero.getObjectByName('Caldero_Pocion');
+    if (poc) { poc.position.y = 0.8 + Math.sin(t * 3) * 0.02; poc.rotation.y += dt; }
+    const fu = castillo.caldero && castillo.caldero.getObjectByName('Caldero_Fuego');
+    if (fu) fu.scale.set(1, 0.8 + 0.3 * Math.abs(Math.sin(t * 9)), 1);
+    castillo.luzCaldero.intensity = 1.2 + 0.4 * Math.sin(t * 5) + (castillo.explosion !== undefined && castillo.explosion < 1.5 ? 4 * (1.5 - castillo.explosion) : 0);
+    if (castillo.explosion !== undefined) castillo.explosion += dt;
+    castillo.aranas.forEach((A) => {
+      const d = Math.hypot(CASTILLO.x + A.x - E.pos.x, CASTILLO.z + A.z - E.pos.z);
+      if (d < 2.5 && A.baja <= 0) { A.baja = 2.5; sonidoTerror('susto'); ninoDice('¡Una araña!', 1.5); }
+      A.baja -= dt;
+      const yObj = A.baja > 0 ? 1.4 : 3.4 + Math.sin(t + A.fase) * 0.3;
+      A.y = damp(A.y, yObj, A.baja > 0 ? 9 : 1.5, dt);
+      A.m.position.copy(CL(A.x, A.z, A.y));
+      A.m.rotation.y = t * 0.3 + A.fase;
+      A.hilo.scale.y = Math.max(0.01, 4.2 - A.y);
+      A.hilo.position.copy(CL(A.x, A.z, A.y + (4.2 - A.y) / 2 + 0.25));
+    });
+    castillo.librosV.forEach((b, k) => {
+      const a = t * 0.6 + b.fase;
+      b.m.position.copy(CL(Math.cos(a) * 5, -14 + Math.sin(a) * 4, 2.2 + Math.sin(t * 2 + k) * 0.4));
+      b.m.rotation.set(Math.sin(t + k) * 0.3, a, Math.sin(t * 3 + k) * 0.4);
+    });
+    // ---------- Sala 3: la momia y los esqueletos ----------
+    const Mo = castillo.momia;
+    if (Mo) {
+      const Pm = Mo.userData.partes;
+      if (castillo.fase >= 4) {
+        // ¡baila!
+        Mo.position.copy(CL(0, -38));
+        Mo.rotation.y = t * 1.5;
+        Mo.position.y = Math.abs(Math.sin(t * 6)) * 0.15;
+        if (Pm.bi) Pm.bi.rotation.z = Math.sin(t * 6) * 0.8;
+        if (Pm.bd) Pm.bd.rotation.z = -Math.sin(t * 6) * 0.8;
+      } else {
+        const a = t * (castillo.sustoMomia !== undefined && castillo.sustoMomia < 3 ? 0.5 : 0.25);
+        if (castillo.sustoMomia !== undefined) castillo.sustoMomia += dt;
+        const x = Math.sin(a) * 10;
+        Mo.position.copy(CL(x, -38));
+        Mo.rotation.y = Math.cos(a) > 0 ? Math.PI / 2 : -Math.PI / 2;
+        if (Pm.pi) Pm.pi.rotation.x = Math.sin(t * 3) * 0.35;
+        if (Pm.pd) Pm.pd.rotation.x = -Math.sin(t * 3) * 0.35;
+        if (Pm.bi) Pm.bi.rotation.x = Math.sin(t * 1.5) * 0.1;
+        if (Pm.bd) Pm.bd.rotation.x = -Math.sin(t * 1.5) * 0.1;
+      }
+    }
+    castillo.esqueletos.forEach((s, k) => {
+      const md = s.getObjectByName('Esqueleto_Mandibula');
+      if (md) md.rotation.x = sala === 2 || castillo.fase >= 4 ? Math.abs(Math.sin(t * 10 + k)) * 0.35 : 0;
+      if (castillo.fase >= 4) bailarEsqueleto(s, t + k);
+    });
+    // ---------- Sala 4: el monstruo y la fiesta ----------
+    const M = castillo.monstruo;
+    if (M) {
+      M.t += dt;
+      if (M.estado === 'sentado') {
+        M.m.position.copy(CL(0, -65.6, 0.15));
+        if (M.pi) M.pi.rotation.x = -1.45; if (M.pd) M.pd.rotation.x = -1.45;
+        M.m.position.y = 1.1 - 1.0;
+        if (M.cab) M.cab.rotation.x = Math.sin(t * 0.5) * 0.05;
+        if (M.cab) M.cab.rotation.y = sala === 3 ? clamp(Math.atan2(E.pos.x - M.m.position.x, E.pos.z - M.m.position.z), -0.8, 0.8) : Math.sin(t * 0.3) * 0.3;
+        // ronquido
+        if (sala === 3 && Math.floor(t / 4) !== Math.floor((t - dt) / 4)) notas([[70, 0, 0.8]], 'sawtooth', 0.03);
+      } else {
+        const s = Math.min(1, M.t / 1.2);
+        if (M.pi) M.pi.rotation.x = -1.45 * (1 - s); if (M.pd) M.pd.rotation.x = -1.45 * (1 - s);
+        M.m.position.copy(CL(0, -64 + s * 0.8, 0.1 * (1 - s)));
+        if (M.t > 1.3 && M.t < 3.4) {
+          // ruge con los brazos arriba
+          if (M.bi) M.bi.rotation.z = 2.3; if (M.bd) M.bd.rotation.z = -2.3;
+          if (M.cab) M.cab.rotation.x = -0.3;
+        } else if (M.t >= 3.4) {
+          // se ríe y baila
+          if (M.bi) M.bi.rotation.z = 0.6 + Math.sin(t * 5) * 0.5; if (M.bd) M.bd.rotation.z = -(0.6 + Math.sin(t * 5 + 1) * 0.5);
+          if (M.cab) { M.cab.rotation.x = Math.sin(t * 5) * 0.1; M.cab.rotation.z = Math.sin(t * 2.5) * 0.15; }
+          M.m.position.y = Math.abs(Math.sin(t * 5)) * 0.1;
+        }
+      }
+    }
+    if (castillo.sacudida > 0) {
+      castillo.sacudida -= dt;
+      cam.objetivo.x += (Math.random() - 0.5) * 0.25 * castillo.sacudida;
+      cam.objetivo.y += (Math.random() - 0.5) * 0.25 * castillo.sacudida;
+    }
+    if (castillo.fiesta) {
+      castillo.fiesta.t += dt;
+      const F = castillo.fiesta.t;
+      castillo.invitados.forEach((I, k) => {
+        const a = F * 0.6 + k / castillo.invitados.length * Math.PI * 2;
+        I.m.position.copy(CL(Math.cos(a) * 6, -57 + Math.sin(a) * 4, I.n === 'Fantasma' ? 0.8 + Math.sin(F * 3 + k) * 0.3 : Math.abs(Math.sin(F * 6 + k)) * 0.15));
+        I.m.rotation.y = -a;
+        if (I.n === 'Esqueleto') bailarEsqueleto(I.m, F + k);
+      });
+      castillo.luzSalon.color.setHSL((F * 0.2) % 1, 0.8, 0.6);
+      castillo.luzSalon.intensity = 1.6;
+      const pc = castillo.confeti.geometry.attributes.position;
+      for (let i = 0; i < pc.count; i++) {
+        let y = pc.getY(i) - dt * (1 + (i % 5) * 0.3);
+        if (y < 0.1) y = 9;
+        pc.setY(i, y);
+        pc.setX(i, pc.getX(i) + Math.sin(t * 2 + i) * dt * 0.5);
+      }
+      pc.needsUpdate = true;
+      if (Math.floor(F / 2) !== Math.floor((F - dt) / 2) && F < 20) notas([[392, 0, 0.12], [466, 0.15, 0.12], [523, 0.3, 0.12], [466, 0.45, 0.2]], 'triangle', 0.05);
+      if (castillo.cesto.visible) castillo.cesto.rotation.y += dt;
+    }
+    // el cesto en la mano de Manuel
+    if (castillo.enMano && nino.huesos.RightHand) {
+      if (!castillo.cestoMano) { castillo.cestoMano = castillo.copiar('Cesto'); castillo.cestoMano.scale.setScalar(0.9); castillo.grupo.add(castillo.cestoMano); }
+      nino.huesos.RightHand.getWorldPosition(_cv);
+      castillo.cestoMano.visible = true;
+      castillo.cestoMano.position.set(_cv.x, _cv.y - 0.45, _cv.z);
+      castillo.cestoMano.rotation.y = E.rumbo;
+    } else if (castillo.cestoMano) castillo.cestoMano.visible = false;
+    // el bocadillo de los monstruos
+    const gl = castillo.globo;
+    if (gl) { if (gl.hasta > t) ponerEnPantalla(gl.el, gl.obj, gl.alto); else if (!gl.el.hidden) gl.el.hidden = true; }
+  }
+  function bailarEsqueleto(e, t) {
+    const bi = e.getObjectByName('Esqueleto_BrazoI'), bd = e.getObjectByName('Esqueleto_BrazoD'), pi = e.getObjectByName('Esqueleto_PiernaI'), pd = e.getObjectByName('Esqueleto_PiernaD'), c = e.getObjectByName('Esqueleto_Cabeza');
+    if (bi) bi.rotation.z = 1.2 + Math.sin(t * 6) * 0.8;
+    if (bd) bd.rotation.z = -1.2 - Math.sin(t * 6 + 1) * 0.8;
+    if (pi) pi.rotation.x = Math.max(0, Math.sin(t * 6)) * 0.6;
+    if (pd) pd.rotation.x = Math.max(0, -Math.sin(t * 6)) * 0.6;
+    if (c) c.rotation.z = Math.sin(t * 3) * 0.2;
+  }
+
+  // =====================================================================
   // ---------- La historia: un día con la familia y los primos ----------
   // =====================================================================
   // Capítulos que enlazan los sitios del juego. En cada sitio Manuel va acompañado (papá, mamá, el primo Carlos
@@ -13205,6 +14341,8 @@
     carlos: { nombre: 'Carlos', color: '#e07b1a', tono: 1.5, vel: 1.1, voz: 'nino' },
     miguel: { nombre: 'Miguel', color: '#2e9a6a', tono: 1.0, vel: 1.02, voz: 'hombre' },
     narrador: { nombre: '', color: '#123b4a', tono: 1.0, vel: 0.95, voz: 'mujer' },
+    bruja: { nombre: 'Bruja', color: '#6a2c91', tono: 1.9, vel: 1.15, voz: 'mujer' },
+    monstruo: { nombre: 'Monstruo', color: '#4e7a2a', tono: 0.4, vel: 0.8, voz: 'hombre' },
   };
   // ---------- La voz ----------
   let vocesES = null;
@@ -13357,10 +14495,44 @@
       { tipo: 'mision', texto: 'Lleva al elefantito con su mamá elefante', escolta: true, sitio: () => (safari.manadas.find((m) => m.id === 'elefantes') || {}).centro, radio: 12 },
       { tipo: 'hablar', lineas: [['papa', '¡Mira qué contenta está la mamá elefante! Ahora, ¡vamos en el jeep!']] },
       { tipo: 'mision', texto: 'Sube al jeep y deja que te saluden tres manadas', evento: 'manada', n: 3, sitio: () => (safari.jeep ? safari.jeep.g.position : null), radio: 3.2 },
-      { tipo: 'hablar', lineas: [['mama', '¡Qué día tan bonito! Se está haciendo de noche. Volvemos a casa.']] },
+      { tipo: 'hablar', lineas: [['mama', '¡Qué día tan bonito! Se está haciendo de noche...'], ['papa', '¡Mira quién viene! Son tus primos Carlos y Miguel.']] },
     ] },
-    { id: 'noche', titulo: 'Capítulo 12 · A dormir', lugar: 'casa', con: [], pasos: [
-      { tipo: 'hablar', lineas: [['papa', '¡Hora de cenar! Hoy has ayudado a mucha gente y a muchos animales.']] },
+    { id: 'castillo', titulo: 'Capítulo 12 · El castillo del terror', lugar: 'castillo', con: ['carlos', 'miguel'], pasos: [
+      { tipo: 'hablar', lineas: [
+        ['miguel', '¡Manuel! Hoy es Halloween y en las dunas hay un castillo del terror. ¿Te atreves a entrar?'],
+        ['carlos', 'Yo... tengo un poquito de miedo.'],
+        ['manuel', '¡Yo soy muy valiente! ¡Vamos los tres juntos!'],
+        ['miguel', 'Dicen que quien supera el castillo se lleva un cesto de chuches. Primero hay que cruzar el cementerio.']] },
+      { tipo: 'mision', texto: 'Cruza el cementerio y llama a la puerta del castillo', evento: 'castilloPuerta', sitio: () => objetivoCastillo(), radio: 2.2 },
+      { tipo: 'hablar', lineas: [
+        ['carlos', '¡Uuuh! ¡La puerta se ha abierto sola!'],
+        ['miguel', 'Tranquilos, todo es de mentira. Busquemos la llave de la biblioteca. Estará en algún ataúd.']] },
+      { tipo: 'mision', texto: 'Abre los ataúdes y encuentra la llave dorada', evento: 'castilloLlave', sitio: () => objetivoCastillo(), radio: 1.8 },
+      { tipo: 'hablar', lineas: [
+        ['bruja', '¡Ji, ji, ji! ¿Quién se atreve a entrar en mi biblioteca?'],
+        ['bruja', 'Si me traes tres calabacitas para mi poción mágica, os dejaré pasar.'],
+        ['carlos', '¡Hay arañas por todas partes!']] },
+      { tipo: 'mision', texto: 'Busca tres calabacitas y échalas en el caldero de la bruja', evento: 'castilloPocion', sitio: () => objetivoCastillo(), radio: 1.8 },
+      { tipo: 'hablar', lineas: [
+        ['carlos', '¡Qué oscura está la cripta! ¡Y hay una momia!'],
+        ['miguel', 'Manuel, enciende las velas y verás que no pasa nada.']] },
+      { tipo: 'mision', texto: 'Enciende las cuatro velas de la cripta', evento: 'castilloVelas', sitio: () => objetivoCastillo(), radio: 1.8 },
+      { tipo: 'hablar', lineas: [
+        ['narrador', 'Al fondo, en el gran salón, un monstruo enorme duerme sentado en su trono...'],
+        ['carlos', '¡Me escondo detrás de ti, primo!']] },
+      { tipo: 'mision', texto: 'Acércate al trono y saluda al monstruo', evento: 'castilloSaludo', sitio: () => objetivoCastillo(), radio: 2.4 },
+      { tipo: 'hablar', lineas: [
+        ['monstruo', '¡GRRRRR! ... ¡Ja, ja, ja! ¡No tengáis miedo, que soy muy simpático!'],
+        ['monstruo', '¡Feliz Halloween! Habéis superado mi castillo. Este cesto de chuches y esta calabaza son para ti.']] },
+      { tipo: 'mision', texto: 'Coge el cesto de chuches y la calabaza', evento: 'castilloPremio', sitio: () => objetivoCastillo() || castillo.sitioPremio, radio: 2 },
+      { tipo: 'hablar', lineas: [
+        ['manuel', '¡Gracias, señor monstruo!'],
+        ['carlos', '¿Me das una chuche, primo?'],
+        ['manuel', '¡Claro! ¡Para ti y para Miguel!'],
+        ['miguel', '¡Qué valiente has sido! Vamos a casa, que papá y mamá nos esperan.']] },
+    ] },
+    { id: 'noche', titulo: 'Capítulo 13 · A dormir', lugar: 'casa', con: [], pasos: [
+      { tipo: 'hablar', lineas: [['mama', '¡Qué calabaza tan bonita! La he puesto en tu cuarto.'], ['papa', '¡Hora de cenar! Hoy has ayudado a mucha gente y a muchos animales.']] },
       { tipo: 'mision', texto: 'Cena con papá y mamá', evento: 'comer', sitio: () => SALA(-4.0, -0.3) },
       { tipo: 'hablar', lineas: [['mama', 'Y ahora, a la cama. Drako también está cansado.']] },
       { tipo: 'mision', texto: 'Échate a dormir en tu cama', evento: 'dormir', sitio: () => SALA(6.0, -4.6) },
@@ -13379,6 +14551,7 @@
 
   // ---------- Dónde está Manuel y cómo se va a cada sitio ----------
   function zonaDe(p) {
+    if (enCastillo(p)) return 'castillo';
     if (p.x > 500) return 'arrecife';
     if (p.x < -500) return 'circuito';
     if (p.z > 300) return 'casa';
@@ -13390,9 +14563,9 @@
     return 'playa';
   }
   const SALIR_DE = { arrecife: () => salirDelAgua(), circuito: () => volverDelCircuito(), casa: () => salirDeCasa(), juguetes: () => volverDeJuguetes(),
-    numeros: () => volverDeNumeros(), feria: () => volverDeFeria(), arroyo: () => volverDelArroyo(), safari: () => volverDelSafari() };
+    numeros: () => volverDeNumeros(), feria: () => volverDeFeria(), arroyo: () => volverDelArroyo(), safari: () => volverDelSafari(), castillo: () => volverDelCastillo() };
   const ENTRAR_EN = { arrecife: () => irAlArrecife(), circuito: () => irAlCircuito(), casa: () => entrarEnCasa(), juguetes: () => irAJuguetes(),
-    numeros: () => irANumeros(), feria: () => irAFeria(), arroyo: () => irAlArroyo(), safari: () => irAlSafari() };
+    numeros: () => irANumeros(), feria: () => irAFeria(), arroyo: () => irAlArroyo(), safari: () => irAlSafari(), castillo: () => { if (castillo.fase > 0) reiniciarCastillo(); irAlCastillo(); } };
   // Lleva a Manuel a una zona (pasando por la playa si hace falta) y luego llama a listo()
   function viajarA(zona, llegada, listo) {
     historia.ocupado = true;
@@ -13556,6 +14729,8 @@
     const p = personaQueHabla(quien);
     if (p) { diga(p, texto.length > 34 ? texto.slice(0, 32) + '…' : texto, 3); if (p.acciones && p.acciones.hablar) { animarPadre(p, 'hablar'); p.hablaHasta = reloj.elapsedTime + 2.5; } }
     if (quien === 'manuel') ninoDice(texto.length > 34 ? texto.slice(0, 32) + '…' : texto, 2.6);
+    if (quien === 'bruja' && castillo.bruja) diga2(castillo.bruja, texto.length > 34 ? texto.slice(0, 32) + '…' : texto);
+    if (quien === 'monstruo' && castillo.monstruo) diga2(castillo.monstruo, texto.length > 34 ? texto.slice(0, 32) + '…' : texto);
   }
   function siguienteLinea() {
     const P = pasoActual();
@@ -13637,7 +14812,7 @@
     if (s && (distXZ(E.pos, s) > radio || (E.modo !== 'bucear' && Math.abs(E.pos.y - s.y) > 1.4 && Math.abs(E.pos.y - suelo(s.x, s.z)) > 1.4))) return irAlSitio(s, radio);
     if (E.modo === 'bucear') return decirEnVoz('narrador', P.texto);
     const acc = P.accion && (!P.accion.si || P.accion.si()) ? P.accion : accionNino();
-    if (acc && acc.hacer) return acc.hacer();
+    if (acc && acc.hacer && acc.texto !== '¡Drako!') return acc.hacer();  // llamar a Drako no es la misión
     decirEnVoz('narrador', P.texto);
   }
   // Manuel va solo hasta el sitio: andando si está cerca; si está lejos, aparece allí
@@ -14148,7 +15323,7 @@
         if (E.modo === 'atraccion' && E.atr && !E.atr.fijo && s && distXZ(E.pos, s) > (P.radio || 1.6) + 1) t = 'Levantarse ▶';
         else if (E.modo === 'atraccion' || E.modo === 'pescar' || E.modo === 'tobogan') t = '🔊 Repetir';
         else if (s && distXZ(E.pos, s) > (P.radio || 1.6)) t = '¡Vamos! ▶';
-        else if (E.modo !== 'bucear') { const a = P.accion || accionNino(); t = a && a.hacer ? `${a.texto} ▶` : '🔊 Repetir'; } else t = '🔊 Repetir';
+        else if (E.modo !== 'bucear') { const a = P.accion || accionNino(); t = a && a.hacer && a.texto !== '¡Drako!' ? `${a.texto} ▶` : '🔊 Repetir'; } else t = '🔊 Repetir';
       } else t = '…';
     }
     if (t !== textoSeguir) {
@@ -14329,6 +15504,9 @@
       irFeria: () => irAFeria(),
       irArroyo: () => irAlArroyo(),
       irSafari: () => irAlSafari(),
+      irCastillo: () => irAlCastillo(),
+      castillo: () => ({ fase: castillo.fase, abiertos: castillo.abiertos, cogidas: castillo.cogidas, encendidas: castillo.encendidas, saludado: castillo.saludado, premio: castillo.premio,
+        objetivo: objetivoCastillo() && objetivoCastillo().toArray().map((v) => +(v.toFixed(1))), sala: salaC(ninoE.pos), pos: ninoE.pos.toArray().map((v) => +v.toFixed(1)), accion: btnAccion.textContent }),
       historia: () => ({ activa: historia.activa, cap: historia.cap, capId: CAPITULOS[historia.cap].id, paso: historia.paso, linea: historia.linea, ocupado: historia.ocupado,
         mision: historia.mision && historia.mision.P.texto, cuenta: historia.mision && historia.mision.cuenta, boton: btnSeguir.textContent, accion: btnAccion.textContent,
         modo: ninoE.modo, zona: zonaDe(ninoE.pos), pos: ninoE.pos.toArray().map((v) => +v.toFixed(1)),
@@ -14550,6 +15728,11 @@
       cam.pitch = damp(cam.pitch, 0.26, 2, dt);
       cam.dist = damp(cam.dist, ninoE.atr.tipo === 'coche' ? 9 : ninoE.atr.tipo === 'jeep' ? 10 : 6, 2, dt);
     }
+    if (enCastillo(foco) && foco.z - CASTILLO.z < 14) {
+      // dentro del castillo no hay techo: la cámara mira desde arriba, por encima de las paredes
+      cam.pitch = Math.max(cam.pitch, 0.85);
+      cam.dist = Math.min(cam.dist, 10);
+    }
     if (estaDentro(foco)) {
       // Dentro de casa, la cámara mira desde arriba para ver por encima de las paredes
       cam.pitch = Math.max(cam.pitch, 0.7);
@@ -14627,6 +15810,7 @@
         actualizarSafari(dt);
         actualizarHistoria(dt);
         actualizarGente(dt);
+        actualizarCastillo(dt);
       }
       actualizarSalpicaduras(dt);
       actualizarBotonAccion();
