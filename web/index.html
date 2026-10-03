@@ -13772,6 +13772,7 @@
     }
     for (let i = 0; i < A.length - 1; i++) {
       if (opts.hueco && i >= 12 && i <= 23) continue;   // entrada por la recta sur (x entre −6 y 6)
+      if (opts.tramos && !opts.tramos.some(([a, b]) => i >= a && i < b)) continue;
       const a = i * 2;
       if (opts.invertir) idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); else idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
     }
@@ -13849,6 +13850,7 @@
     atl.copiar = copia;
     const poner = (n, x, z, fi = 0, es = 1, y = 0) => { const o = copia(n); o.position.copy(EL(x, z, y)); o.rotation.y = fi; o.scale.setScalar(es); G.add(o); return o; };
     const az = (() => { let s = 77; return () => ((s = (s * 16807) % 2147483647) / 2147483647); })();
+    const mm = new THREE.Matrix4(), qq = new THREE.Quaternion(), cc = new THREE.Color();
     const { H, R0, ancho, N } = PISTA;
     const RO = R0 + ancho * N;                                  // borde exterior de la pista
     const mat = (c, r = 0.85) => new THREE.MeshStandardMaterial({ color: c, roughness: r });
@@ -13869,16 +13871,22 @@
     suelo0.receiveShadow = true;
     G.add(suelo0);
     // césped del centro, con franjas de segado
-    const texSegado = lienzo(128, 128, (c, w, h) => {
-      c.fillStyle = '#62bd45'; c.fillRect(0, 0, w / 2, h);
-      c.fillStyle = '#54ab3b'; c.fillRect(w / 2, 0, w / 2, h);
-      for (let k = 0; k < 500; k++) { c.fillStyle = `rgba(255,255,255,${Math.random() * 0.07})`; c.fillRect(Math.random() * w, Math.random() * h, 2, 3); }
+    const texSegado = lienzo(256, 256, (c, w, h) => {
+      c.fillStyle = '#63c746'; c.fillRect(0, 0, w / 2, h);
+      c.fillStyle = '#3e9329'; c.fillRect(w / 2, 0, w / 2, h);
+      // el pelo del césped: rayitas en el sentido del corte, claras en una franja y oscuras en la otra
+      for (let k = 0; k < 2600; k++) {
+        const x = Math.random() * w, y = Math.random() * h, izq = x < w / 2;
+        c.fillStyle = izq ? `rgba(200,250,160,${Math.random() * 0.34})` : `rgba(22,80,18,${Math.random() * 0.3})`;
+        c.fillRect(x, y, 1.5, 4);
+      }
+      c.fillStyle = 'rgba(255,255,255,0.1)'; c.fillRect(w / 2 - 2, 0, 4, h);   // la raya del rodillo
     });
     // el césped es un abanico de triángulos desde el centro
     const ptsC = puntosOvalo(R0);
     const gc = new THREE.BufferGeometry();
-    const vp = [0, 0.02, 0], vu = [0, 0];
-    ptsC.forEach((p) => { vp.push(p.x, 0.02, p.z); vu.push(p.x / 6, p.z / 6); });
+    const vp = [0, 0.02, 0], vu = [0, 0];   // el centro del abanico
+    ptsC.forEach((p) => { vp.push(p.x, 0.02, p.z); vu.push(p.z / 7, p.x / 7); });
     const ic = [];
     for (let i = 1; i < ptsC.length; i++) ic.push(0, i + 1, i);
     gc.setAttribute('position', new THREE.Float32BufferAttribute(vp, 3));
@@ -13889,6 +13897,67 @@
     cesped.position.copy(EL(0, 0));
     cesped.receiveShadow = true;
     G.add(cesped);
+    // una pelusa de hierba corta por el borde del campo: así el césped no termina en un canto liso
+    {
+      const texMata = lienzo(64, 64, (c, w, hh) => {
+        c.clearRect(0, 0, w, hh);
+        for (let k = 0; k < 9; k++) {
+          const x0 = 6 + Math.random() * (w - 12), alto = hh * (0.5 + Math.random() * 0.45), curva = (Math.random() - 0.5) * 16;
+          c.fillStyle = ['#3f8f2e', '#4fa63a', '#62bd45', '#7ccd55'][Math.floor(Math.random() * 4)];
+          c.beginPath();
+          c.moveTo(x0 - 2.2, hh);
+          c.quadraticCurveTo(x0 + curva * 0.5, hh - alto * 0.55, x0 + curva, hh - alto);
+          c.quadraticCurveTo(x0 + 2.4 + curva * 0.5, hh - alto * 0.5, x0 + 2.2, hh);
+          c.fill();
+        }
+      });
+      const gMata = (() => {
+        const vs = [], ids = [], uvs = [], nr = [];
+        for (let q = 0; q < 2; q++) {
+          const a = q * Math.PI / 2, dx = Math.cos(a) * 0.5, dz = Math.sin(a) * 0.5, b = vs.length / 3;
+          vs.push(-dx, 0, -dz, dx, 0, dz, dx, 1, dz, -dx, 1, -dz);
+          uvs.push(0, 0, 1, 0, 1, 1, 0, 1);
+          for (let n = 0; n < 4; n++) nr.push(0, 1, 0);
+          ids.push(b, b + 1, b + 2, b, b + 2, b + 3);
+        }
+        const g = new THREE.BufferGeometry();
+        g.setAttribute('position', new THREE.Float32BufferAttribute(vs, 3));
+        g.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+        g.setAttribute('normal', new THREE.Float32BufferAttribute(nr, 3));
+        g.setIndex(ids);
+        return g;
+      })();
+      const NM = 2600;
+      const matM = new THREE.MeshStandardMaterial({ map: texMata, alphaTest: 0.45, side: THREE.DoubleSide, roughness: 0.9 });
+      matM.onBeforeCompile = (sh) => {
+        sh.uniforms.uT = atl.uT;
+        sh.vertexShader = sh.vertexShader
+          .replace('#include <common>', '#include <common>\n          uniform float uT;')
+          .replace('#include <begin_vertex>', `#include <begin_vertex>
+            vec3 raiz = instanceMatrix[3].xyz;
+            float v = sin(raiz.x * 0.2 + uT * 1.2) * 0.5 + sin(raiz.z * 0.25 - uT * 0.9) * 0.35;
+            float dob = uv.y * uv.y * 0.22;
+            transformed.x += v * dob;
+            transformed.z += v * dob * 0.5;`);
+      };
+      const im = new THREE.InstancedMesh(gMata, matM, NM);
+      const libre = (x, z) => Math.hypot(x - (SITIO_LONG.x + 4.6), z - SITIO_LONG.z) > 6.5 && Math.hypot(x - SITIO_ALTURA.x, z - SITIO_ALTURA.z) > 5.5
+        && Math.hypot(x - (SITIO_PERT.x + 2), z - SITIO_PERT.z) > 6.5 && Math.hypot(x - PODIO_POS.x, z - PODIO_POS.z) > 5;
+      let n = 0;
+      for (let k = 0; k < NM * 14 && n < NM; k++) {
+        // un anillo de hierba pegado al borde interior de la pista
+        const x = (az() * 2 - 1) * (H + R0), z = (az() * 2 - 1) * R0;
+        const d = distOvalo(x, z);
+        if (d > R0 - 0.35 || d < R0 - 1.7 || !libre(x, z)) continue;
+        qq.setFromEuler(new THREE.Euler(0, az() * 6.3, 0));
+        mm.compose(EL(x, z, 0.0), qq, new V3(0.5 + az() * 0.3, 0.16 + az() * 0.14, 0.5 + az() * 0.3));
+        im.setMatrixAt(n++, mm);
+      }
+      im.count = n;
+      im.instanceMatrix.needsUpdate = true;
+      im.receiveShadow = true;
+      G.add(im);
+    }
     // la pista: rojiza, con un poco de grano
     const texPista = lienzo(128, 128, (c, w, h) => {
       c.fillStyle = '#ffffff'; c.fillRect(0, 0, w, h);
@@ -13952,9 +14021,48 @@
       G.add(contra);
     }
     const dFin = D0 + FILAS * FOND, yFin = ALTO * FILAS;
-    const muro = cinta(dFin, 0, dFin, yFin + 1.0, { color: (i, v) => (v ? '#2a6edb' : '#d8d3c8'), hueco: true, doble: true, uv: 8 });
+    const texMuro = lienzo(256, 128, (c, w, hh) => {
+      c.fillStyle = '#e4e0d6'; c.fillRect(0, 0, w, hh);
+      for (let k = 0; k < 900; k++) { c.fillStyle = `rgba(${150 + Math.random() * 60 | 0},${145 + Math.random() * 60 | 0},${135 + Math.random() * 60 | 0},${Math.random() * 0.16})`; c.fillRect(Math.random() * w, Math.random() * hh, 3, 3); }
+      c.strokeStyle = 'rgba(120,115,105,0.35)'; c.lineWidth = 2;
+      for (let i = 0; i <= 4; i++) { c.beginPath(); c.moveTo(i * 64, 0); c.lineTo(i * 64, hh); c.stroke(); }   // juntas de los paneles
+      c.fillStyle = 'rgba(42,110,219,0.95)'; c.fillRect(0, hh * 0.72, w, hh * 0.28);
+      c.fillStyle = 'rgba(255,210,31,0.95)'; c.fillRect(0, hh * 0.66, w, hh * 0.06);
+    });
+    texMuro.repeat.set(1, 1);
+    const muro = cinta(dFin, 0, dFin, yFin + 1.0, { color: '#ffffff', map: texMuro, hueco: true, doble: true, uv: 9 });
     muro.position.copy(EL(0, 0));
     G.add(muro);
+    // ---------- Cubierta sobre las gradas (las dos rectas, dejando libre la entrada) ----------
+    // Índices del óvalo: 0..29 recta sur, 30..53 curva este, 54..83 recta norte, 84..107 curva oeste.
+    const TRAMOS_TECHO = [[0, 12], [24, 30], [54, 84]];
+    const yTecho = yFin + 4.6;
+    const texTecho = lienzo(128, 64, (c, w, hh) => {
+      c.fillStyle = '#eceae2'; c.fillRect(0, 0, w, hh);
+      c.strokeStyle = 'rgba(130,128,120,0.5)'; c.lineWidth = 3;
+      for (let i = 0; i <= 8; i++) { c.beginPath(); c.moveTo(i * 16, 0); c.lineTo(i * 16, hh); c.stroke(); }
+    });
+    const techo = cinta(D0 + 1.9, yTecho + 0.9, dFin + 2.6, yTecho, { color: '#ffffff', map: texTecho, tramos: TRAMOS_TECHO, uv: 7, rug: 0.7 });
+    techo.position.copy(EL(0, 0));
+    techo.castShadow = true;
+    G.add(techo);
+    const techoAbajo = cinta(D0 + 1.9, yTecho + 0.88, dFin + 2.6, yTecho - 0.02, { color: (i, v) => (v ? '#2a6edb' : '#4a86e8'), tramos: TRAMOS_TECHO, uv: 7, invertir: true });
+    techoAbajo.position.copy(EL(0, 0));
+    G.add(techoAbajo);
+    const borde = cinta(dFin + 2.6, yTecho - 0.35, dFin + 2.6, yTecho, { color: '#ffd21f', tramos: TRAMOS_TECHO, doble: true, uv: 7 });
+    borde.position.copy(EL(0, 0));
+    G.add(borde);
+    // pilares que sostienen la cubierta, por fuera del muro
+    const matPilar = mat('#d8d3c8', 0.8);
+    TRAMOS_TECHO.forEach(([a, b]) => {
+      for (let i = a; i < b; i += 4) {
+        const ptos = puntosOvalo(dFin + 2.2), q = ptos[i];
+        const pil = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.28, yTecho, 8), matPilar);
+        pil.position.copy(EL(q.x, q.z, yTecho / 2));
+        pil.castShadow = true;
+        G.add(pil);
+      }
+    });
     // el pretil de la primera fila y las vallas publicitarias del borde de la pista
     const texPublicidad = lienzo(512, 96, (c, w, h) => {
       const bloques = [['#e8463a', '¡VAMOS!'], ['#2a6edb', 'ATLETISMO'], ['#ffb400', '¡CORRE!'], ['#29b35a', '¡ÁNIMO!'], ['#7a5af8', 'CAMPEONES'], ['#ff4f8b', '¡SALTA!']];
@@ -13966,7 +14074,7 @@
       });
     });
     texPublicidad.wrapS = THREE.RepeatWrapping;
-    const valla = cinta(RO + 1.1, 0, RO + 1.1, 1.1, { color: '#ffffff', map: texPublicidad, hueco: true, doble: true, uv: -24 });
+    const valla = cinta(RO + 1.1, 0, RO + 1.1, 1.1, { color: '#ffffff', map: texPublicidad, hueco: true, doble: true, invertir: true, uv: 24 });
     valla.position.copy(EL(0, 0));
     G.add(valla);
 
@@ -14006,7 +14114,6 @@
     const iCuerpo = new THREE.InstancedMesh(cuerpoG, mPub, NPub), iCabeza = new THREE.InstancedMesh(cabezaG, mPub.clone(), NPub);
     const camisas = ['#e8463a', '#2a6edb', '#ffd21f', '#29b35a', '#ff4f8b', '#ffffff', '#7a5af8', '#ff9f43', '#2aa7b8'];
     const pieles = ['#f2cdb0', '#e2b08a', '#c68a62', '#8a5a3c', '#f6d8c0'];
-    const mm = new THREE.Matrix4(), qq = new THREE.Quaternion(), cc = new THREE.Color();
     posiciones.forEach((p, i) => {
       const es = 0.85 + az() * 0.25;
       mm.compose(EL(p[0], p[2], p[1]), qq.setFromAxisAngle(new V3(0, 1, 0), az() * 6.3), new V3(es, es, es));
@@ -14057,19 +14164,53 @@
       G.add(ban);
       atl.banderas.push({ m: ban, f: az() * 6, base: gb.attributes.position.array.slice() });
     });
-    // árboles y setos en la explanada de la entrada y fuera de las gradas
-    const copasCol = ['#4fa64a', '#6fc35a', '#8fd36a', '#3f8f45'];
+    // árboles con tronco inclinado, ramas y copa frondosa (como los del arroyo)
+    const copasCol = ['#4fa64a', '#5fb84e', '#6fc35a', '#3f8f45', '#7fcd5e'];
+    const matCorteza = new THREE.MeshStandardMaterial({ color: '#7a5436', roughness: 0.95, flatShading: true });
     const arbol = (x, z, e = 1, choca = true) => {
-      const t = new THREE.Mesh(new THREE.CylinderGeometry(0.22 * e, 0.38 * e, 3.2 * e, 7), mat('#7a5436'));
-      t.position.copy(EL(x, z, 1.6 * e)); t.castShadow = true; G.add(t);
-      for (let j = 0; j < 6; j++) {
-        const c = new THREE.Mesh(new THREE.IcosahedronGeometry((1.5 + az() * 0.9) * e, 1), new THREE.MeshStandardMaterial({ color: copasCol[j % 4], roughness: 0.85, flatShading: true }));
-        c.position.copy(EL(x + (az() - 0.5) * 2.4 * e, z + (az() - 0.5) * 2.4 * e, (3.6 + az() * 1.6) * e)); c.castShadow = true; G.add(c);
+      const alto = 3.4 * e;
+      const t = new THREE.Mesh(new THREE.CylinderGeometry(0.2 * e, 0.4 * e, alto, 7), matCorteza);
+      t.position.copy(EL(x, z, alto / 2));
+      t.rotation.set((az() - 0.5) * 0.08, az() * 6, (az() - 0.5) * 0.08);
+      t.castShadow = true;
+      G.add(t);
+      for (let j = 0; j < 3; j++) {   // ramas hacia la copa
+        const ang = az() * 6.3, inc = 0.5 + az() * 0.4, largo = (0.9 + az() * 1.1) * e;
+        const r = new THREE.Mesh(new THREE.CylinderGeometry(0.035 * e, 0.12 * e, largo, 5), matCorteza);
+        r.geometry.translate(0, largo / 2, 0);
+        r.position.copy(EL(x, z, alto * (0.55 + j * 0.16)));
+        r.rotation.set(Math.cos(ang) * inc, 0, -Math.sin(ang) * inc);
+        G.add(r);
+      }
+      // la copa baja hasta media altura del tronco, así parece un árbol y no una bola flotando
+      const n = 6 + Math.floor(az() * 3);
+      for (let j = 0; j < n; j++) {
+        const u = j / n, ancho = 3.2 * e * Math.sin(Math.PI * (0.25 + u * 0.7));
+        const c = new THREE.Mesh(new THREE.IcosahedronGeometry((1.1 + az() * 1.0) * e, 1), new THREE.MeshStandardMaterial({ color: copasCol[Math.floor(az() * 5)], roughness: 0.85, flatShading: true }));
+        c.position.copy(EL(x + (az() - 0.5) * ancho, z + (az() - 0.5) * ancho, alto - 0.8 * e + u * 2.6 * e + az() * 0.5 * e));
+        c.castShadow = true;
+        G.add(c);
       }
       if (choca) colisiones.push({ x: ESTADIO.x + x, z: ESTADIO.z + z, r: 0.45 });
     };
-    for (let k = 0; k < 14; k++) { const a = k / 14 * Math.PI * 2; arbol(Math.cos(a) * 120 + (az() - 0.5) * 20, Math.sin(a) * 100 + (az() - 0.5) * 20, 1.4 + az() * 0.8, false); }
-    [[-24, 48], [24, 48], [-24, 64], [24, 64], [-14, 56], [14, 56]].forEach(([x, z]) => arbol(x, z, 1.0 + az() * 0.2));
+    for (let k = 0; k < 20; k++) { const a = k / 20 * Math.PI * 2; arbol(Math.cos(a) * 120 + (az() - 0.5) * 24, Math.sin(a) * 100 + (az() - 0.5) * 24, 1.4 + az() * 0.8, false); }
+    [[-24, 48], [24, 48], [-26, 64], [26, 64], [-15, 68], [15, 68]].forEach(([x, z]) => arbol(x, z, 1.0 + az() * 0.2));
+    // setos recortados que enmarcan la explanada
+    const matSeto = new THREE.MeshStandardMaterial({ color: '#3f8f45', roughness: 0.9, flatShading: true });
+    const seto = (x, z, largo, ancho) => {
+      const s = new THREE.Mesh(new THREE.BoxGeometry(largo, 0.9, ancho), matSeto);
+      s.position.copy(EL(x, z, 0.45));
+      s.castShadow = s.receiveShadow = true;
+      G.add(s);
+      for (let k = 0; k < Math.max(2, Math.round(largo * ancho * 0.6)); k++) {   // bultos para que no sea una caja lisa
+        const b = new THREE.Mesh(new THREE.IcosahedronGeometry(0.42 + az() * 0.22, 0), matSeto);
+        b.position.copy(EL(x + (az() - 0.5) * largo * 0.95, z + (az() - 0.5) * ancho * 0.9, 0.9));
+        G.add(b);
+      }
+      cajas.push({ x0: ESTADIO.x + x - largo / 2, x1: ESTADIO.x + x + largo / 2, z0: ESTADIO.z + z - ancho / 2, z1: ESTADIO.z + z + ancho / 2, activa: true });
+    };
+    [[-20, 44], [20, 44]].forEach(([x, z]) => seto(x, z, 12, 1.4));
+    [[-31, 56], [31, 56]].forEach(([x, z]) => seto(x, z, 1.4, 20));
     // lomas lejanas que cierran el horizonte
     for (let k = 0; k < 26; k++) {
       const a = k / 26 * Math.PI * 2, r = 330 + az() * 90;
@@ -14079,12 +14220,26 @@
       G.add(lo);
     }
     // la explanada de la entrada (losetas) con bancos, neveras y flores
-    const plaza = new THREE.Mesh(new THREE.PlaneGeometry(64, 36), new THREE.MeshStandardMaterial({ color: '#d9d4c7', roughness: 0.95 }));
+    const texLosa = lienzo(256, 256, (c, w, hh) => {
+      c.fillStyle = '#d9d4c7'; c.fillRect(0, 0, w, hh);
+      for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) {
+        const v = 0.86 + Math.random() * 0.14;
+        c.fillStyle = `rgba(${Math.round(217 * v)},${Math.round(212 * v)},${Math.round(199 * v)},1)`;
+        c.fillRect(i * 64 + 2, j * 64 + 2, 60, 60);
+        c.fillStyle = 'rgba(255,255,255,0.35)'; c.fillRect(i * 64 + 2, j * 64 + 2, 60, 2);
+      }
+      for (let k = 0; k < 500; k++) { c.fillStyle = `rgba(150,145,130,${Math.random() * 0.12})`; c.fillRect(Math.random() * w, Math.random() * hh, 3, 3); }
+    });
+    texLosa.repeat.set(16, 9);
+    const plaza = new THREE.Mesh(new THREE.PlaneGeometry(64, 36), new THREE.MeshStandardMaterial({ color: '#ffffff', map: texLosa, roughness: 0.95 }));
     plaza.rotation.x = -Math.PI / 2;
     plaza.position.copy(EL(0, 56, 0.03));
     plaza.receiveShadow = true;
     G.add(plaza);
-    const pasillo = new THREE.Mesh(new THREE.PlaneGeometry(8, 20), new THREE.MeshStandardMaterial({ color: '#cfc9bb', roughness: 0.95 }));
+    const texPas = texLosa.clone();
+    texPas.needsUpdate = true;
+    texPas.repeat.set(2, 5);
+    const pasillo = new THREE.Mesh(new THREE.PlaneGeometry(8, 20), new THREE.MeshStandardMaterial({ color: '#cfc9bb', map: texPas, roughness: 0.95 }));
     pasillo.rotation.x = -Math.PI / 2;
     pasillo.position.copy(EL(0, 32, 0.035));
     G.add(pasillo);
@@ -14099,6 +14254,10 @@
     const cartelE = cartel('ESTADIO DE ATLETISMO', 11, 1.5);
     cartelE.position.copy(EL(0, 39.5, 6.1));
     G.add(cartelE);
+    const cartelE2 = cartel('¡MUCHA SUERTE!', 11, 1.5);   // por dentro, al salir a la pista
+    cartelE2.position.copy(EL(0, 39.48, 6.1));
+    cartelE2.rotation.y = Math.PI;
+    G.add(cartelE2);
     // la verja de vuelta a la playa, al fondo de la explanada
     [-2.4, 2.4].forEach((dx) => {
       const p = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.34, 4, 12), mat('#2a6edb', 0.6));
@@ -14107,6 +14266,7 @@
     });
     const cartelV = cartel('A LA PLAYA', 4.4, 0.8);
     cartelV.position.copy(EL(0, 72, 4.4));
+    cartelV.rotation.y = Math.PI;   // se lee viniendo del estadio
     G.add(cartelV);
     puntosAccion.push({ pos: EL(0, 70.6, 0.02), radio: 2.4, alto: 3, texto: 'A la playa', hacer: volverDelEstadio, visible: () => enEstadio(ninoE.pos) && ninoE.modo === 'libre' });
 
@@ -14330,6 +14490,7 @@
       return a;
     }).filter(Boolean);
   }
+  const az2 = (() => { let s = 101; return () => ((s = (s * 16807) % 2147483647) / 2147483647); })();
   const atlDe = (id) => atl.atletas.find((a) => a.id === id);
   const MANUEL = () => atl.atletas[0];
   const _atV = new V3(), _eu = new THREE.Euler(), _v2 = new V3();
@@ -14394,6 +14555,7 @@
   function colocarEnReposo() {
     atl.atletas.forEach((a) => {
       if (a.esManuel) return;
+      a.p.calienta = null;
       const sp = IDLE_SPOTS[a.id];
       const p = EL(sp[0], sp[1]);
       a.p.grupo.position.set(p.x, 0.03, p.z);
@@ -15716,20 +15878,72 @@
     }
   }
   // En reposo, mirando a Manuel y saludando cuando se acerca
+  // Mientras no hay prueba, los niños calientan: trotan por la pista, estiran o esperan su turno.
+  // Si Manuel se acerca, paran y le saludan.
   function atlReposo(a, dt, t) {
     const p = a.p, g = p.grupo, E = ninoE;
     const d = distXZ(g.position, E.pos);
-    const mira = Math.atan2(E.pos.x - g.position.x, E.pos.z - g.position.z);
-    p.rumbo = angulo(p.rumbo, mira, 1 - Math.exp(-3 * dt));
-    g.rotation.set(0, p.rumbo, 0);
-    if (d < 9 && (!p.proximoSaludo || t > p.proximoSaludo)) {
+    const cerca = d < 7;
+    if (!p.calienta) {
+      // cada uno con su calle y su ritmo; Carlos espera junto a la salida por si Manuel le habla
+      const k = atl.atletas.indexOf(a);
+      p.calienta = { calle: (k + 1) % PISTA.N, s: az2() * 200, v: 2.4 + az2() * 1.1, hasta: t + 10 + az2() * 20, modo: a.id === 'carlos' ? 'espera' : 'trota' };
+    }
+    const C = p.calienta;
+    if (cerca && (!p.proximoSaludo || t > p.proximoSaludo)) {
       p.proximoSaludo = t + 14 + Math.random() * 8;
       p.saludaHasta = t + 2.2;
       const f = FRASES_ATL[a.id] || ['¡Hola!'];
       diga(p, f[Math.floor(Math.random() * f.length)], 2.4);
     }
-    animarPadre(p, p.saludaHasta > t && p.acciones.saludar ? 'saludar' : 'reposo');
-    if (p.actual) { p.actual.paused = false; p.actual.timeScale = 1; }
+    const saludando = p.saludaHasta > t;
+    if (cerca || saludando) {
+      // se para y mira a Manuel
+      const mira = Math.atan2(E.pos.x - g.position.x, E.pos.z - g.position.z);
+      p.rumbo = angulo(p.rumbo, mira, 1 - Math.exp(-3 * dt));
+      g.rotation.set(0, p.rumbo, 0);
+      animarPadre(p, saludando && p.acciones.saludar ? 'saludar' : 'reposo');
+      if (p.actual) { p.actual.paused = false; p.actual.timeScale = 1; }
+      C.hasta = Math.max(C.hasta, t + 3);
+      return;
+    }
+    if (t > C.hasta) {
+      // cambia de tarea: trotar, estirar o descansar
+      const r = az2();
+      C.modo = r < 0.55 ? 'trota' : r < 0.8 ? 'estira' : 'espera';
+      C.hasta = t + (C.modo === 'trota' ? 12 + az2() * 14 : 5 + az2() * 6);
+      if (C.modo === 'trota') { C.calle = Math.floor(az2() * PISTA.N); C.v = 2.3 + az2() * 1.2; }
+    }
+    if (C.modo === 'trota') {
+      const R = radioCalle(C.calle);
+      C.s += C.v * dt;
+      const q = puntoPista(R, C.s);
+      g.position.set(ESTADIO.x + q.x, 0.03, ESTADIO.z + q.z);
+      p.rumbo = Math.atan2(q.tx, q.tz);
+      g.rotation.set(0, p.rumbo, 0);
+      animarPadre(p, 'correr');
+      if (p.actual) { p.actual.paused = false; p.actual.timeScale = clamp(C.v / 3.7, 0.6, 1.5); }
+    } else {
+      // estirando o esperando, en su sitio de siempre
+      const sp = IDLE_SPOTS[a.id], destino = EL(sp[0], sp[1]);
+      const dx = destino.x - g.position.x, dz = destino.z - g.position.z, dd = Math.hypot(dx, dz);
+      if (dd > 1.0) {
+        const v = Math.min(3.2, dd * 1.5);
+        g.position.x += dx / dd * v * dt;
+        g.position.z += dz / dd * v * dt;
+        g.position.y = 0.03;
+        p.rumbo = angulo(p.rumbo, Math.atan2(dx, dz), 1 - Math.exp(-6 * dt));
+        g.rotation.set(0, p.rumbo, 0);
+        animarPadre(p, v > 2.4 ? 'correr' : 'andar');
+        if (p.actual) { p.actual.paused = false; p.actual.timeScale = clamp(v / (v > 2.4 ? 3.7 : 1.6), 0.7, 1.8); }
+      } else {
+        const mira = Math.atan2(ESTADIO.x - g.position.x, ESTADIO.z - g.position.z);
+        p.rumbo = angulo(p.rumbo, mira, 1 - Math.exp(-2 * dt));
+        g.rotation.set(0, p.rumbo, 0);
+        animarPadre(p, C.modo === 'estira' && p.acciones.cansado ? 'cansado' : 'reposo');
+        if (p.actual) { p.actual.paused = false; p.actual.timeScale = C.modo === 'estira' ? 0.7 : 1; }
+      }
+    }
   }
   // La cámara: la lleva la prueba (detrás de Manuel, de lado, siguiendo lo que vuela...)
   const _mira = new V3();
@@ -19822,6 +20036,7 @@
         st: atl.ev.st ? atl.ev.st.fase : null, v: atl.ev.corr ? +atl.ev.corr[0].v.toFixed(2) : null, s: atl.ev.corr ? +atl.ev.corr[0].s.toFixed(1) : null }, hechas: [...atl.hechas], medallas: atl.medallas,
         pos: ninoE.pos.toArray().map((v) => +v.toFixed(1)), zona: zonaDe(ninoE.pos), sesion: atl.sesion ? [...atl.sesion] : [], carlos: atl.carlos ? atl.carlos.grupo.position.toArray().map((v) => +v.toFixed(1)) : null }),
       atl: (id) => atlEmpezar(id),
+      atletas: () => atl.atletas.filter((a) => !a.esManuel).map((a) => ({ id: a.id, pos: a.p.grupo.position.toArray().map((v) => +v.toFixed(1)), modo: a.p.calienta && a.p.calienta.modo, anim: a.p.actual && a.p.actual.getClip().name })),
       botAtl: (tasa = 5, retraso = 0, fuerza = 0.86, angulo = 0.42, exactoAltura = 0.93) => {
         // un jugador que pulsa el botón como lo haría una persona: rápido para correr y a tiempo para saltar o lanzar
         let acu = 0, esperaSalto = 0, antes = '';
