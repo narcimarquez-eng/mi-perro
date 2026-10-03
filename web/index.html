@@ -11852,17 +11852,50 @@
       const ix = Math.round(x / RES_A + NA / 2), iz = Math.round(z / RES_A + NA / 2), k = iz * (NA + 1) + ix;
       const h = H[k], d = dist[k], W = arroyo.anchos[cerca[k]];
       pos.setY(v, h);
-      if (h > 5 && z < -105) tmpC.copy(roca).lerp(verde, smoothstep(7, 7.5, h) * 0.8);
-      else if (d < W) tmpC.copy(fondo).lerp(arena, smoothstep(0.75 * W, W, d)).lerp(new THREE.Color('#7a6a4e'), 0.35 * (0.5 + 0.5 * Math.sin(x * 1.3 + z * 0.9)));
-      else if (d < W + 2.5) tmpC.copy(arena).lerp(verde, smoothstep(W + 0.8, W + 2.5, d));
-      else tmpC.copy(verde).lerp(verde2, 0.5 + 0.5 * Math.sin(x * 0.21 + z * 0.17));
+      if (h > 2.2 && z < -103) {
+        // acantilado: roca en capas, con hierba solo arriba del todo
+        tmpC.copy(roca).lerp(new THREE.Color('#6a635a'), 0.5 + 0.5 * Math.sin(h * 2.6 + x * 0.3));
+        tmpC.lerp(new THREE.Color('#9c9184'), 0.3 * (0.5 + 0.5 * Math.sin(x * 0.9 + h * 1.1)));
+        tmpC.lerp(verde, smoothstep(7.1, 7.45, h));
+      }
+      else if (d < W) {
+        // fondo del cauce: guijarros grises y verdosos, con musgo; solo arena justo en la orilla
+        tmpC.copy(fondo).lerp(new THREE.Color('#3f5250'), 0.5 * (0.5 + 0.5 * Math.sin(x * 1.1 + z * 0.7)));
+        tmpC.lerp(new THREE.Color('#8a9188'), 0.42 * (0.5 + 0.5 * Math.sin(x * 2.3 - z * 1.9)));
+        tmpC.lerp(arena, smoothstep(0.92 * W, W + 0.4, d) * 0.8);
+      } else if (d < W + 1.4) tmpC.copy(arena).lerp(new THREE.Color('#8f8468'), 0.35).lerp(verde, smoothstep(W + 0.5, W + 1.4, d));
+      else {
+        // manchas grandes y pequeñas, para que el prado no sea un verde liso
+        const m = 0.5 + 0.5 * Math.sin(x * 0.21 + z * 0.17);
+        const m2 = 0.5 + 0.5 * Math.sin(x * 0.63 - z * 0.71) * Math.cos(x * 0.37 + z * 0.29);
+        tmpC.copy(verde).lerp(verde2, m * 0.75 + m2 * 0.25);
+        tmpC.lerp(new THREE.Color('#3f7f33'), 0.35 * Math.pow(m2, 3));          // sombras de hierba espesa
+        tmpC.lerp(new THREE.Color('#9fc95a'), 0.25 * Math.pow(1 - m2, 4));      // claros al sol
+        if (d < W + 7) tmpC.lerp(new THREE.Color('#4e8c3c'), 0.4 * smoothstep(W + 7, W + 2.5, d));  // musgo junto al agua
+      }
       tmpC.convertSRGBToLinear();
       cols.push(tmpC.r, tmpC.g, tmpC.b);
     }
     geo.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
     geo.computeVertexNormals();
     const uT = { value: 0 };
-    const matT = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 });
+    // una textura de manchitas que se repite por el prado: da detalle al suelo sin gastar triángulos
+    const texSuelo = lienzo(256, 256, (c, w, hh) => {
+      c.fillStyle = '#ffffff';
+      c.fillRect(0, 0, w, hh);
+      for (let k = 0; k < 2600; k++) {
+        const x = Math.random() * w, y = Math.random() * hh, r = 1 + Math.random() * 7;
+        const v = Math.random();
+        c.fillStyle = v < 0.45 ? `rgba(90,140,70,${0.1 + Math.random() * 0.3})` : v < 0.85 ? `rgba(190,225,150,${0.08 + Math.random() * 0.22})` : `rgba(240,245,180,0.3)`;
+        c.beginPath();
+        c.ellipse(x, y, r, r * (0.3 + Math.random() * 0.5), Math.random() * 3, 0, 7);
+        c.fill();
+      }
+    });
+    texSuelo.wrapS = texSuelo.wrapT = THREE.RepeatWrapping;
+    texSuelo.repeat.set(42, 42);
+    texSuelo.anisotropy = 4;
+    const matT = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, map: texSuelo });
     // cáusticas: luz que baila en el fondo del agua
     matT.onBeforeCompile = (sh) => {
       sh.uniforms.uT = uT;
@@ -11881,10 +11914,13 @@
           return c / 3.0;
         }
 `).replace('#include <color_fragment>', `#include <color_fragment>
-        if (vPosA.y < -0.02) {
+        if (vPosA.y < 0.1) {
+          float bajoAgua = smoothstep(0.1, -0.15, vPosA.y);
+          // el dibujo de hierba no pinta el cauce: ahí manda el color del fondo
+          diffuseColor.rgb = mix(diffuseColor.rgb, vColor.rgb * 0.82, bajoAgua);
           float c = causticaA(vPosA.xz, uT);
-          diffuseColor.rgb *= 0.78 + 1.1 * c * smoothstep(-0.02, -0.3, vPosA.y);
-          diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.25, 0.55, 0.5), smoothstep(-0.1, -1.0, vPosA.y) * 0.35);
+          diffuseColor.rgb *= 1.0 + (0.95 * c - 0.18) * bajoAgua;
+          diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.1, 0.34, 0.42), smoothstep(-0.1, -1.1, vPosA.y) * 0.55);
         }
 `);
     };
@@ -11982,24 +12018,24 @@
           vec3 cielo = mix(vec3(0.55, 0.78, 0.9), vec3(0.18, 0.42, 0.7), clamp(R.y * 1.4, 0.0, 1.0));
           // agua cristalina: casi transparente en la orilla y turquesa en lo hondo
           float hondo = smoothstep(0.0, 1.0, vProf);
-          vec3 col = mix(vec3(0.45, 0.9, 0.85), vec3(0.05, 0.5, 0.6), hondo);
-          float alpha = mix(0.08, 0.55, hondo);
+          vec3 col = mix(vec3(0.5, 0.95, 0.88), vec3(0.04, 0.58, 0.68), hondo);
+          float alpha = mix(0.07, 0.58, hondo);
           col = mix(col, cielo, fres * 0.45);
           alpha = mix(alpha, 0.8, fres * 0.4);
           float brillo = pow(max(dot(R, uSol), 0.0), 220.0) * 3.0;
           col += brillo; alpha = min(1.0, alpha + brillo);
           // destellos que viajan con la corriente
-          float chispa = smoothstep(0.985, 1.0, sin(p.x * 13.0 + sin(p.y * 3.0) * 2.0) * sin(p.y * 17.0 + uT * 0.5));
-          col += chispa * 0.6; alpha = max(alpha, chispa * 0.6);
+          float chispa = smoothstep(0.988, 1.0, sin(p.x * 13.0 + sin(p.y * 3.0) * 2.0) * sin(p.y * 17.0 + uT * 0.5));
+          col += chispa * 0.5; alpha = max(alpha, chispa * 0.5);
           // espuma en las orillas
           float borde = min(vUv.x, 1.0 - vUv.x);
-          float espuma = smoothstep(0.1, 0.0, borde - 0.03 * sin(p.y * 4.0 + uT * 2.0));
-          col = mix(col, vec3(1.0), espuma * 0.45); alpha = max(alpha, espuma * 0.4);
+          float espuma = smoothstep(0.065, 0.0, borde - 0.025 * sin(p.y * 4.0 + uT * 2.0));
+          col = mix(col, vec3(1.0), espuma * 0.4); alpha = max(alpha, espuma * 0.35);
           // rayas de corriente que bajan por el cauce: así se ve hacia dónde va el agua
           float rx = vUv.x * 9.0 + sin(vUv.y * 2.3) * 0.8;
           float linea = smoothstep(0.8, 1.0, sin(rx * 6.2832)) * smoothstep(0.45, 1.0, sin(vUv.y * 9.0 - uT * 2.3 + floor(rx) * 1.7));
           linea *= smoothstep(0.02, 0.15, borde);
-          col = mix(col, vec3(0.95, 1.0, 1.0), linea * 0.5); alpha = max(alpha, linea * 0.55);
+          col = mix(col, vec3(0.95, 1.0, 1.0), linea * 0.4); alpha = max(alpha, linea * 0.4);
           float dist = length(cameraPosition - vW);
           float niebla = smoothstep(60.0, 220.0, dist);
           col = mix(col, uNiebla, niebla);
@@ -12026,20 +12062,129 @@
           gl_FragColor = vec4(col, a);
         }`,
     });
-    const cascada = new THREE.Mesh(new THREE.PlaneGeometry(6, 7.8, 1, 1), cascadaMat);
-    cascada.position.set(ARROYO.x + p0.x, 3.7, ARROYO.z - 112.4);
+    const cascada = new THREE.Mesh(new THREE.PlaneGeometry(11, 8.4, 1, 1), cascadaMat);
+    cascada.position.set(ARROYO.x + p0.x, 4.0, ARROYO.z - 112.4);
     cascada.rotation.x = -0.12;
     G.add(cascada);
-    const rocasC = new THREE.InstancedMesh(new THREE.DodecahedronGeometry(1, 0), new THREE.MeshStandardMaterial({ color: '#7f7b74', roughness: 0.9, flatShading: true }), 22);
-    for (let k = 0; k < 22; k++) {
-      const x = ARROYO.x + p0.x + (k % 2 ? 1 : -1) * (3.6 + az() * 6), z = ARROYO.z - 112 + az() * 2, y = az() * 7;
-      mm.compose(new V3(x, y, z), qq.setFromEuler(new THREE.Euler(az() * 3, az() * 3, 0)), new V3(1.2 + az() * 1.5, 1 + az(), 1 + az()));
+    // un segundo chorro, más estrecho, cayendo a un lado
+    const cascada2 = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 5.4, 1, 1), cascadaMat);
+    cascada2.position.set(ARROYO.x + p0.x - 7.5, 3.0, ARROYO.z - 111.2);
+    cascada2.rotation.set(-0.1, 0.25, 0);
+    G.add(cascada2);
+    // la espuma blanca donde el agua golpea la poza
+    const espumaPoza = new THREE.Mesh(new THREE.CircleGeometry(6.5, 32), new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.4, depthWrite: false }));
+    espumaPoza.rotation.x = -Math.PI / 2;
+    espumaPoza.position.set(ARROYO.x + p0.x, 0.06, ARROYO.z - 109.5);
+    espumaPoza.renderOrder = 3;
+    G.add(espumaPoza);
+    arroyo.espumaPoza = espumaPoza;
+    // nubes de bruma delante de la caída
+    const texBruma = lienzo(128, 128, (c, w, hh) => {
+      const g = c.createRadialGradient(64, 64, 0, 64, 64, 64);
+      g.addColorStop(0, 'rgba(255,255,255,0.75)'); g.addColorStop(0.45, 'rgba(240,250,255,0.3)'); g.addColorStop(1, 'rgba(230,245,255,0)');
+      c.fillStyle = g; c.fillRect(0, 0, w, hh);
+    });
+    arroyo.brumas = [];
+    for (let k = 0; k < 14; k++) {
+      const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: texBruma, transparent: true, depthWrite: false, opacity: 0.4 }));
+      const t = 3 + az() * 5;
+      s.scale.set(t, t * 0.75, 1);
+      s.position.set(ARROYO.x + p0.x + (az() - 0.5) * 14, 0.4 + az() * 3.5, ARROYO.z - 110 + az() * 3);
+      s.renderOrder = 5;
+      G.add(s);
+      arroyo.brumas.push({ s, f: az() * 6, y0: s.position.y, o: 0.25 + az() * 0.3 });
+    }
+    const rocasC = new THREE.InstancedMesh(new THREE.DodecahedronGeometry(1, 0), new THREE.MeshStandardMaterial({ color: '#8a847a', roughness: 0.9, flatShading: true }), 40);
+    for (let k = 0; k < 40; k++) {
+      const x = ARROYO.x + p0.x + (k % 2 ? 1 : -1) * (7.5 + az() * 12), z = ARROYO.z - 112.5 + az() * 3, y = az() * 7.5;
+      mm.compose(new V3(x, y, z), qq.setFromEuler(new THREE.Euler(az() * 3, az() * 3, 0)), new V3(0.75 + az() * 1.0, 0.7 + az() * 0.8, 0.7 + az() * 0.8));
       rocasC.setMatrixAt(k, mm);
     }
     rocasC.castShadow = true;
     G.add(rocasC);
     arroyo.bruma = { centro: new V3(ARROYO.x + p0.x, 0.2, ARROYO.z - 110.5) };
     // ---------- Árboles mágicos (otoño y cerezos) ----------
+    // ---------- Hierba: briznas que se mecen con el viento ----------
+    // Una brizna es un triangulito alargado con tres tramos, para que la punta se doble. Se repiten
+    // miles de veces (InstancedMesh) por las orillas y el prado, y el viento se calcula en el shader.
+    // Cada mata son dos planos cruzados con un dibujo de briznas: cubre mucho y cuesta 4 triángulos.
+    const texMata = lienzo(128, 128, (c, w, hh) => {
+      c.clearRect(0, 0, w, hh);
+      for (let k = 0; k < 11; k++) {
+        const x0 = 8 + Math.random() * (w - 16), alto = hh * (0.45 + Math.random() * 0.5);
+        const curva = (Math.random() - 0.5) * 34, ancho = 3 + Math.random() * 3.5;
+        const v = Math.random();
+        const col = v < 0.3 ? '#4f9c38' : v < 0.6 ? '#63b545' : v < 0.85 ? '#7ac455' : '#9ed05a';
+        c.fillStyle = col;
+        c.beginPath();
+        c.moveTo(x0 - ancho, hh);
+        c.quadraticCurveTo(x0 - ancho * 0.4 + curva * 0.5, hh - alto * 0.55, x0 + curva, hh - alto);
+        c.quadraticCurveTo(x0 + ancho * 0.6 + curva * 0.5, hh - alto * 0.5, x0 + ancho, hh);
+        c.closePath();
+        c.fill();
+      }
+    });
+    texMata.anisotropy = 4;
+    const mataGeo = (() => {
+      const vs = [], ids = [], uvs = [], nr = [];
+      for (let q = 0; q < 2; q++) {
+        const a = q * Math.PI / 2, dx = Math.cos(a) * 0.5, dz = Math.sin(a) * 0.5, b = vs.length / 3;
+        vs.push(-dx, 0, -dz, dx, 0, dz, dx, 1, dz, -dx, 1, -dz);
+        uvs.push(0, 0, 1, 0, 1, 1, 0, 1);
+        for (let n = 0; n < 4; n++) nr.push(0, 1, 0);   // normal hacia arriba: recibe la luz como el prado
+        ids.push(b, b + 1, b + 2, b, b + 2, b + 3);
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(vs, 3));
+      g.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+      g.setAttribute('normal', new THREE.Float32BufferAttribute(nr, 3));
+      g.setIndex(ids);
+      return g;
+    })();
+    const NB = 13000;
+    const matHierba = new THREE.MeshStandardMaterial({ map: texMata, alphaTest: 0.45, side: THREE.DoubleSide, roughness: 0.9 });
+    matHierba.onBeforeCompile = (sh) => {
+      sh.uniforms.uT = uT;
+      sh.vertexShader = sh.vertexShader
+        .replace('#include <common>', `#include <common>
+          uniform float uT;`)
+        .replace('#include <begin_vertex>', `#include <begin_vertex>
+          vec3 raiz = instanceMatrix[3].xyz;
+          float alt = uv.y;
+          // dos ondas lentas que recorren el prado, más un temblorcillo
+          float v = sin(raiz.x * 0.18 + uT * 1.1) * 0.7 + sin(raiz.z * 0.23 - uT * 0.8) * 0.5 + sin((raiz.x + raiz.z) * 0.9 + uT * 2.6) * 0.18;
+          float dob = alt * alt * 0.3;
+          transformed.x += v * dob;
+          transformed.z += v * dob * 0.55;
+          transformed.y -= abs(v) * dob * 0.15;`);
+    };
+    const hierba = new THREE.InstancedMesh(mataGeo, matHierba, NB);
+    hierba.receiveShadow = true;
+    let nB = 0;
+    const ponerMata = (x, z, s, ancho) => {
+      if (nB >= NB) return;
+      const y = hArroyo(x, z);
+      if (y < 0.1 || y > 6.5) return;   // ni dentro del agua ni en el acantilado
+      qq.setFromEuler(new THREE.Euler(0, az() * 6.3, 0));
+      mm.compose(new V3(x, y - 0.04, z), qq, new V3(ancho, s, ancho));
+      hierba.setMatrixAt(nB, mm);
+      nB++;
+    };
+    // junto al agua, hierba alta y espesa (es por donde se anda)
+    for (let k = 0; k < 7000; k++) {
+      const i = Math.floor(az() * NP), p = arroyo.pts[i], tg = arroyo.tan[i], W = arroyo.anchos[i];
+      const lat = (az() < 0.5 ? -1 : 1) * (W + 0.1 + Math.pow(az(), 1.8) * 14);
+      ponerMata(ARROYO.x + p.x - tg.z * lat, ARROYO.z + p.z + tg.x * lat, 0.5 + az() * 0.45, 0.6 + az() * 0.4);
+    }
+    // y matas por todo el prado, en manchas
+    for (let k = 0; k < 1500 && nB < NB; k++) {
+      const cx = ARROYO.x + (az() * 2 - 1) * 112, cz = ARROYO.z - 100 + az() * 215;
+      const n = 2 + Math.floor(az() * 4);
+      for (let j = 0; j < n && nB < NB; j++) ponerMata(cx + (az() - 0.5) * 6, cz + (az() - 0.5) * 6, 0.32 + az() * 0.3, 0.5 + az() * 0.35);
+    }
+    hierba.count = nB;
+    hierba.instanceMatrix.needsUpdate = true;
+    G.add(hierba);
     const troncos = [], copas = [];
     for (let k = 0; k < 220 && troncos.length < 70; k++) {
       const x = (az() * 2 - 1) * 110, z = -100 + az() * 220;
@@ -12047,9 +12192,14 @@
       if (dist[kk] < arroyo.anchos[cerca[kk]] + 4 || Math.hypot(x - 40, z - 66) < 8) continue;
       const alto = 4 + az() * 3;
       troncos.push([x, z, alto]);
-      const n = 4 + Math.floor(az() * 3);
+      const n = 6 + Math.floor(az() * 4);
       const tipo = az();
-      for (let j = 0; j < n; j++) copas.push([x + (az() - 0.5) * 3, alto + az() * 1.6, z + (az() - 0.5) * 3, 1.4 + az() * 1.0, tipo]);
+      // las copas bajan hasta media altura del tronco, así se ve un árbol y no una bola flotando
+      for (let j = 0; j < n; j++) {
+        const t = j / n, r = 1.1 + az() * 1.1;
+        const ancho = 3.4 * Math.sin(Math.PI * (0.25 + t * 0.7));
+        copas.push([x + (az() - 0.5) * ancho, alto - 0.9 + t * 2.6 + az() * 0.5, z + (az() - 0.5) * ancho, r, tipo]);
+      }
     }
     for (let k = 0; k < 18; k++) {
       const i = 30 + Math.floor(az() * (NP - 60)), p = arroyo.pts[i], tg = arroyo.tan[i], W = arroyo.anchos[i], lado = k % 2 ? 1 : -1, lat = lado * (W + 2.2);
@@ -12061,15 +12211,34 @@
         copas.push([x - (-tg.z * lado) * hacia * W * 0.35 + (az() - 0.5) * 1.5, alto + az() * 1.2, z - (tg.x * lado) * hacia * W * 0.35 + (az() - 0.5) * 1.5, 1.3 + az() * 0.8, tipo]);
       }
     }
-    const imTr = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.22, 0.35, 1, 8), new THREE.MeshStandardMaterial({ color: '#6b4a32', roughness: 0.9 }), troncos.length);
+    const matCorteza = new THREE.MeshStandardMaterial({ color: '#7a5436', roughness: 0.95, flatShading: true });
+    const imTr = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.2, 0.38, 1, 7), matCorteza, troncos.length);
     troncos.forEach(([x, z, a], k) => {
       const y0 = hArroyo(ARROYO.x + x, ARROYO.z + z);
-      mm.compose(new V3(ARROYO.x + x, y0 + a / 2, ARROYO.z + z), qq.identity(), new V3(1, a + 0.4, 1));
+      qq.setFromEuler(new THREE.Euler((az() - 0.5) * 0.06, az() * 6, (az() - 0.5) * 0.06));
+      mm.compose(new V3(ARROYO.x + x, y0 + a / 2, ARROYO.z + z), qq, new V3(1, a + 0.4, 1));
       imTr.setMatrixAt(k, mm);
       colisiones.push({ x: ARROYO.x + x, z: ARROYO.z + z, r: 0.4 });
     });
     imTr.castShadow = true;
     G.add(imTr);
+    // ramas que salen del tronco hacia la copa, para que el árbol no sea un poste
+    const ramaGeo = new THREE.CylinderGeometry(0.035, 0.12, 1, 5);
+    ramaGeo.translate(0, 0.5, 0);
+    const imRa = new THREE.InstancedMesh(ramaGeo, matCorteza, troncos.length * 3);
+    let nRa = 0;
+    troncos.forEach(([x, z, a]) => {
+      const y0 = hArroyo(ARROYO.x + x, ARROYO.z + z);
+      for (let j = 0; j < 3; j++) {
+        const ang = az() * 6.3, inc = 0.5 + az() * 0.45, largo = 0.9 + az() * 1.1;
+        qq.setFromEuler(new THREE.Euler(Math.cos(ang) * inc, 0, -Math.sin(ang) * inc));
+        mm.compose(new V3(ARROYO.x + x, y0 + a * (0.55 + j * 0.16), ARROYO.z + z), qq, new V3(1, largo, 1));
+        imRa.setMatrixAt(nRa++, mm);
+      }
+    });
+    imRa.count = nRa;
+    imRa.castShadow = true;
+    G.add(imRa);
     const imCo = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 1), new THREE.MeshStandardMaterial({ roughness: 0.8, flatShading: true }), copas.length);
     const coloresCopa = [['#e8742a', '#f2a93b', '#d9522b'], ['#ffd34a', '#f6bd2c', '#e6a51f'], ['#f7a8c8', '#ffc2d9', '#ee8fb6'], ['#6fc35a', '#4fa64a', '#8fd36a']];
     arroyo.copas = [];
@@ -12083,6 +12252,127 @@
     });
     imCo.castShadow = true;
     G.add(imCo);
+    // ---------- Sauces llorones junto al agua: cortinas de hojas que se mecen ----------
+    // Cortina de hojas de sauce: un plano con hojitas dibujadas, que cuelga y se mece
+    const texSauce = lienzo(64, 256, (c, w, hh) => {
+      c.clearRect(0, 0, w, hh);
+      for (let r = 0; r < 3; r++) {
+        const x0 = w * (0.2 + r * 0.3);
+        c.strokeStyle = '#6fae44';
+        c.lineWidth = 1.6;
+        c.beginPath();
+        c.moveTo(x0, 0);
+        c.quadraticCurveTo(x0 + (Math.random() - 0.5) * 14, hh * 0.6, x0 + (Math.random() - 0.5) * 16, hh);
+        c.stroke();
+        for (let k = 0; k < 16; k++) {
+          const t = 0.05 + k / 16 * 0.95, y = t * hh, x = x0 + (Math.random() - 0.5) * 10 * t;
+          c.fillStyle = ['#7cc455', '#9ad46a', '#5fa83c', '#b4e07a'][k % 4];
+          c.beginPath();
+          c.ellipse(x + (k % 2 ? 4 : -4), y, 2.6, 6, (k % 2 ? 0.5 : -0.5), 0, 7);
+          c.fill();
+        }
+      }
+    });
+    texSauce.anisotropy = 4;
+    const colganteGeo = (() => {
+      const n = 4, vs = [], ids = [], uvs = [], nr = [];
+      for (let q = 0; q < 2; q++) {
+        const a = q * Math.PI / 2, dx = Math.cos(a) * 0.5, dz = Math.sin(a) * 0.5;
+        for (let k = 0; k <= n; k++) {
+          const t = k / n, b = vs.length / 3;
+          vs.push(-dx, -t, -dz, dx, -t, dz);   // cuelga hacia abajo
+          uvs.push(0, 1 - t, 1, 1 - t);
+          nr.push(0, 1, 0, 0, 1, 0);
+          if (k < n) ids.push(b, b + 1, b + 3, b, b + 3, b + 2);
+        }
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(vs, 3));
+      g.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+      g.setAttribute('normal', new THREE.Float32BufferAttribute(nr, 3));
+      g.setIndex(ids);
+      return g;
+    })();
+    const matColgante = new THREE.MeshStandardMaterial({ map: texSauce, alphaTest: 0.4, side: THREE.DoubleSide, roughness: 0.85 });
+    matColgante.onBeforeCompile = (sh) => {
+      sh.uniforms.uT = uT;
+      sh.vertexShader = sh.vertexShader
+        .replace('#include <common>', '#include <common>\n          uniform float uT;')
+        .replace('#include <begin_vertex>', `#include <begin_vertex>
+          vec3 raiz = instanceMatrix[3].xyz;
+          float v = sin(raiz.x * 0.18 + uT * 1.1) * 0.7 + sin(raiz.z * 0.23 - uT * 0.8) * 0.5;
+          float cae = (1.0 - uv.y) * (1.0 - uv.y) * 0.5;   // la punta de la cortina se mece más
+          transformed.x += v * cae;
+          transformed.z += v * cae * 0.5;`);
+    };
+    const NSau = 5, colgantes = [];
+    for (let s = 0; s < NSau; s++) {
+      const u = 0.12 + s * 0.19, lado = s % 2 ? 1 : -1;
+      const i = Math.floor(u * NP), p = arroyo.pts[i], tg = arroyo.tan[i], W = arroyo.anchos[i];
+      const lat = lado * (W + 1.6);
+      const x = ARROYO.x + p.x - tg.z * lat, z = ARROYO.z + p.z + tg.x * lat, y0 = hArroyo(x, z);
+      if (y0 < 0.1) continue;
+      // tronco inclinado hacia el agua
+      const inc = -lado * 0.22, alto = 5 + az() * 1.5;
+      const tr = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.5, alto, 8), matCorteza);
+      tr.position.set(x + Math.sin(inc) * alto * 0.4, y0 + alto / 2, z);
+      tr.rotation.z = inc;
+      tr.castShadow = true;
+      G.add(tr);
+      colisiones.push({ x, z, r: 0.5 });
+      const cima = new V3(x + Math.sin(inc) * alto * 0.85, y0 + alto * 0.97, z);
+      // ramas arqueadas y, de cada una, cortinas de hojas
+      for (let r = 0; r < 7; r++) {
+        const ang = r / 7 * Math.PI * 2 + az(), largo = 2.2 + az() * 1.6;
+        const fin = cima.clone().add(new V3(Math.cos(ang) * largo, 0.5 - largo * 0.12, Math.sin(ang) * largo));
+        const rama = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.13, cima.distanceTo(fin), 5), matCorteza);
+        rama.position.copy(cima).lerp(fin, 0.5);
+        rama.quaternion.setFromUnitVectors(new V3(0, 1, 0), fin.clone().sub(cima).normalize());
+        G.add(rama);
+        for (let c = 0; c < 6; c++) {
+          const t = 0.25 + az() * 0.75;
+          const q = cima.clone().lerp(fin, t).add(new V3((az() - 0.5) * 0.5, 0, (az() - 0.5) * 0.5));
+          colgantes.push([q, 1.4 + az() * 2.2 + t * 1.2]);
+        }
+      }
+      // copa verde clara encima
+      for (let c = 0; c < 7; c++) {
+        const ang = c / 7 * Math.PI * 2;
+        const cop = new THREE.Mesh(new THREE.IcosahedronGeometry(1.5 + az() * 0.6, 1), new THREE.MeshStandardMaterial({ color: ['#8fd36a', '#9fdc74', '#7cc35a'][c % 3], roughness: 0.85, flatShading: true }));
+        cop.position.copy(cima).add(new V3(Math.cos(ang) * 1.9, 0.3 + az() * 0.7, Math.sin(ang) * 1.9));
+        cop.castShadow = true;
+        G.add(cop);
+      }
+    }
+    if (colgantes.length) {
+      const imCol = new THREE.InstancedMesh(colganteGeo, matColgante, colgantes.length);
+      colgantes.forEach(([q, largo], k) => {
+        qq.setFromEuler(new THREE.Euler(0, az() * 6.3, 0));
+        mm.compose(q, qq, new V3(0.75 + az() * 0.5, largo, 0.75 + az() * 0.5));
+        imCol.setMatrixAt(k, mm);
+      });
+      G.add(imCol);
+    }
+    // ---------- Pétalos de cerezo que vuelan ----------
+    const NPet = 160, posPet = new Float32Array(NPet * 3), colPet = new Float32Array(NPet * 3);
+    arroyo.petalos = [];
+    for (let k = 0; k < NPet; k++) {
+      const i = Math.floor(az() * NP), p = arroyo.pts[i], lat = (az() * 2 - 1) * 30;
+      const c = cc.set(['#ffc2d9', '#ffffff', '#f7a8c8', '#ffd9e6'][k % 4]);
+      colPet.set([c.r, c.g, c.b], k * 3);
+      arroyo.petalos.push({ base: new V3(ARROYO.x + p.x - arroyo.tan[i].z * lat, 1 + az() * 7, ARROYO.z + p.z + arroyo.tan[i].x * lat), f: az() * 6, v: 0.3 + az() * 0.4 });
+    }
+    const geoPet = new THREE.BufferGeometry();
+    geoPet.setAttribute('position', new THREE.BufferAttribute(posPet, 3));
+    geoPet.setAttribute('color', new THREE.BufferAttribute(colPet, 3));
+    const texPet = lienzo(32, 32, (c, w, hh) => {
+      c.clearRect(0, 0, w, hh);
+      c.fillStyle = '#ffffff';
+      c.beginPath(); c.ellipse(16, 16, 7, 12, 0.6, 0, 7); c.fill();
+    });
+    arroyo.petalosM = new THREE.Points(geoPet, new THREE.PointsMaterial({ map: texPet, size: 0.26, vertexColors: true, transparent: true, depthWrite: false, opacity: 0.95 }));
+    arroyo.petalosM.frustumCulled = false;
+    G.add(arroyo.petalosM);
     // ---------- Setas que brillan, helechos, flores y nenúfares ----------
     const setas = new THREE.InstancedMesh(new THREE.SphereGeometry(0.35, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#ff7ad9', emissive: '#ff3fbf', emissiveIntensity: 0.6 }), 40);
     const pies = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.07, 0.09, 0.4, 8), new THREE.MeshStandardMaterial({ color: '#fff3e0', emissive: '#7ff6ff', emissiveIntensity: 0.3 }), 40);
@@ -12094,21 +12384,64 @@
       setas.setColorAt(k, cc.set(['#ff7ad9', '#7ff6ff', '#c58bff'][k % 3]));
     }
     G.add(setas, pies);
-    const flores = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(0.12, 0), new THREE.MeshStandardMaterial({ roughness: 0.6 }), 500);
-    for (let k = 0; k < 500; k++) {
-      const x = ARROYO.x + (az() * 2 - 1) * 105, z = ARROYO.z - 95 + az() * 210, y = hArroyo(x, z);
-      mm.compose(new V3(x, y < 0.3 ? -5 : y + 0.12, z), qq.identity(), new V3(1, 1, 1));
-      flores.setMatrixAt(k, mm);
-      flores.setColorAt(k, cc.set(['#ffffff', '#ffd34a', '#ff8fb6', '#b48bff', '#7fd3ff'][k % 5]));
+    // flores: una corola de cinco pétalos sobre su tallo, en ramilletes
+    const florGeo = (() => {
+      const vs = [], ids = [], cl = [];
+      const V = (x, y, z, c) => { vs.push(x, y, z); cl.push(c, c, c); return vs.length / 3 - 1; };
+      const alto = 0.19;
+      const centro = V(0, alto, 0, 1.05);                       // corazón de la flor, un poco más claro
+      for (let k = 0; k < 5; k++) {                             // cinco pétalos
+        const a = k / 5 * Math.PI * 2, b = a + Math.PI * 2 / 5;
+        const am = (a + b) / 2;
+        const p1 = V(Math.cos(a) * 0.05, alto + 0.02, Math.sin(a) * 0.05, 0.95);
+        const p2 = V(Math.cos(b) * 0.05, alto + 0.02, Math.sin(b) * 0.05, 0.95);
+        // la punta sube: los pétalos forman una copa, no una estrella plana
+        const pf = V(Math.cos(am) * 0.14, alto + 0.1, Math.sin(am) * 0.14, 0.8);
+        const pm1 = V(Math.cos(a * 0.7 + am * 0.3) * 0.12, alto + 0.03, Math.sin(a * 0.7 + am * 0.3) * 0.12, 1);
+        const pm2 = V(Math.cos(b * 0.7 + am * 0.3) * 0.12, alto + 0.03, Math.sin(b * 0.7 + am * 0.3) * 0.12, 1);
+        ids.push(p1, pm1, pf, pf, pm2, p2);
+        ids.push(centro, p1, pf, centro, pf, p2);
+      }
+      // tallo: dos tiras cruzadas
+      for (let k = 0; k < 2; k++) {
+        const a = k * Math.PI / 2, dx = Math.cos(a) * 0.016, dz = Math.sin(a) * 0.016;
+        const a1 = V(-dx, 0, -dz, 0.4), a2 = V(dx, 0, dz, 0.4), a3 = V(dx, alto, dz, 0.75), a4 = V(-dx, alto, -dz, 0.75);
+        ids.push(a1, a2, a3, a1, a3, a4);
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(vs, 3));
+      g.setAttribute('color', new THREE.Float32BufferAttribute(cl, 3));
+      g.setIndex(ids);
+      g.computeVertexNormals();
+      return g;
+    })();
+    const NFl = 1400;
+    const flores = new THREE.InstancedMesh(florGeo, new THREE.MeshStandardMaterial({ roughness: 0.6, side: THREE.DoubleSide, vertexColors: true }), NFl);
+    let nFl = 0;
+    for (let k = 0; k < 300 && nFl < NFl; k++) {
+      const cx = ARROYO.x + (az() * 2 - 1) * 105, cz = ARROYO.z - 95 + az() * 210;
+      const col = ['#ffd34a', '#ff8fb6', '#b48bff', '#7fd3ff', '#ff6b6b', '#fff0c0', '#ff9c3a', '#e86fd0'][Math.floor(az() * 8)];
+      const n = 3 + Math.floor(az() * 6);
+      for (let j = 0; j < n && nFl < NFl; j++) {
+        const x = cx + (az() - 0.5) * 3.5, z = cz + (az() - 0.5) * 3.5, y = hArroyo(x, z);
+        if (y < 0.25 || y > 6.5) continue;
+        const s = 0.85 + az() * 0.6;
+        mm.compose(new V3(x, y, z), qq.setFromEuler(new THREE.Euler((az() - 0.5) * 0.3, az() * 6, (az() - 0.5) * 0.3)), new V3(s, s, s));
+        flores.setMatrixAt(nFl, mm);
+        flores.setColorAt(nFl, cc.set(col));
+        nFl++;
+      }
     }
+    flores.count = nFl;
     G.add(flores);
     const helecho = (circuito.piezasPista || {}).Helecho;
     if (helecho) {
-      const imH = new THREE.InstancedMesh(helecho.geometry, helecho.material, 60);
-      for (let k = 0; k < 60; k++) {
-        const i = Math.floor(az() * NP), p = arroyo.pts[i], t = arroyo.tan[i], W = arroyo.anchos[i], lado = az() < 0.5 ? -1 : 1, lat = lado * (W + 1.5 + az() * 3);
+      const imH = new THREE.InstancedMesh(helecho.geometry, helecho.material, 150);
+      for (let k = 0; k < 150; k++) {
+        const i = Math.floor(az() * NP), p = arroyo.pts[i], t = arroyo.tan[i], W = arroyo.anchos[i], lado = az() < 0.5 ? -1 : 1, lat = lado * (W + 1.2 + az() * 7);
         const x = ARROYO.x + p.x - t.z * lat, z = ARROYO.z + p.z + t.x * lat;
-        mm.compose(new V3(x, hArroyo(x, z), z), qq.setFromEuler(new THREE.Euler(0, az() * 6, 0)), new V3(1.2, 1.2, 1.2));
+        const s = 0.4 + az() * 0.3;
+        mm.compose(new V3(x, hArroyo(x, z), z), qq.setFromEuler(new THREE.Euler(0, az() * 6, 0)), new V3(s, s * 0.8, s));
         imH.setMatrixAt(k, mm);
       }
       G.add(imH);
@@ -12234,15 +12567,46 @@
       const i = Math.floor(az() * NP);
       arroyo.mariposas.push({ g, a1, a2, c: new V3(ARROYO.x + arroyo.pts[i].x + 6, 1.5, ARROYO.z + arroyo.pts[i].z), f: az() * 6 });
     }
-    // Rayos de luz entre los árboles
-    const rayoTex = lienzo(64, 256, (c, w, h) => { const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, 'rgba(255,250,210,0.0)'); g.addColorStop(0.3, 'rgba(255,250,210,0.35)'); g.addColorStop(1, 'rgba(255,250,210,0.0)'); c.fillStyle = g; c.fillRect(0, 0, w, h); });
-    for (let k = 0; k < 8; k++) {
+    // ---------- Rayos de luz entre los árboles (conos suaves que bajan del cielo) ----------
+    const rayoTex = lienzo(128, 256, (c, w, h) => {
+      const g = c.createLinearGradient(0, 0, 0, h);
+      g.addColorStop(0, 'rgba(255,250,215,0.5)'); g.addColorStop(0.55, 'rgba(255,248,205,0.22)'); g.addColorStop(1, 'rgba(255,245,200,0)');
+      c.fillStyle = g; c.fillRect(0, 0, w, h);
+      // los bordes se difuminan para que no se vea el canto del cono
+      const l = c.createLinearGradient(0, 0, w, 0);
+      l.addColorStop(0, 'rgba(0,0,0,1)'); l.addColorStop(0.5, 'rgba(0,0,0,0)'); l.addColorStop(1, 'rgba(0,0,0,1)');
+      c.globalCompositeOperation = 'destination-out';
+      c.fillStyle = l; c.fillRect(0, 0, w, h);
+    });
+    arroyo.rayos = [];
+    for (let k = 0; k < 10; k++) {
       const i = Math.floor(az() * NP), p = arroyo.pts[i];
-      const rayo = new THREE.Mesh(new THREE.PlaneGeometry(3, 16), new THREE.MeshBasicMaterial({ map: rayoTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
-      rayo.position.set(ARROYO.x + p.x + (az() - 0.5) * 10, 7, ARROYO.z + p.z);
-      rayo.rotation.set(0, az() * 3, 0.45);
+      const rayo = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 2.6 + az() * 1.6, 15, 14, 1, true),
+        new THREE.MeshBasicMaterial({ map: rayoTex, transparent: true, opacity: 0.5, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
+      const x = ARROYO.x + p.x + (az() - 0.5) * 16, z = ARROYO.z + p.z + (az() - 0.5) * 16;
+      rayo.position.set(x, hArroyo(x, z) + 7, z);
+      rayo.rotation.set(0.1 + az() * 0.1, az() * 6.3, 0.28);
+      rayo.renderOrder = 4;
       G.add(rayo);
+      arroyo.rayos.push({ m: rayo, f: az() * 6, o: 0.35 + az() * 0.3 });
     }
+    // ---------- Polen y motas de luz flotando en el aire ----------
+    const NPol = 260, posP = new Float32Array(NPol * 3);
+    arroyo.polen = [];
+    for (let k = 0; k < NPol; k++) {
+      const i = Math.floor(az() * NP), p = arroyo.pts[i], lat = (az() * 2 - 1) * 26;
+      arroyo.polen.push({ base: new V3(ARROYO.x + p.x - arroyo.tan[i].z * lat, 0.5 + az() * 5, ARROYO.z + p.z + arroyo.tan[i].x * lat), f: az() * 6, v: 0.25 + az() * 0.5 });
+    }
+    const geoP = new THREE.BufferGeometry();
+    geoP.setAttribute('position', new THREE.BufferAttribute(posP, 3));
+    const texPol = lienzo(32, 32, (c, w, h) => {
+      const g = c.createRadialGradient(16, 16, 0, 16, 16, 16);
+      g.addColorStop(0, 'rgba(255,255,235,1)'); g.addColorStop(0.4, 'rgba(255,250,200,0.5)'); g.addColorStop(1, 'rgba(255,245,190,0)');
+      c.fillStyle = g; c.fillRect(0, 0, w, h);
+    });
+    arroyo.motas = new THREE.Points(geoP, new THREE.PointsMaterial({ map: texPol, size: 0.3, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, color: '#fff6d0', opacity: 0.85 }));
+    arroyo.motas.frustumCulled = false;
+    G.add(arroyo.motas);
     // ---------- El portal de vuelta (y el de la playa) ----------
     const portalAqui = crearPortal();
     portalAqui.position.set(ARROYO.x + 40, hArroyo(ARROYO.x + 40, ARROYO.z + 66), ARROYO.z + 66);
@@ -12259,6 +12623,24 @@
     cartelP.position.set(PORTAL_ARROYO.x, yP + 4.3, PORTAL_ARROYO.z);
     scene.add(cartelP);
     arroyo.listo = true;
+  }
+  // Cielo del bosque encantado: azul arriba, dorado y verde cerca de las copas
+  let cieloBosque = null;
+  function texturaCieloBosque() {
+    if (cieloBosque) return cieloBosque;
+    const l = lienzo(8, 256, (c, w, hh) => {
+      const g = c.createLinearGradient(0, 0, 0, hh);
+      g.addColorStop(0, '#5aa8d8');
+      g.addColorStop(0.42, '#a8dcea');
+      g.addColorStop(0.68, '#dcf0d4');
+      g.addColorStop(0.86, '#f2e9b8');
+      g.addColorStop(1, '#e8dca0');
+      c.fillStyle = g; c.fillRect(0, 0, w, hh);
+    });
+    l.mapping = THREE.EquirectangularReflectionMapping;
+    l.encoding = THREE.sRGBEncoding;
+    cieloBosque = l;
+    return l;
   }
   // Portal mágico: anillo de luz con un remolino dentro
   function crearPortal() {
@@ -12347,14 +12729,18 @@
     arroyo.grupo.visible = dentroA;
     agua.visible = !dentroA;  // el mar (que llega hasta aquí, aunque no se vea) no debe asomar en el arroyo
     if (dentroA) {
-      arroyo.niebla = { color: scene.fog.color.clone(), near: scene.fog.near, far: scene.fog.far };
-      scene.fog.color.set('#cfe8d8');
-      scene.fog.near = 50;
-      scene.fog.far = 220;
+      arroyo.niebla = { color: scene.fog.color.clone(), near: scene.fog.near, far: scene.fog.far, fondo: scene.background, cielo: cielo.visible };
+      scene.fog.color.set('#d8efc8');
+      scene.fog.near = 95;
+      scene.fog.far = 300;
+      cielo.visible = false;
+      scene.background = texturaCieloBosque();
     } else if (arroyo.niebla) {
       scene.fog.color.copy(arroyo.niebla.color);
       scene.fog.near = arroyo.niebla.near;
       scene.fog.far = arroyo.niebla.far;
+      scene.background = arroyo.niebla.fondo;
+      cielo.visible = arroyo.niebla.cielo;
       arroyo.niebla = null;
     }
     if (!dentroA) {
@@ -12492,6 +12878,39 @@
     });
     posL.needsUpdate = true;
     arroyo.luciernagas.material.size = 0.35 + 0.1 * Math.sin(t * 3);
+    // bruma de la cascada: sube, se hincha y vuelve a empezar
+    (arroyo.brumas || []).forEach((b) => {
+      const k = (t * 0.22 + b.f) % 1;
+      b.s.position.y = b.y0 + k * 3.2;
+      const e = (3 + b.f % 3) * (0.7 + k * 0.9);
+      b.s.scale.set(e, e * 0.72, 1);
+      b.s.material.opacity = b.o * Math.sin(k * Math.PI);
+    });
+    if (arroyo.espumaPoza) arroyo.espumaPoza.material.opacity = 0.3 + 0.12 * Math.sin(t * 2.1);
+    // rayos de sol: se encienden y se apagan despacio, y giran un poquito
+    (arroyo.rayos || []).forEach((r) => {
+      r.m.material.opacity = r.o * (0.55 + 0.45 * Math.sin(t * 0.33 + r.f));
+      r.m.rotation.y += dt * 0.012;
+    });
+    // pétalos de cerezo: bajan dando vueltas y vuelven a empezar arriba
+    if (arroyo.petalosM) {
+      const pt = arroyo.petalosM.geometry.attributes.position;
+      arroyo.petalos.forEach((m, k) => {
+        const c = (t * m.v + m.f * 2) % 9;
+        pt.setXYZ(k, m.base.x + Math.sin(t * 0.8 + m.f) * 2.6 + c * 0.35, m.base.y - c * 0.9 + 1, m.base.z + Math.cos(t * 0.6 + m.f * 1.3) * 2.6);
+      });
+      pt.needsUpdate = true;
+    }
+    // polen y motas de luz, subiendo despacio
+    if (arroyo.motas) {
+      const pp = arroyo.motas.geometry.attributes.position;
+      arroyo.polen.forEach((m, k) => {
+        const y = m.base.y + ((t * m.v + m.f) % 5);
+        pp.setXYZ(k, m.base.x + Math.sin(t * 0.4 + m.f) * 2.2, y, m.base.z + Math.cos(t * 0.3 + m.f * 1.7) * 2.2);
+      });
+      pp.needsUpdate = true;
+      arroyo.motas.material.size = 0.26 + 0.07 * Math.sin(t * 1.7);
+    }
     // mariposas
     arroyo.mariposas.forEach((b) => {
       const a = t * 0.4 + b.f;
@@ -12553,6 +12972,16 @@
       const o = fanta.P[n].clone(true);
       o.traverse((m) => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } });
       return o;
+    };
+    // Brillo mágico: el cuerno del unicornio, el fuego del fénix y las alas de las hadas lucen solos
+    const brillar = (o, color, fuerza) => {
+      o.traverse((m) => {
+        if (!m.isMesh) return;
+        m.material = m.material.clone();
+        m.material.emissive = new THREE.Color(color);
+        m.material.emissiveIntensity = fuerza;
+        if (m.material.vertexColors) m.material.emissiveMap = null;
+      });
     };
     const NP = arroyo.pts.length - 1;
     // ---------- Chispas mágicas (polvo de hada, fuego, arcoíris) ----------
@@ -12624,6 +13053,10 @@
         });
       }
       if (d.id === 'unicornio' || d.id === 'pegaso') c.mira.y += 1.6;
+      if (d.id === 'unicornio') brillar(o, '#4a3a6a', 0.22);   // reflejo irisado en el pelaje blanco
+      if (d.id === 'fenix') brillar(o, '#ff5a1a', 0.55);
+      if (d.id === 'hadas') brillar(o, '#7fe8c0', 0.5);
+      if (d.id === 'dragon' || d.id === 'hidra') brillar(o, '#1a4a44', 0.12);
       if (d.id === 'grifo') {
         // la roca donde vive el grifo
         const roca = new THREE.Mesh(new THREE.DodecahedronGeometry(2.3, 1), new THREE.MeshStandardMaterial({ color: '#9a948a', roughness: 0.95, flatShading: true }));
@@ -12675,6 +13108,7 @@
         }
         c.hadas = [0, 1, 2].map((k) => {
           const h = k === 0 ? o : copia('Hada');
+          if (k) brillar(h, '#7fe8c0', 0.5);
           h.visible = false;
           h.scale.setScalar(0.01);
           if (k) G.add(h);
@@ -17309,7 +17743,9 @@
       drako: () => ({ pos: estado.pos.toArray().map((v) => +v.toFixed(1)), llamado: +drakoIA.llamado.toFixed(1), descansando: !!estado.descansando }),
       musica: () => ({ on: musica.on, sonando: musica.sonando, modo: musica.modo }),
       moverNino: (x, z, rumbo = 0) => { if (ninoE.modo === 'atraccion') terminarAtraccion(); ninoE.modo = 'libre'; ninoE.pos.set(x, suelo(x, z) + 0.05, z); ninoE.rumbo = rumbo; ninoE.vy = 0; },
-      camara: (yaw, pitch, dist) => { cam.yaw = yaw; if (pitch !== undefined) cam.pitch = pitch; if (dist) cam.dist = dist; },
+      puntoArroyo: (u, lat) => orillaArroyo(u, lat).toArray(),
+      pintado: () => ({ tri: renderer.info.render.triangles, llamadas: renderer.info.render.calls, geos: renderer.info.memory.geometries, tex: renderer.info.memory.textures }),
+      camara: (yaw, pitch, dist) => { if (yaw !== undefined) cam.yaw = yaw; if (pitch !== undefined) cam.pitch = pitch; if (dist) cam.dist = dist; },
       nino: () => ({ modo: ninoE.modo, pos: ninoE.pos.toArray().map((v) => +v.toFixed(2)), nadando: ninoE.nadando,
         enSuelo: ninoE.enSuelo, accion: textoAccion, mision: misionNino() && misionNino().id,
         atr: ninoE.atr && ninoE.atr.tipo, probadas: [...bolas.probadas].join(','), zonas: [...arrecife.descubiertas].join(','),
