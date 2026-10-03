@@ -653,6 +653,31 @@
   body.en-espacio .acciones, body.en-espacio .joystick, body.en-espacio .ayuda { display: none; }
   body.en-espacio .aviso { top: 20%; }
   body.en-espacio .tarea { display: none; }
+  /* El mundo de bloques: la paleta, abajo en el centro */
+  body.en-bloques .ayuda { display: none; }
+  body.en-historia .bl-hud { display: none; }
+  .bl-hud { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(94px + env(safe-area-inset-bottom, 0px)); width: min(600px, calc(100% - 290px)); display: grid; gap: 5px; z-index: 5; }
+  .bl-hud[hidden] { display: none; }
+  .bl-tabs, .bl-fila, .bl-tams { display: flex; gap: 5px; justify-content: center; flex-wrap: wrap; align-items: center; }
+  .bl-tab { width: 38px; height: 34px; border: 0; border-radius: 12px; background: rgba(12, 24, 48, 0.8); font-size: 18px; line-height: 1; cursor: pointer; touch-action: manipulation; }
+  .bl-tab.activa { background: #ffd21f; box-shadow: 0 0 0 2px #fff; }
+  .bl-paleta { display: flex; gap: 5px; overflow-x: auto; padding: 6px; background: rgba(12, 24, 48, 0.82); border-radius: 16px; scrollbar-width: thin; -webkit-overflow-scrolling: touch; touch-action: pan-x; }
+  .bl-item { flex: 0 0 auto; width: 44px; height: 44px; border-radius: 9px; border: 3px solid rgba(255, 255, 255, 0.25); background-size: 100% 100%; image-rendering: pixelated; cursor: pointer; padding: 0; }
+  .bl-item.activa { border-color: #ffd21f; transform: scale(1.1); box-shadow: 0 0 8px #ffd21f; }
+  .bl-item.fig { background: rgba(255, 255, 255, 0.92); font: 700 24px/1 system-ui, "Baloo 2", sans-serif; color: #123b4a; image-rendering: auto; }
+  .bl-sep { flex: 0 0 3px; background: rgba(255, 255, 255, 0.3); border-radius: 2px; }
+  .bl-tam, .bl-esc, .bl-boton { min-height: 40px; border: 0; border-radius: 14px; padding: 4px 12px; background: rgba(255, 255, 255, 0.92); color: #123b4a; font: 800 15px "Baloo 2", "Nunito", system-ui, sans-serif; cursor: pointer; touch-action: manipulation; display: inline-flex; align-items: center; gap: 6px; }
+  .bl-tam[hidden], .bl-esc[hidden] { display: none; }
+  .bl-tam.activa, .bl-esc.activa { background: #ffd21f; box-shadow: 0 0 0 2px #fff; }
+  .bl-tam small { opacity: 0.7; font-size: 13px; }
+  .bl-tam:not(.activa) span { display: none; }
+  .bl-info { display: none; }
+  .bl-tam .forma { display: inline-block; background: #d99a4a; border: 2px solid #7a4a1a; border-radius: 2px; }
+  .bl-tam .forma.t0 { width: 18px; height: 18px; } .bl-tam .forma.t1 { width: 18px; height: 9px; } .bl-tam .forma.t2 { width: 9px; height: 18px; }
+  .bl-boton.quitar { background: #ff6a5a; color: #fff; }
+  .bl-boton.peq { padding: 4px 10px; } .bl-boton.seguro { background: #e8322a; color: #fff; }
+  .bl-info { margin: 0; justify-self: center; padding: 2px 12px; border-radius: 12px; background: rgba(12, 24, 48, 0.7); color: #fff; font: 700 13px "Nunito", system-ui, sans-serif; }
+  @media (max-width: 700px) { .bl-hud { width: calc(100% - 250px); } .bl-item { width: 38px; height: 38px; } .bl-tam span { display: none; } }
   /* El estadio de atletismo: el panel de la prueba arriba y los resultados a un lado */
   body.en-atl .tarea, body.en-atl .ayuda, body.en-atl .joystick, body.en-atl #btn-cambiar { display: none; }
   body.en-atl .aviso { top: 26%; }
@@ -828,6 +853,17 @@
   </div>
 </div>
 
+<div class="bl-hud" id="bl-hud" hidden>
+  <div class="bl-tabs" id="bl-tabs"></div>
+  <div class="bl-paleta" id="bl-paleta"></div>
+  <div class="bl-fila">
+    <div class="bl-tams" id="bl-tams"></div>
+    <button type="button" class="bl-boton quitar" id="bl-quitar">🧽 Quitar</button>
+    <button type="button" class="bl-boton" id="bl-deshacer">↶ Deshacer</button>
+    <button type="button" class="bl-boton peq" id="bl-vaciar" aria-label="Vaciar todo">🗑️</button>
+  </div>
+  <p class="bl-info" id="bl-info"></p>
+</div>
 <div class="atl-hud" id="atl-hud" hidden>
   <p class="atl-titulo" id="atl-titulo"></p>
   <p class="atl-info" id="atl-info"></p>
@@ -942,7 +978,7 @@
   const flotadores = [];  // plataformas flotantes de la prueba del parque (se rellena al construirlo)
   const plataformas = [];  // superficies elevadas: cubierta y pasarela del barco pirata
   function suelo(x, z, yActual) {
-    if (x > 500) return z < -500 ? 0.02 : lechoArrecife(x, z);  // el castillo del terror o el arrecife, mar adentro
+    if (x > 500) return z < -500 ? (x > 1500 ? sueloBloques(x, z, yActual) : 0.02) : lechoArrecife(x, z);  // el castillo del terror o el arrecife, mar adentro
     if (x < -500) return 0.02;                // el circuito de karts, tierra adentro
     if (z < -400) return 0.02;                // el pueblo de los números, tras las dunas
     let h = x > 200 && x < 500 && z > -400 && z < 300 ? SUELO_FERIA                  // la feria es llana
@@ -1443,6 +1479,7 @@
     cargarOpcional('amigo1.glb'), cargarOpcional('amigo2.glb'), cargarOpcional('amigo3.glb'), cargarOpcional('amigo4.glb')])
     .then(([playa, gPerro, gNino, gPapa, gMama, gArrecife, gCoches, gPistas, gNumeros, gJuguetes, gFeria, gSafari, gPapaV, gMama2, gCarlos, gMiguel, gHalloween, gEspacio, gFantasticos, gAtletismo, ...gAmigos]) => {
     prepararPlaya(playa);
+    try { copiarFuentesBloques({ safari: gSafari, arrecife: gArrecife, halloween: gHalloween, fantasticos: gFantasticos, numeros: gNumeros, pistas: gPistas, feria: gFeria, atletismo: gAtletismo, espacio: gEspacio }); } catch (e) { console.error('Figuras de bloques:', e); }
     prepararPerro(gPerro);
     prepararNino(gNino);
     construirParque(playa.scene);
@@ -1462,6 +1499,7 @@
     try { construirEspacio(gEspacio); } catch (e) { console.error('Espacio:', e); }
     try { construirHistoria(gPapaV, gMama2, gCarlos, gMiguel); } catch (e) { console.error('Historia:', e); }
     try { construirAtletismo(gAtletismo, null, gAmigos); } catch (e) { console.error('Estadio de atletismo:', e); }
+    try { construirBloques(); } catch (e) { console.error('Mundo de bloques:', e); }
     try { construirGente(); } catch (e) { console.error('Gente de la feria:', e); }
     prepararPuertasAuto();
     parque.toboganes.forEach((t) => {
@@ -1489,7 +1527,7 @@
 
   // ---------- Controles ----------
   const teclas = new Set();
-  const TECLAS_JUEGO = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'ShiftLeft', 'ShiftRight', 'KeyB', 'KeyE', 'KeyC', 'Tab', 'KeyM'];
+  const TECLAS_JUEGO = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'ShiftLeft', 'ShiftRight', 'KeyB', 'KeyE', 'KeyC', 'Tab', 'KeyM', 'KeyQ', 'KeyZ'];
   window.addEventListener('keydown', (e) => {
     if (TECLAS_JUEGO.includes(e.code)) e.preventDefault();
     if (e.repeat) return;
@@ -1499,6 +1537,7 @@
     if (e.code === 'KeyB' || e.code === 'KeyE') accionPrincipal();
     if (e.code === 'KeyC' || e.code === 'Tab') cambiarJugador();
     if (e.code === 'KeyM') alternarMusica();
+    teclaBloques(e.code);
   });
   window.addEventListener('keyup', (e) => {
     teclas.delete(e.code);
@@ -1716,6 +1755,8 @@
     } else if (enCastillo(pos)) {
       pos.x = clamp(pos.x, CASTILLO.x - 60, CASTILLO.x + 60);
       pos.z = clamp(pos.z, CASTILLO.z - 78, CASTILLO.z + 68);
+    } else if (enBloques(pos)) {
+      limitarBloques(pos, radio);
     } else if (enEstadio(pos)) {
       limitarEstadio(pos);
     } else if (pos.x > 500) {
@@ -2322,6 +2363,7 @@
     if (amigosCerca()) return { texto: '¡A correr!', hacer: aCorrer };
     const pa = E.enSuelo && !E.nadando ? puntoCerca() : null;
     if (pa) return { texto: pa.texto, hacer: pa.hacer };
+    if (enBloques(E.pos) && listo) return { texto: bl.cat === 'bloques' ? 'Poner' : 'Poner figura', hacer: ponerBloque };
     if (cercaDePesca()) return { texto: 'Pescar', hacer: empezarPesca };
     const t = toboganCerca();
     if (t) return { texto: 'Subir', hacer: () => subirTobogan(t) };
@@ -2440,6 +2482,7 @@
     if (espacio.estado) texto = enElEspacio ? `En el espacio · ${espacio.parada >= 0 ? PARADAS[espacio.parada].nombre : ''}` : espacio.estado === 'cuenta' ? '¡Cuenta atrás!' : '¡Despegando!';
     else if (E.modo === 'bucear') { zona = 'agua'; texto = `Buceando · ${Math.max(0, Math.round(-E.pos.y))} m`; }
     else if (enCastillo(E.pos)) { const sc = salaC(E.pos); texto = sc >= 0 ? `Castillo del terror · ${SALAS_C[sc].nombre[0].toUpperCase() + SALAS_C[sc].nombre.slice(1)}` : 'En el cementerio del castillo'; }
+    else if (enBloques(E.pos)) texto = `Mundo de bloques · ${bl.total} bloques`;
     else if (enEstadio(E.pos)) texto = atl.activa && atl.ev ? `${atl.ev.P.emoji} ${atl.ev.P.nombre}` : `Estadio de atletismo · ${atl.sesion ? atl.sesion.size : 0} de 7 pruebas`;
     else if (enSafari(E.pos)) { zona = E.nadando || E.pos.y < 0.2 ? 'agua' : 'arena'; texto = E.nadando ? 'Nadando en la charca' : `${E.modo === 'atraccion' && E.atr && E.atr.tipo === 'jeep' ? 'De safari en el jeep' : 'En el safari'} · Saludos ${safari.saludadas.size}/${MANADAS.length}`; }
     else if (E.modo === 'atraccion' && E.atr && E.atr.tipo === 'coche') texto = `Conduciendo · ${Math.round(Math.abs(E.atr.vehiculo.vel) * 3.6)} km/h`;
@@ -3224,6 +3267,8 @@
         const pend = PRUEBAS.filter((q) => !(atl.sesion && atl.sesion.has(q.id))).map((q) => atl.sitios[q.id]).filter(Boolean);
         return pend.length ? masCercanoA(pend, ninoE.pos) : null;
       } },
+    { id: 'bloques', titulo: 'Construye en el mundo de bloques (verja de bloques de las dunas): pon 30 bloques o figuras', total: 30, cuenta: 0,
+      objetivo: () => (enBloques(ninoE.pos) ? null : PUERTA_BLOQUES) },
     { id: 'safari', titulo: 'Ve al safari (arco de madera delante del parque acuático) y deja que te saluden las 11 manadas de animales', total: 11, cuenta: 0,
       objetivo: () => {
         if (!enSafari(ninoE.pos)) return PUERTA_SAFARI;
@@ -3245,6 +3290,7 @@
     enCircuito(ninoE.pos) && !hechaNino('carrera') ? misionPor('carrera') : enCircuito(ninoE.pos) && !hechaNino('copas') ? misionPor('copas') :
     enArroyo(ninoE.pos) && !hechaNino('arroyo') ? misionPor('arroyo') :
     enArroyo(ninoE.pos) && !hechaNino('fantasticos') ? misionPor('fantasticos') : enArroyo(ninoE.pos) && !hechaNino('dianas') ? misionPor('dianas') :
+    enBloques(ninoE.pos) && !hechaNino('bloques') ? misionPor('bloques') :
     enEstadio(ninoE.pos) && !hechaNino('atletismo') ? misionPor('atletismo') :
     enSafari(ninoE.pos) && !hechaNino('safari') ? misionPor('safari') :
     enCastillo(ninoE.pos) && !hechaNino('castillo') ? misionPor('castillo') :
@@ -3748,6 +3794,15 @@
       bajo: [48, 55, 53, 55, 50, 55, 48, 55],
       ritmo: true,
       volumen: 0.15,
+    },
+    // En el mundo de bloques: saltarina y tranquila, con ritmo suave
+    bloques: {
+      corchea: 60 / 112 / 2,
+      melodia: [67, 72, 76, 72, 79, 76, 72, 67, 69, 74, 77, 74, 81, 77, 74, 69,
+        64, 69, 72, 69, 76, 72, 69, 64, 67, 71, 74, 71, 79, 74, 71, -1],
+      bajo: [48, 43, 53, 48, 45, 40, 43, 48],
+      ritmo: true,
+      volumen: 0.12,
     },
     // En la casa: tranquila, más lenta, sin percusión
     casa: {
@@ -4274,7 +4329,7 @@
     const E = ninoE;
     const quien = jugador === 'nino' ? E.pos : estado.pos;
     const enCasa = fueraDe(quien.x, -quien.z, CASA) < 4 || estaDentro(quien);
-    if (!estado.descansando && E.modo !== 'descansar') musica.proximo = enElEspacio ? 'espacio' : enCastillo(quien) ? 'terror' : enEstadio(quien) ? 'atletismo' : enCasa ? 'casa' : 'playa';
+    if (!estado.descansando && E.modo !== 'descansar') musica.proximo = enElEspacio ? 'espacio' : enCastillo(quien) ? 'terror' : enEstadio(quien) ? 'atletismo' : enBloques(quien) ? 'bloques' : enCasa ? 'casa' : 'playa';
     drakoIA.llamado = Math.max(0, drakoIA.llamado - dt);
     if (E.modo === 'descansar') {
       if (reloj.elapsedTime > casa.bocadillo) {
@@ -4619,7 +4674,7 @@
   const puntosAccion = [];
   // ---------- Entradas automáticas: basta con pasar por la puerta ----------
   // Para no volver a entrar nada más salir, una puerta solo se activa después de haberse alejado de ella.
-  const TEXTOS_AUTO = ['Ir al circuito', 'Ir a los números', 'Ir a la feria', 'Arroyo mágico', 'Ir al safari', 'Castillo del terror', 'Estadio de atletismo', 'Viaje al espacio',
+  const TEXTOS_AUTO = ['Ir al circuito', 'Ir a los números', 'Ir a la feria', 'Arroyo mágico', 'Ir al safari', 'Castillo del terror', 'Estadio de atletismo', 'Mundo de bloques', 'Viaje al espacio',
     'Volver a la playa', 'A la playa'];
   let puertasAuto = null;
   function prepararPuertasAuto() {
@@ -13718,7 +13773,7 @@
   const ESTADIO = new V3(1150, 0, -700);
   const PISTA = { H: 30, R0: 20, ancho: 1.25, N: 6 };         // recta de 60 m, curvas de radio 20 y 6 calles
   const PUERTA_ESTADIO = new V3(84, 0, -91);                   // la verja de las dunas, al nordeste (entre la casa y el parque de bolas)
-  const enEstadio = (p) => !enElEspacio && p.x > 900 && p.z < -500;
+  const enEstadio = (p) => !enElEspacio && p.x > 900 && p.x < 1500 && p.z < -500;
   const EL = (x, z, y = 0) => new V3(ESTADIO.x + x, y, ESTADIO.z + z);
   const radioCalle = (i) => PISTA.R0 + PISTA.ancho * (i + 0.5);
   const largoPista = (R) => 4 * PISTA.H + 2 * Math.PI * R;
@@ -15958,6 +16013,996 @@
     sol.target.position.copy(_mira);
     sol.position.copy(_mira).addScaledVector(SOL, 60);
     return true;
+  }
+
+  // =====================================================================
+  // ---------- El mundo de bloques: construir con bloques enteros, medios y cuartos ----------
+  // =====================================================================
+  // Una placa de 40 × 40 m dividida en casillas de 0,5 m. Hay tres tamaños de pieza:
+  //   Entero  1 × 1 × 1 m          (2 × 2 × 2 casillas)
+  //   Medio   1 × 1 × ½ m  (losa)  (2 × 2 × 1)   → se sube andando, como un escalón
+  //   Cuarto  ½ × ½ × 1 m (columna)(1 × 1 × 2)   → un cuarto del volumen de un bloque entero
+  // Los bloques se dibujan con InstancedMesh (una malla por tipo) con texturas pixeladas hechas aquí mismo.
+  // Además de bloques se pueden colocar figuras: animales, monstruos, juguetes... de los .glb que ya tiene el juego.
+  const BLOQUES = new V3(1900, 0, -700);
+  const PUERTA_BLOQUES = new V3(-40, 0, -92);                  // la verja de bloques, en las dunas
+  const enBloques = (p) => !enElEspacio && p.x > 1500 && p.z < -500;
+  const NSUB = 80, MITAD = 20, ALTO_MAX = 40;                  // 80 × 80 casillas de 0,5 m (40 m); hasta 20 m de alto
+  const BL = (x, z, y = 0) => new V3(BLOQUES.x + x, y, BLOQUES.z + z);
+  const TAM_PIEZA = [[2, 2, 2], [2, 2, 1], [1, 1, 2]];         // ancho, fondo y alto en casillas
+  const NOMBRE_TAM = ['Entero', 'Medio', 'Cuarto'];
+  const MAX_PIEZAS = 6000, CAP_TIPO = 3000;
+
+  // ---------- Texturas pixeladas (16 × 16) ----------
+  const prng = (s) => () => ((s = (s * 16807) % 2147483647) / 2147483647);
+  function texPix(pintor, semilla = 1, sinMip = false) {
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = 16;
+    const c = cv.getContext('2d');
+    pintor(c, prng(semilla * 977 + 13));
+    const t = new THREE.CanvasTexture(cv);
+    t.magFilter = THREE.NearestFilter;
+    t.minFilter = sinMip ? THREE.NearestFilter : THREE.NearestMipmapLinearFilter;
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.encoding = THREE.sRGBEncoding;
+    t.anisotropy = 4;
+    t.userData.cv = cv;
+    return t;
+  }
+  const pxl = (c, x, y, col) => { c.fillStyle = col; c.fillRect(x, y, 1, 1); };
+  const mulCol = (hex, k) => { const b = new THREE.Color(hex); return `rgb(${clamp(b.r * 255 * k, 0, 255) | 0},${clamp(b.g * 255 * k, 0, 255) | 0},${clamp(b.b * 255 * k, 0, 255) | 0})`; };
+  // Ruido de color: cada píxel un poco más claro u oscuro
+  function ruidoPix(c, r, hex, amp = 0.25, x0 = 0, y0 = 0, x1 = 16, y1 = 16) {
+    for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) pxl(c, x, y, mulCol(hex, 1 + (r() - 0.5) * amp));
+  }
+  const motas = (c, r, hex, n, k = 1) => { for (let i = 0; i < n; i++) pxl(c, (r() * 16) | 0, (r() * 16) | 0, mulCol(hex, k)); };
+  const marco = (c, hex, k = 0.7) => { for (let i = 0; i < 16; i++) { pxl(c, i, 0, mulCol(hex, k)); pxl(c, i, 15, mulCol(hex, k)); pxl(c, 0, i, mulCol(hex, k)); pxl(c, 15, i, mulCol(hex, k)); } };
+
+  const P_HIERBA_ARRIBA = (c, r) => { ruidoPix(c, r, '#5fae42', 0.32); motas(c, r, '#3f8a2c', 18); motas(c, r, '#8fd45e', 10); };
+  const P_TIERRA = (c, r) => { ruidoPix(c, r, '#8a5a36', 0.3); motas(c, r, '#5a3a20', 22); motas(c, r, '#a67a50', 12); };
+  const P_HIERBA_LADO = (c, r) => {
+    P_TIERRA(c, r);
+    for (let x = 0; x < 16; x++) {
+      const h = 3 + (r() < 0.5 ? 1 : 0) + (r() < 0.2 ? 1 : 0);
+      for (let y = 0; y < h; y++) pxl(c, x, y, mulCol('#5fae42', 1 + (r() - 0.5) * 0.3));
+    }
+  };
+  const P_PIEDRA = (c, r) => { ruidoPix(c, r, '#8d8d8d', 0.22); motas(c, r, '#6a6a6a', 26); motas(c, r, '#a8a8a8', 14); };
+  const P_ADOQUIN = (c, r) => {
+    c.fillStyle = '#4e4e52'; c.fillRect(0, 0, 16, 16);
+    const losas = [[0, 0, 5, 5], [5, 0, 6, 4], [11, 0, 5, 5], [0, 5, 4, 5], [4, 4, 6, 6], [10, 5, 6, 5], [0, 10, 6, 6], [6, 10, 5, 6], [11, 10, 5, 6]];
+    losas.forEach(([x, y, w, h]) => ruidoPix(c, r, '#8a8a8a', 0.18, x, y, x + w - 1, y + h - 1));
+    c.fillStyle = 'rgba(0,0,0,0.25)'; losas.forEach(([x, y, w, h]) => { c.fillRect(x, y + h - 2, w - 1, 1); });
+  };
+  const P_TABLONES = (c, r) => {
+    ruidoPix(c, r, '#b88a4a', 0.18);
+    for (let y = 3; y < 16; y += 4) for (let x = 0; x < 16; x++) pxl(c, x, y, mulCol('#7a5a2c', 1));
+    [[4, 0], [11, 4], [3, 8], [12, 12]].forEach(([x, y]) => { for (let k = 0; k < 3; k++) pxl(c, x, y + k, mulCol('#7a5a2c', 1)); });
+    motas(c, r, '#8a6a38', 14);
+    [[1, 1], [14, 5], [1, 9], [14, 13]].forEach(([x, y]) => pxl(c, x, y, '#4a3a22'));
+  };
+  const P_TRONCO_LADO = (c, r) => { ruidoPix(c, r, '#6b4a2a', 0.2); for (let x = 1; x < 16; x += 3 + ((r() * 2) | 0)) for (let y = 0; y < 16; y++) if (r() < 0.8) pxl(c, x, y, mulCol('#3f2a16', 1 + (r() - 0.5) * 0.2)); };
+  const P_TRONCO_ARRIBA = (c, r) => {
+    ruidoPix(c, r, '#b08850', 0.14);
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { const d = Math.max(Math.abs(x - 7.5), Math.abs(y - 7.5)); if (Math.floor(d) % 3 === 2 || d > 6.6) pxl(c, x, y, mulCol(d > 6.6 ? '#6b4a2a' : '#8a6a38', 1 + (r() - 0.5) * 0.15)); }
+  };
+  const P_LADRILLO = (c, r) => {
+    c.fillStyle = '#c9c4b8'; c.fillRect(0, 0, 16, 16);
+    for (let f = 0; f < 4; f++) {
+      const off = f % 2 ? 4 : 0;
+      for (let b = -1; b < 3; b++) {
+        const x0 = off + b * 8;
+        for (let y = f * 4; y < f * 4 + 3; y++) for (let x = x0; x < x0 + 7; x++) if (x >= 0 && x < 16) pxl(c, x, y, mulCol('#b0472f', 1 + (r() - 0.5) * 0.28));
+      }
+    }
+  };
+  const P_ARENA = (c, r) => { ruidoPix(c, r, '#e8d49a', 0.16); motas(c, r, '#cdb878', 22); motas(c, r, '#f6e8b8', 10); };
+  const P_NIEVE = (c, r) => { ruidoPix(c, r, '#f2f7fb', 0.07); motas(c, r, '#d4e4f0', 14); };
+  const P_HOJAS = (c, r) => {
+    ruidoPix(c, r, '#3f8f32', 0.4); motas(c, r, '#2c6a22', 20); motas(c, r, '#69b84a', 14);
+    for (let i = 0; i < 38; i++) c.clearRect((r() * 16) | 0, (r() * 16) | 0, 1, 1);
+  };
+  const P_CRISTAL = (c, r) => {
+    c.fillStyle = 'rgba(175,228,246,0.30)'; c.fillRect(0, 0, 16, 16);
+    for (let i = 0; i < 16; i++) { pxl(c, i, 0, 'rgba(235,250,255,0.9)'); pxl(c, i, 15, 'rgba(235,250,255,0.9)'); pxl(c, 0, i, 'rgba(235,250,255,0.9)'); pxl(c, 15, i, 'rgba(235,250,255,0.9)'); }
+    [[3, 3], [4, 4], [5, 5], [3, 5], [4, 6]].forEach(([x, y]) => pxl(c, x, y, 'rgba(255,255,255,0.85)'));
+    [[10, 11], [11, 12], [12, 13]].forEach(([x, y]) => pxl(c, x, y, 'rgba(255,255,255,0.7)'));
+  };
+  const P_AGUA = (c, r) => {
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { const k = 1 + (r() - 0.5) * 0.18 + Math.sin((x + y * 0.5) * 0.9) * 0.05; c.fillStyle = `rgba(${clamp(46 * k, 0, 255) | 0},${clamp(120 * k, 0, 255) | 0},${clamp(215 * k, 0, 255) | 0},0.62)`; c.fillRect(x, y, 1, 1); }
+    motas(c, r, '#cfeaff', 6, 1);
+  };
+  const lana = (hex) => (c, r) => {
+    ruidoPix(c, r, hex, 0.1);
+    for (let y = 0; y < 16; y += 2) for (let x = (y % 4 ? 1 : 0); x < 16; x += 2) pxl(c, x, y, mulCol(hex, 0.9));
+    motas(c, r, hex, 10, 1.14);
+  };
+  const P_ORO = (c, r) => {
+    ruidoPix(c, r, '#f6c935', 0.14); marco(c, '#f6c935', 0.78);
+    for (let i = 2; i < 8; i++) pxl(c, i, 14 - i, mulCol('#fff3a8', 1));
+    motas(c, r, '#c9981c', 12);
+  };
+  const P_DIAMANTE = (c, r) => {
+    ruidoPix(c, r, '#52d6d2', 0.12); marco(c, '#52d6d2', 0.7);
+    [[3, 3], [4, 3], [3, 4], [10, 4], [11, 4], [11, 5], [5, 10], [6, 10], [5, 11], [11, 11], [12, 11], [12, 12]].forEach(([x, y]) => pxl(c, x, y, '#d8fffb'));
+    motas(c, r, '#2aa6a2', 14);
+  };
+  const P_LUZ = (c, r) => {
+    ruidoPix(c, r, '#ffe7a0', 0.16); marco(c, '#d9a84a', 0.95);
+    motas(c, r, '#fff8d0', 16, 1.1); motas(c, r, '#e8b95a', 10);
+  };
+  const P_CALABAZA_LADO = (c, r) => {
+    ruidoPix(c, r, '#e9801a', 0.14);
+    for (let x = 1; x < 16; x += 4) for (let y = 0; y < 16; y++) pxl(c, x, y, mulCol('#b85a0a', 1));
+    c.fillStyle = '#2a1608';                                                       // la cara
+    [[3, 5, 3, 3], [10, 5, 3, 3], [7, 8, 2, 2]].forEach(([x, y, w, h]) => c.fillRect(x, y, w, h));
+    [[3, 11, 10, 1], [4, 12, 2, 1], [8, 12, 2, 1], [11, 12, 1, 1]].forEach(([x, y, w, h]) => c.fillRect(x, y, w, h));
+  };
+  const P_CALABAZA_ARRIBA = (c, r) => { ruidoPix(c, r, '#d9740f', 0.14); for (let y = 6; y < 10; y++) for (let x = 6; x < 10; x++) pxl(c, x, y, '#4a7a22'); };
+
+  // El catálogo de bloques. grupo: para ordenar la paleta. lado/arriba/abajo: dibujos (los que faltan usan el de lado).
+  const LANAS = [['rojo', 'Rojo', '#d83a30'], ['naranja', 'Naranja', '#f08a1c'], ['amarillo', 'Amarillo', '#f2d21f'], ['verde', 'Verde', '#4cb43c'],
+    ['azul', 'Azul', '#2f6edb'], ['morado', 'Morado', '#8a4bd8'], ['rosa', 'Rosa', '#f27ab8'], ['blanco', 'Blanco', '#f4f2ec'], ['negro', 'Negro', '#2a2a30']];
+  const TIPOS_BLOQUE = [
+    { id: 'hierba', nombre: 'Hierba', g: 0, lado: P_HIERBA_LADO, arriba: P_HIERBA_ARRIBA, abajo: P_TIERRA, tono: 340 },
+    { id: 'tierra', nombre: 'Tierra', g: 0, lado: P_TIERRA, tono: 200 },
+    { id: 'piedra', nombre: 'Piedra', g: 0, lado: P_PIEDRA, tono: 260 },
+    { id: 'adoquin', nombre: 'Adoquín', g: 0, lado: P_ADOQUIN, tono: 280 },
+    { id: 'arena', nombre: 'Arena', g: 0, lado: P_ARENA, tono: 300 },
+    { id: 'nieve', nombre: 'Nieve', g: 0, lado: P_NIEVE, tono: 420 },
+    { id: 'madera', nombre: 'Madera', g: 1, lado: P_TABLONES, tono: 230 },
+    { id: 'tronco', nombre: 'Tronco', g: 1, lado: P_TRONCO_LADO, arriba: P_TRONCO_ARRIBA, abajo: P_TRONCO_ARRIBA, tono: 180 },
+    { id: 'ladrillo', nombre: 'Ladrillo', g: 1, lado: P_LADRILLO, tono: 250 },
+    { id: 'hojas', nombre: 'Hojas', g: 1, lado: P_HOJAS, alfa: 'hoja', tono: 380 },
+    { id: 'cristal', nombre: 'Cristal', g: 1, lado: P_CRISTAL, alfa: 'cristal', tono: 520 },
+    { id: 'agua', nombre: 'Agua', g: 1, lado: P_AGUA, alfa: 'agua', tono: 160 },
+    ...LANAS.map(([id, nombre, hex], i) => ({ id: 'lana_' + id, nombre: 'Lana ' + nombre.toLowerCase(), g: 2, lado: lana(hex), tono: 300 + i * 25 })),
+    { id: 'oro', nombre: 'Oro', g: 3, lado: P_ORO, metal: 0.7, tono: 560 },
+    { id: 'diamante', nombre: 'Diamante', g: 3, lado: P_DIAMANTE, metal: 0.4, tono: 620 },
+    { id: 'luz', nombre: 'Luz', g: 3, lado: P_LUZ, brilla: true, tono: 700 },
+    { id: 'calabaza', nombre: 'Calabaza', g: 3, lado: P_CALABAZA_LADO, arriba: P_CALABAZA_ARRIBA, abajo: P_CALABAZA_ARRIBA, tono: 240 },
+  ];
+  const tipoBloque = (id) => TIPOS_BLOQUE.findIndex((t) => t.id === id);
+
+  const bl = {
+    listo: false, grupo: new THREE.Group(), mats: [], mallas: [], piezas: [], figuras: [], cols: null, H: new Int16Array(NSUB * NSUB),
+    tipo: 0, tam: 0, cat: 'bloques', figSel: null, escala: 1, historial: [], anim: [], total: 0, nuevos: 0, tipos: new Set(), P: {}, catalogoFig: [], guardar: null,
+    ghost: null, ghostQuitar: null, ghostFig: null, hud: null, nubes: [], ocultos: null, plan: null, casita: [], vaciarPendiente: 0,
+  };
+
+  // Materiales por tipo (lado, arriba, abajo) con el mismo truco: la textura se coloca según las coordenadas de la pieza,
+  // así un medio bloque enseña la mitad del dibujo y los bloques vecinos casan sin costuras.
+  function inyectarTexturaBloque(mat) {
+    mat.onBeforeCompile = (sh) => {
+      sh.vertexShader = sh.vertexShader
+        .replace('#include <common>', '#include <common>\n          varying vec3 vPosBl; varying vec3 vNorBl;')
+        .replace('#include <project_vertex>', `#include <project_vertex>
+          #ifdef USE_INSTANCING
+            vPosBl = (instanceMatrix * vec4(transformed, 1.0)).xyz;
+          #else
+            vPosBl = transformed;
+          #endif
+          vNorBl = normal;`);
+      sh.fragmentShader = sh.fragmentShader
+        .replace('#include <common>', '#include <common>\n          varying vec3 vPosBl; varying vec3 vNorBl;')
+        .replace('#include <map_fragment>', `
+          vec2 uvBl = abs(vNorBl.y) > 0.5 ? vPosBl.xz : (abs(vNorBl.x) > 0.5 ? vec2(vPosBl.z, vPosBl.y) : vec2(vPosBl.x, vPosBl.y));
+          vec4 sampledDiffuseColor = texture2D( map, uvBl );
+          diffuseColor *= sampledDiffuseColor;
+          #ifdef USE_ALPHATEST
+            if (diffuseColor.a < alphaTest) discard;
+          #endif`);
+    };
+    mat.customProgramCacheKey = () => 'bloque';
+    return mat;
+  }
+  function crearMaterialesBloques() {
+    TIPOS_BLOQUE.forEach((t, k) => {
+      const crea = (pintor, sem) => {
+        const tex = texPix(pintor, k * 7 + sem);
+        const m = new THREE.MeshStandardMaterial({ map: tex, roughness: t.metal ? 0.35 : 0.92, metalness: t.metal || 0 });
+        if (t.alfa === 'hoja') { m.alphaTest = 0.5; m.side = THREE.DoubleSide; }
+        if (t.alfa === 'cristal' || t.alfa === 'agua') { m.transparent = true; m.depthWrite = false; }
+        if (t.brilla) { m.emissive = new THREE.Color('#ffd97a'); m.emissiveIntensity = 0.85; m.emissiveMap = tex; }
+        return inyectarTexturaBloque(m);
+      };
+      const lado = crea(t.lado, 1);
+      const arriba = t.arriba ? crea(t.arriba, 2) : lado;
+      const abajo = t.abajo ? (t.abajo === t.arriba ? arriba : crea(t.abajo, 3)) : lado;
+      t.mat = [lado, arriba, abajo];
+      t.iconoTex = (t.arriba || t.lado) === t.lado ? lado.map : arriba.map;
+      t.icono = t.iconoTex.userData.cv.toDataURL();
+    });
+  }
+  // Un cubo con los lados repartidos en tres grupos (lados, arriba, abajo) para usar tres materiales
+  function geometriaBloque() {
+    const g = new THREE.BoxGeometry(1, 1, 1);
+    g.clearGroups();
+    g.addGroup(0, 12, 0);    // +x y −x
+    g.addGroup(12, 6, 1);    // arriba
+    g.addGroup(18, 6, 2);    // abajo
+    g.addGroup(24, 12, 0);   // +z y −z
+    return g;
+  }
+  // Una malla instanciada con varias cajas (decorado que no se edita)
+  function cajasDeBloque(idTipo, lista, sombra = true) {
+    const k = tipoBloque(idTipo), t = TIPOS_BLOQUE[k];
+    const im = new THREE.InstancedMesh(geometriaBloque(), t.mat, lista.length);
+    const mm = new THREE.Matrix4(), qq = new THREE.Quaternion();
+    lista.forEach(([x, y, z, sx, sy, sz], i) => { mm.compose(new V3(x, y, z), qq.identity(), new V3(sx, sy, sz)); im.setMatrixAt(i, mm); });
+    im.castShadow = sombra && !t.alfa;
+    im.receiveShadow = true;
+    im.frustumCulled = false;
+    bl.grupo.add(im);
+    return im;
+  }
+
+  // ---------- Las piezas puestas: rejilla de alturas ----------
+  const celda = (ix, iz) => iz * NSUB + ix;
+  function recalcularAltura(i) {
+    const lista = bl.cols[i];
+    let top = 0;
+    for (const p of lista) top = Math.max(top, p.iy + p.h);
+    bl.H[i] = top;
+  }
+  const alturaCasilla = (ix, iz) => (ix < 0 || iz < 0 || ix >= NSUB || iz >= NSUB ? 0 : bl.H[celda(ix, iz)]);
+  // Altura (en metros) del suelo en un punto del mundo de bloques: la parte de arriba del bloque que hay debajo
+  function sueloBloques(x, z, yActual) {
+    if (!bl.cols) return 0.02;
+    const ix = Math.floor((x - BLOQUES.x + MITAD) * 2), iz = Math.floor((z - BLOQUES.z + MITAD) * 2);
+    const top = alturaCasilla(ix, iz) * 0.5;
+    if (top <= 0) return 0.02;
+    return yActual === undefined || yActual > top - 0.6 ? top : 0.02;
+  }
+  const _mB = new THREE.Matrix4(), _qB = new THREE.Quaternion(), _pB = new V3(), _sB = new V3();
+  function matrizPieza(p, escala = 1) {
+    _pB.set(-MITAD + (p.ix + p.w / 2) * 0.5, (p.iy + p.h / 2) * 0.5, -MITAD + (p.iz + p.d / 2) * 0.5);
+    _sB.set(p.w * 0.5 * escala, p.h * 0.5 * escala, p.d * 0.5 * escala);
+    return _mB.compose(_pB, _qB.identity(), _sB);
+  }
+  // Pone una pieza. apoyar: si hay algo debajo, se sube hasta apoyarse (para planos que se repiten).
+  function crearPieza(tipo, tam, ix, iy, iz, opciones = {}) {
+    const [w, d, h] = TAM_PIEZA[tam];
+    if (ix < 0 || iz < 0 || ix + w > NSUB || iz + d > NSUB) return null;
+    if (opciones.apoyar) for (let a = 0; a < w; a++) for (let b = 0; b < d; b++) iy = Math.max(iy, bl.H[celda(ix + a, iz + b)]);
+    if (iy + h > ALTO_MAX) return null;
+    const malla = bl.mallas[tipo];
+    if (malla.count >= CAP_TIPO || bl.total >= MAX_PIEZAS) return null;
+    const p = { tipo, tam, ix, iy, iz, w, d, h, slot: malla.count, malla, casita: !!opciones.casita };
+    malla.userData.piezas[p.slot] = p;
+    malla.count++;
+    malla.setMatrixAt(p.slot, matrizPieza(p, opciones.sinAnim ? 1 : 0.55));
+    malla.instanceMatrix.needsUpdate = true;
+    bl.piezas.push(p);
+    bl.total++;
+    for (let a = 0; a < w; a++) for (let b = 0; b < d; b++) {
+      const i = celda(ix + a, iz + b);
+      bl.cols[i].push(p);
+      bl.H[i] = Math.max(bl.H[i], iy + h);
+    }
+    if (!opciones.sinAnim) bl.anim.push({ p, t: 0 });
+    if (opciones.casita) bl.casita.push(p);
+    if (!opciones.sinGuardar) pedirGuardado();
+    return p;
+  }
+  function quitarPieza(p, sinGuardar) {
+    const malla = p.malla, ultimo = malla.count - 1;
+    if (p.slot !== ultimo) {
+      const q = malla.userData.piezas[ultimo];
+      malla.userData.piezas[p.slot] = q;
+      q.slot = p.slot;
+      malla.setMatrixAt(q.slot, matrizPieza(q));
+    }
+    malla.userData.piezas[ultimo] = null;
+    malla.count--;
+    malla.instanceMatrix.needsUpdate = true;
+    const i0 = bl.piezas.indexOf(p);
+    if (i0 >= 0) { bl.piezas[i0] = bl.piezas[bl.piezas.length - 1]; bl.piezas.pop(); }
+    bl.total--;
+    for (let a = 0; a < p.w; a++) for (let b = 0; b < p.d; b++) {
+      const i = celda(p.ix + a, p.iz + b), lista = bl.cols[i];
+      const j = lista.indexOf(p);
+      if (j >= 0) lista.splice(j, 1);
+      recalcularAltura(i);
+    }
+    const c = bl.casita.indexOf(p);
+    if (c >= 0) bl.casita.splice(c, 1);
+    bl.anim = bl.anim.filter((q) => q.p !== p);
+    if (!sinGuardar) pedirGuardado();
+  }
+
+  // ---------- Guardar y cargar ----------
+  const CLAVE_BLOQUES = 'playa-del-perro-bloques';
+  let guardadoEn = 0;
+  function pedirGuardado() { guardadoEn = reloj.elapsedTime + 1.2; }
+  function guardarBloques() {
+    try {
+      localStorage.setItem(CLAVE_BLOQUES, JSON.stringify({
+        v: 1, p: bl.piezas.map((p) => [p.tipo, p.tam, p.ix, p.iy, p.iz, p.casita ? 1 : 0]),
+        f: bl.figuras.map((f) => [f.id, Math.round(f.x * 2), Math.round(f.z * 2), Math.round(f.y * 2), Math.round(f.rot / (Math.PI / 2)) % 4, f.esc]),
+        n: bl.nuevos,
+      }));
+    } catch (e) { /* sin guardar */ }
+  }
+  function cargarBloques() {
+    try {
+      const g = JSON.parse(localStorage.getItem(CLAVE_BLOQUES) || 'null');
+      if (!g || g.v !== 1) return false;
+      g.p.forEach(([t, tam, ix, iy, iz, c]) => { if (TIPOS_BLOQUE[t]) crearPieza(t, tam, ix, iy, iz, { sinAnim: true, sinGuardar: true, casita: !!c }); });
+      (g.f || []).forEach(([id, x2, z2, y2, rot, esc]) => ponerFiguraDe(id, x2 / 2, z2 / 2, y2 / 2, rot * Math.PI / 2, esc, true));
+      bl.nuevos = g.n || 0;
+      return true;
+    } catch (e) { return false; }
+  }
+
+  // ---------- Las figuras: animales, monstruos, juguetes... de los .glb que ya tiene el juego ----------
+  // [id, archivo, nombre del objeto, etiqueta (emoji o número), categoría, tamaño en metros (lo más grande)]
+  const FIGURAS = [
+    ['elefante', 'safari', 'Elefante', '🐘', 'animales', 2.2], ['jirafa', 'safari', 'Jirafa', '🦒', 'animales', 3.0], ['cebra', 'safari', 'Cebra', '🦓', 'animales', 1.7],
+    ['leon', 'safari', 'Leon', '🦁', 'animales', 1.5], ['hipo', 'safari', 'Hipo', '🦛', 'animales', 1.7], ['rino', 'safari', 'Rino', '🦏', 'animales', 1.9],
+    ['gacela', 'safari', 'Gacela', '🦌', 'animales', 1.3], ['avestruz', 'safari', 'Avestruz', '🐦', 'animales', 1.9], ['flamenco', 'safari', 'Flamenco', '🦩', 'animales', 1.4],
+    ['mono', 'safari', 'Mono', '🐒', 'animales', 1.0], ['suricata', 'safari', 'Suricata', '🦦', 'animales', 0.7], ['tortuga', 'arrecife', 'Tortuga', '🐢', 'animales', 1.0],
+    ['delfin', 'arrecife', 'Delfin', '🐬', 'animales', 1.8], ['tiburon', 'arrecife', 'Tiburon', '🦈', 'animales', 2.2], ['pez', 'arrecife', 'PezPayaso', '🐠', 'animales', 0.7],
+    ['acacia', 'safari', 'Acacia', '🌳', 'animales', 4.0], ['baobab', 'safari', 'Baobab', '🌴', 'animales', 4.5],
+    ['fantasma', 'halloween', 'Fantasma', '👻', 'monstruos', 1.6], ['esqueleto', 'halloween', 'Esqueleto', '💀', 'monstruos', 1.8], ['momia', 'halloween', 'Momia', '🧟', 'monstruos', 1.8],
+    ['bruja', 'halloween', 'Bruja', '🧙', 'monstruos', 1.8], ['murcielago', 'halloween', 'Murcielago', '🦇', 'monstruos', 0.9], ['arana', 'halloween', 'Arana', '🕷️', 'monstruos', 0.9],
+    ['monstruo', 'halloween', 'Monstruo', '👹', 'monstruos', 2.6], ['gato', 'halloween', 'Gato', '🐈‍⬛', 'monstruos', 0.9], ['calabaza3d', 'halloween', 'Calabaza', '🎃', 'monstruos', 1.0],
+    ['cesto', 'halloween', 'Cesto', '🧺', 'monstruos', 0.8], ['tumba', 'halloween', 'Tumba', '🪦', 'monstruos', 1.3], ['caldero', 'halloween', 'Caldero', '🍲', 'monstruos', 1.0],
+    ['armadura', 'halloween', 'Armadura', '🛡️', 'monstruos', 2.0], ['vela', 'halloween', 'Vela', '🕯️', 'monstruos', 0.6], ['arbolMuerto', 'halloween', 'ArbolMuerto', '🥀', 'monstruos', 3.5],
+    ['unicornio', 'fantasticos', 'Unicornio', '🦄', 'magia', 2.4], ['pegaso', 'fantasticos', 'Pegaso', '🐴', 'magia', 2.8], ['grifo', 'fantasticos', 'Grifo', '🦅', 'magia', 2.4],
+    ['hidra', 'fantasticos', 'Hidra', '🐍', 'magia', 3.0], ['dragonAgua', 'fantasticos', 'DragonAgua', '🐉', 'magia', 3.0], ['fenix', 'fantasticos', 'Fenix', '🔥', 'magia', 1.8],
+    ['dragoncito', 'fantasticos', 'Dragoncito', '🐲', 'magia', 1.3], ['hada', 'fantasticos', 'Hada', '🧚', 'magia', 0.6], ['seta', 'fantasticos', 'Seta', '🍄', 'magia', 0.8],
+    ['nido', 'fantasticos', 'Nido', '🪺', 'magia', 0.9], ['troncoHueco', 'fantasticos', 'TroncoHueco', '🪵', 'magia', 2.6],
+    ['osito', 'numeros', 'Osito', '🧸', 'juguetes', 1.1], ['robot', 'numeros', 'Robot', '🤖', 'juguetes', 1.4], ['cohete', 'numeros', 'Cohete', '🚀', 'juguetes', 1.8],
+    ['dinosaurio', 'numeros', 'Dinosaurio', '🦖', 'juguetes', 1.6], ['tren', 'numeros', 'Tren', '🚂', 'juguetes', 1.8], ['cochecito', 'numeros', 'Cochecito', '🚗', 'juguetes', 1.2],
+    ['pelota', 'numeros', 'Pelota', '⚽', 'juguetes', 0.7], ['patito', 'numeros', 'Patito', '🦆', 'juguetes', 0.8], ['tambor', 'numeros', 'Tambor', '🥁', 'juguetes', 0.9],
+    ['xilofono', 'numeros', 'Xilofono', '🎹', 'juguetes', 1.0], ['peonza', 'numeros', 'Peonza', '🪀', 'juguetes', 0.8], ['avion', 'numeros', 'Avion', '✈️', 'juguetes', 1.7],
+    ['barquito', 'numeros', 'Barquito', '⛵', 'juguetes', 1.4], ['dado', 'numeros', 'Dado', '🎲', 'juguetes', 0.9], ['abaco', 'numeros', 'Abaco', '🧮', 'juguetes', 1.2],
+    ['piruleta', 'numeros', 'ArbolPiruleta', '🍭', 'juguetes', 2.0], ['globo', 'numeros', 'Globo', '🎈', 'juguetes', 1.4], ['baul', 'numeros', 'Baul', '🧰', 'juguetes', 1.0],
+    ...[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => ['num' + n, 'numeros', 'Bloque' + n, String(n), 'numeros', 1.3]),
+    ['edificio1', 'pistas', 'Edificio1', '🏢', 'ciudad', 6], ['edificio2', 'pistas', 'Edificio2', '🏬', 'ciudad', 6], ['edificio3', 'pistas', 'Edificio3', '🏨', 'ciudad', 6],
+    ['edificio4', 'pistas', 'Edificio4', '🏦', 'ciudad', 6], ['edificio5', 'pistas', 'Edificio5', '🏰', 'ciudad', 6], ['farola', 'pistas', 'Farola', '💡', 'ciudad', 3.6],
+    ['semaforo', 'pistas', 'Semaforo', '🚦', 'ciudad', 3.4], ['palmera', 'pistas', 'Palmera', '🌴', 'ciudad', 5], ['faro', 'pistas', 'Faro', '🗼', 'ciudad', 6.5],
+    ['velero', 'pistas', 'Velero', '🚤', 'ciudad', 3], ['sombrilla', 'pistas', 'Sombrilla', '⛱️', 'ciudad', 2.4], ['caseta', 'pistas', 'Caseta', '🛖', 'ciudad', 2.6],
+    ['setaGigante', 'pistas', 'SetaGigante', '🍄', 'ciudad', 3], ['cristales', 'pistas', 'Cristales', '💎', 'ciudad', 2.2], ['ruina', 'pistas', 'Ruina', '🏛️', 'ciudad', 4],
+    ['puestoAlgodon', 'feria', 'PuestoAlgodon', '🍬', 'ciudad', 3], ['puestoPalomitas', 'feria', 'PuestoPalomitas', '🍿', 'ciudad', 3], ['puestoGlobos', 'feria', 'PuestoGlobos', '🎪', 'ciudad', 3],
+    ['trofeo', 'atletismo', 'Trofeo', '🏆', 'ciudad', 1.2], ['banco', 'atletismo', 'Banco', '🪑', 'ciudad', 2], ['cono', 'atletismo', 'Cono', '🔶', 'ciudad', 0.6],
+    ['nave', 'espacio', 'Nave', '🛸', 'espacio', 4], ['satelite', 'espacio', 'Satelite', '🛰️', 'espacio', 1.6], ['rover', 'espacio', 'Rover', '🚙', 'espacio', 1.8],
+  ];
+  const CATEGORIAS_BL = [['bloques', '🧱', 'Bloques'], ['animales', '🐘', 'Animales'], ['monstruos', '🎃', 'Monstruos'], ['magia', '🦄', 'Magia'], ['juguetes', '🧸', 'Juguetes'],
+    ['numeros', '🔢', 'Números'], ['ciudad', '🏙️', 'Ciudad'], ['espacio', '🚀', 'Espacio']];
+  const ESCALAS_FIG = [['Pequeño', 0.5], ['Normal', 1], ['Grande', 2]];
+  const MAX_FIGURAS = 300;
+
+  // Se llama pronto (antes de que los demás módulos reorganicen los .glb): guarda una copia de cada figura, ya centrada y con su tamaño
+  function copiarFuentesBloques(fuentes) {
+    FIGURAS.forEach(([id, archivo, nodo, etiqueta, cat, tam]) => {
+      const g = fuentes[archivo];
+      const o = g && g.scene.getObjectByName(nodo);
+      if (!o) return;
+      const c = o.clone(true);
+      c.updateMatrixWorld(true);
+      const caja = new THREE.Box3().setFromObject(c);
+      const t = caja.getSize(new V3()), centro = caja.getCenter(new V3());
+      const m = Math.max(t.x, t.y, t.z);
+      if (!isFinite(m) || m <= 0) return;
+      c.position.x -= centro.x;
+      c.position.z -= centro.z;
+      c.position.y -= caja.min.y;
+      const envoltorio = new THREE.Group();
+      envoltorio.add(c);
+      envoltorio.scale.setScalar(tam / m);
+      envoltorio.traverse((q) => { if (q.isMesh) { q.castShadow = true; q.receiveShadow = true; q.frustumCulled = false; } });
+      bl.catalogoFig.push({ id, nombre: nodo, etiqueta, cat, tam, modelo: envoltorio, ancho: Math.max(t.x, t.z) * tam / m });
+    });
+  }
+  const figDe = (id) => bl.catalogoFig.find((f) => f.id === id);
+  function ponerFiguraDe(id, x, z, y, rot, esc, silencioso) {
+    const def = figDe(id);
+    if (!def || bl.figuras.length >= MAX_FIGURAS) return null;
+    const m = def.modelo.clone(true);
+    const s = m.scale.x * esc;
+    m.scale.setScalar(s);
+    m.position.set(x, y, z);
+    m.rotation.y = rot;
+    bl.grupo.add(m);
+    const f = { id, x, z, y, rot, esc, obj: m, def };
+    bl.figuras.push(f);
+    if (!silencioso) { bl.anim.push({ f, t: 0, s }); m.scale.setScalar(s * 0.5); pedirGuardado(); }
+    return f;
+  }
+  function quitarFigura(f, sinGuardar) {
+    bl.grupo.remove(f.obj);
+    const i = bl.figuras.indexOf(f);
+    if (i >= 0) bl.figuras.splice(i, 1);
+    bl.anim = bl.anim.filter((q) => q.f !== f);
+    if (!sinGuardar) pedirGuardado();
+  }
+
+  // ---------- Dónde cae lo que se pone: delante de Manuel, pegado a la rejilla ----------
+  function posLocal() { return _blP.set(ninoE.pos.x - BLOQUES.x, ninoE.pos.y, ninoE.pos.z - BLOQUES.z); }
+  const _blP = new V3();
+  function objetivoPieza(tam) {
+    const [w, d, h] = TAM_PIEZA[tam], E = ninoE, p = posLocal();
+    const fx = Math.sin(E.rumbo), fz = Math.cos(E.rumbo);
+    const ahead = 0.5 + w * 0.25;
+    const u = p.x + fx * ahead + MITAD, v = p.z + fz * ahead + MITAD;      // metros desde la esquina de la placa
+    const su = w >= 2 ? 2 : 1;
+    let ix = Math.round((u * 2 - w / 2) / su) * su, iz = Math.round((v * 2 - d / 2) / su) * su;
+    ix = clamp(ix, 0, NSUB - w);
+    iz = clamp(iz, 0, NSUB - d);
+    let iy = 0;
+    for (let a = 0; a < w; a++) for (let b = 0; b < d; b++) iy = Math.max(iy, bl.H[celda(ix + a, iz + b)]);
+    if (E.enSuelo) iy = Math.max(iy, Math.floor(p.y * 2 + 0.05));          // si Manuel está subido a algo, se pone a su altura
+    return { ix, iy, iz, w, d, h, ok: iy + h <= ALTO_MAX };
+  }
+  function objetivoFigura() {
+    const E = ninoE, p = posLocal();
+    const x = Math.round((p.x + Math.sin(E.rumbo) * 1.2) * 2) / 2, z = Math.round((p.z + Math.cos(E.rumbo) * 1.2) * 2) / 2;
+    const ix = clamp(Math.floor((x + MITAD) * 2), 0, NSUB - 1), iz = clamp(Math.floor((z + MITAD) * 2), 0, NSUB - 1);
+    let y = alturaCasilla(ix, iz) * 0.5;
+    if (E.enSuelo) y = Math.max(y, Math.floor(p.y * 2 + 0.05) / 2);
+    const rot = Math.round((E.rumbo + Math.PI) / (Math.PI / 2)) * (Math.PI / 2);
+    return { x: clamp(x, -MITAD + 0.5, MITAD - 0.5), z: clamp(z, -MITAD + 0.5, MITAD - 0.5), y, rot };
+  }
+  // Lo que se quitaría con «Quitar»: una figura cerca de delante o, si no, la pieza de más arriba que haya delante
+  function objetivoQuitar() {
+    const E = ninoE, p = posLocal(), fx = Math.sin(E.rumbo), fz = Math.cos(E.rumbo);
+    let mejor = null, dMejor = 1.25;
+    for (const f of bl.figuras) {
+      const d = Math.hypot(f.x - (p.x + fx * 0.9), f.z - (p.z + fz * 0.9));
+      if (d < dMejor && d < Math.max(0.9, f.def.ancho * f.esc * 0.6)) { mejor = f; dMejor = d; }
+    }
+    if (mejor) return { figura: mejor };
+    for (const dist of [0.6, 0.95, 0.35, 1.3]) {
+      const ix = Math.floor((p.x + fx * dist + MITAD) * 2), iz = Math.floor((p.z + fz * dist + MITAD) * 2);
+      if (ix < 0 || iz < 0 || ix >= NSUB || iz >= NSUB) continue;
+      let top = null;
+      for (const q of bl.cols[celda(ix, iz)]) {
+        // la pieza que Manuel tiene debajo de los pies no cuenta
+        if (E.enSuelo && Math.abs(q.iy + q.h - p.y * 2) < 0.6 && p.x >= -MITAD + q.ix * 0.5 && p.x <= -MITAD + (q.ix + q.w) * 0.5 && p.z >= -MITAD + q.iz * 0.5 && p.z <= -MITAD + (q.iz + q.d) * 0.5) continue;
+        if (!top || q.iy + q.h > top.iy + top.h) top = q;
+      }
+      if (top) return { pieza: top };
+    }
+    return null;
+  }
+
+  // ---------- Poner, quitar y deshacer ----------
+  function sonidoBloque(k, poner) {
+    const t = TIPOS_BLOQUE[k];
+    notas([[t.tono * (poner ? 1 : 0.62), 0, 0.06], [t.tono * (poner ? 1.5 : 0.5), 0.045, 0.05]], t.alfa === 'cristal' ? 'sine' : 'square', 0.035);
+  }
+  function ponerBloque() {
+    if (!enBloques(ninoE.pos) || ninoE.modo !== 'libre') return false;
+    if (bl.cat !== 'bloques') return ponerFigura();
+    const o = objetivoPieza(bl.tam);
+    if (!o.ok) { avisar('¡Más alto no se puede!', 1400); return false; }
+    return ponerPieza(bl.tipo, bl.tam, o.ix, o.iy, o.iz, { historial: true });
+  }
+  function ponerPieza(tipo, tam, ix, iy, iz, op = {}) {
+    if (bl.total >= MAX_PIEZAS) { avisar('¡Ya no caben más bloques!', 1800); return false; }
+    const p = crearPieza(tipo, tam, ix, iy, iz, { casita: op.casita, apoyar: op.apoyar });
+    if (!p) { avisar('¡Aquí no cabe!', 1200); return false; }
+    if (op.historial) { bl.historial.push({ k: 'pieza', p }); if (bl.historial.length > 80) bl.historial.shift(); }
+    sonidoBloque(tipo, true);
+    bl.nuevos++;
+    sumarNino('bloques');
+    const t = TIPOS_BLOQUE[tipo];
+    historiaEvento('bloque');
+    historiaEvento('bloque' + NOMBRE_TAM[tam]);
+    historiaEvento('bloqueTipo:' + t.id);
+    bl.tipos.add(t.id);
+    if (op.historial && ninoE.modo === 'libre') animarNino('pickup', true, 0.1);
+    return true;
+  }
+  function ponerFigura() {
+    const def = figDe(bl.figSel);
+    if (!def) { avisar('Elige una figura', 1200); return false; }
+    if (bl.figuras.length >= MAX_FIGURAS) { avisar('¡Ya no caben más figuras!', 1600); return false; }
+    const o = objetivoFigura();
+    const f = ponerFiguraDe(def.id, o.x, o.z, o.y, o.rot, bl.escala, false);
+    if (!f) return false;
+    bl.historial.push({ k: 'fig', f });
+    notas([[420, 0, 0.07], [630, 0.06, 0.09]], 'triangle', 0.05);
+    bl.nuevos++;
+    sumarNino('bloques');
+    historiaEvento('bloqueFigura');
+    ninoDice(`¡${def.nombre.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}!`, 1.2);
+    return true;
+  }
+  function quitarBloque() {
+    if (!enBloques(ninoE.pos) || ninoE.modo !== 'libre') return false;
+    const o = objetivoQuitar();
+    if (!o) { avisar('No hay nada delante', 1000); return false; }
+    if (o.figura) {
+      const f = o.figura;
+      bl.historial.push({ k: 'qfig', d: [f.id, f.x, f.z, f.y, f.rot, f.esc] });
+      quitarFigura(f);
+      notas([[300, 0, 0.08]], 'sine', 0.05);
+    } else {
+      const p = o.pieza;
+      bl.historial.push({ k: 'qpieza', d: [p.tipo, p.tam, p.ix, p.iy, p.iz] });
+      quitarPieza(p);
+      sonidoBloque(p.tipo, false);
+    }
+    if (bl.historial.length > 80) bl.historial.shift();
+    return true;
+  }
+  function deshacerBloque() {
+    const a = bl.historial.pop();
+    if (!a) { avisar('No hay nada que deshacer', 1000); return false; }
+    if (a.k === 'pieza') { if (bl.piezas.includes(a.p)) quitarPieza(a.p); }
+    else if (a.k === 'fig') { if (bl.figuras.includes(a.f)) quitarFigura(a.f); }
+    else if (a.k === 'qpieza') crearPieza(a.d[0], a.d[1], a.d[2], a.d[3], a.d[4], {});
+    else if (a.k === 'qfig') ponerFiguraDe(a.d[0], a.d[1], a.d[2], a.d[3], a.d[4], a.d[5], false);
+    notas([[480, 0, 0.06], [360, 0.05, 0.08]], 'triangle', 0.045);
+    return true;
+  }
+  function vaciarBloques() {
+    [...bl.piezas].forEach((p) => quitarPieza(p, true));
+    [...bl.figuras].forEach((f) => quitarFigura(f, true));
+    bl.historial = [];
+    bl.casita = [];
+    pedirGuardado();
+  }
+
+  // ---------- La paleta (HTML) ----------
+  function prepararPaletaBloques() {
+    const $ = (id) => document.getElementById(id);
+    const H = { raiz: $('bl-hud'), tabs: $('bl-tabs'), paleta: $('bl-paleta'), tams: $('bl-tams'), quitar: $('bl-quitar'), deshacer: $('bl-deshacer'), vaciar: $('bl-vaciar'), info: $('bl-info') };
+    bl.hud = H;
+    const alPulsarBl = (el, fn) => {
+      let ultimo = 0;
+      el.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); ultimo = performance.now(); fn(); });
+      el.addEventListener('click', (e) => { e.stopPropagation(); if (performance.now() - ultimo > 600) fn(); });
+    };
+    CATEGORIAS_BL.forEach(([id, emoji, nombre]) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'bl-tab'; b.dataset.cat = id; b.title = nombre; b.textContent = emoji;
+      b.setAttribute('aria-label', nombre);
+      alPulsarBl(b, () => { bl.cat = id; pintarPaletaBloques(); });
+      H.tabs.appendChild(b);
+    });
+    alPulsarBl(H.quitar, quitarBloque);
+    alPulsarBl(H.deshacer, deshacerBloque);
+    alPulsarBl(H.vaciar, () => {
+      if (reloj.elapsedTime > bl.vaciarPendiente) {
+        bl.vaciarPendiente = reloj.elapsedTime + 3;
+        H.vaciar.classList.add('seguro');
+        H.vaciar.textContent = '¿Seguro?';
+        setTimeout(() => { H.vaciar.classList.remove('seguro'); H.vaciar.textContent = '🗑️'; }, 3000);
+      } else { vaciarBloques(); bl.vaciarPendiente = 0; H.vaciar.classList.remove('seguro'); H.vaciar.textContent = '🗑️'; avisar('Todo vacío. ¡A construir otra vez!', 1800); }
+    });
+    // los tres tamaños, con su dibujo
+    NOMBRE_TAM.forEach((n, i) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'bl-tam'; b.dataset.tam = String(i);
+      b.innerHTML = `<i class="forma t${i}"></i><span>${n}</span><small>${['1', '½', '¼'][i]}</small>`;
+      alPulsarBl(b, () => { bl.tam = i; pintarPaletaBloques(); });
+      H.tams.appendChild(b);
+    });
+    ESCALAS_FIG.forEach(([n, e]) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'bl-esc'; b.dataset.esc = String(e);
+      b.innerHTML = `<span>${n}</span>`;
+      alPulsarBl(b, () => { bl.escala = e; pintarPaletaBloques(); });
+      H.tams.appendChild(b);
+    });
+    pintarPaletaBloques();
+  }
+  function pintarPaletaBloques() {
+    const H = bl.hud;
+    if (!H) return;
+    H.tabs.querySelectorAll('.bl-tab').forEach((b) => b.classList.toggle('activa', b.dataset.cat === bl.cat));
+    const bloques = bl.cat === 'bloques';
+    H.tams.querySelectorAll('.bl-tam').forEach((b) => { b.hidden = !bloques; b.classList.toggle('activa', +b.dataset.tam === bl.tam); });
+    H.tams.querySelectorAll('.bl-esc').forEach((b) => { b.hidden = bloques; b.classList.toggle('activa', +b.dataset.esc === bl.escala); });
+    H.paleta.innerHTML = '';
+    if (bloques) {
+      let grupoAnt = -1;
+      TIPOS_BLOQUE.forEach((t, k) => {
+        if (t.g !== grupoAnt && grupoAnt >= 0) { const s = document.createElement('span'); s.className = 'bl-sep'; H.paleta.appendChild(s); }
+        grupoAnt = t.g;
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'bl-item' + (k === bl.tipo ? ' activa' : ''); b.title = t.nombre; b.setAttribute('aria-label', t.nombre);
+        b.style.backgroundImage = `url(${t.icono})`;
+        b.addEventListener('pointerdown', (e) => { e.stopPropagation(); bl.tipo = k; pintarPaletaBloques(); });
+        H.paleta.appendChild(b);
+      });
+    } else {
+      bl.catalogoFig.filter((f) => f.cat === bl.cat).forEach((f) => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'bl-item fig' + (f.id === bl.figSel ? ' activa' : ''); b.title = f.nombre; b.setAttribute('aria-label', f.nombre);
+        b.textContent = f.etiqueta;
+        b.addEventListener('pointerdown', (e) => { e.stopPropagation(); bl.figSel = f.id; pintarPaletaBloques(); });
+        H.paleta.appendChild(b);
+      });
+      if (!bl.figSel || !figDe(bl.figSel) || figDe(bl.figSel).cat !== bl.cat) { const p = bl.catalogoFig.find((f) => f.cat === bl.cat); if (p) { bl.figSel = p.id; H.paleta.querySelector('.bl-item')?.classList.add('activa'); } }
+    }
+    const act = H.paleta.querySelector('.activa');
+    if (act && act.scrollIntoView) { try { act.scrollIntoView({ block: 'nearest', inline: 'center' }); } catch (e) { /* sin desplazar */ } }
+  }
+
+  // ---------- La zona: suelo, montañas de bloques, árboles, nubes y las verjas ----------
+  function construirBloques() {
+    const G = bl.grupo;
+    G.position.copy(BLOQUES);
+    G.visible = false;
+    scene.add(G);
+    bl.cols = Array.from({ length: NSUB * NSUB }, () => []);
+    crearMaterialesBloques();
+    const geo = geometriaBloque();
+    TIPOS_BLOQUE.forEach((t) => {
+      const im = new THREE.InstancedMesh(geo, t.mat, CAP_TIPO);
+      im.count = 0;
+      im.userData.piezas = [];
+      im.castShadow = !t.alfa;
+      im.receiveShadow = true;
+      im.frustumCulled = false;
+      im.renderOrder = t.alfa === 'cristal' || t.alfa === 'agua' ? 3 : 0;
+      G.add(im);
+      bl.mallas.push(im);
+    });
+    const az = prng(4242);
+    // suelo de hierba con píxeles, y la placa de construcción con su rejilla
+    const texSuelo = TIPOS_BLOQUE[0].mat[1].map.clone();
+    texSuelo.needsUpdate = true;
+    texSuelo.repeat.set(300, 300);
+    const suelo0 = new THREE.Mesh(new THREE.PlaneGeometry(300, 300), new THREE.MeshStandardMaterial({ map: texSuelo, roughness: 1 }));
+    suelo0.rotation.x = -Math.PI / 2;
+    suelo0.position.y = -0.005;
+    suelo0.receiveShadow = true;
+    G.add(suelo0);
+    const texPlaca = lienzo(128, 128, (c, w, h) => {
+      c.clearRect(0, 0, w, h);
+      c.strokeStyle = 'rgba(255,255,255,0.22)'; c.lineWidth = 2;
+      for (let i = 0; i <= 2; i++) { c.beginPath(); c.moveTo(i * 64, 0); c.lineTo(i * 64, h); c.stroke(); c.beginPath(); c.moveTo(0, i * 64); c.lineTo(w, i * 64); c.stroke(); }
+    });
+    texPlaca.magFilter = THREE.LinearFilter;
+    texPlaca.repeat.set(20, 20);   // una casilla cada 2 m (128 px = 2 casillas de 1 m)
+    const placa = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.MeshBasicMaterial({ map: texPlaca, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }));
+    placa.rotation.x = -Math.PI / 2;
+    placa.position.y = 0.01;
+    placa.renderOrder = 1;
+    G.add(placa);
+    // el borde de la placa: un marco de medios bloques de piedra clara
+    const marcos = [];
+    for (let i = -20; i < 20; i++) { marcos.push([i + 0.5, 0.125, -20.25, 1, 0.25, 0.5], [i + 0.5, 0.125, 20.25, 1, 0.25, 0.5], [-20.25, 0.125, i + 0.5, 0.5, 0.25, 1], [20.25, 0.125, i + 0.5, 0.5, 0.25, 1]); }
+    cajasDeBloque('adoquin', marcos);
+
+    // montañas escalonadas de piedra con la cima nevada
+    const rocas = [], nieves = [];
+    [[-70, -65, 26, 13], [8, -90, 32, 16], [78, -55, 24, 11], [92, 30, 30, 14], [-92, 25, 28, 12], [-30, 95, 24, 10], [55, 95, 26, 11]].forEach(([cx, cz, r, capas]) => {
+      for (let i = 0; i < capas; i++) {
+        const s = r * 2 * (1 - i / (capas + 1.5)) + az() * 2;
+        (i < capas * 0.68 ? rocas : nieves).push([cx + (az() - 0.5) * 2, i * 2 + 1, cz + (az() - 0.5) * 2, s, 2, s]);
+      }
+    });
+    cajasDeBloque('piedra', rocas);
+    cajasDeBloque('nieve', nieves);
+    // árboles de bloques alrededor
+    const troncos = [], copas = [];
+    for (let k = 0; k < 40; k++) {
+      const a = az() * Math.PI * 2, r = 44 + az() * 40;
+      const x = Math.round(Math.cos(a) * r), z = Math.round(Math.sin(a) * r);
+      if (Math.abs(x) < 26 && z > 20) continue;
+      const alto = 4 + Math.floor(az() * 3);
+      troncos.push([x + 0.5, alto / 2, z + 0.5, 1, alto, 1]);
+      copas.push([x + 0.5, alto + 0.5, z + 0.5, 5, 1, 5], [x + 0.5, alto + 1.5, z + 0.5, 3, 1, 3], [x + 0.5, alto + 2.5, z + 0.5, 1, 1, 1]);
+    }
+    cajasDeBloque('tronco', troncos);
+    cajasDeBloque('hojas', copas);
+    // algunos árboles dentro del paseo, con colisión
+    [[-27, -12], [-26, 14], [27, -14], [26, 10], [-24, -26], [22, -27]].forEach(([x, z]) => {
+      cajasDeBloque('tronco', [[x + 0.5, 2, z + 0.5, 1, 4, 1]]);
+      cajasDeBloque('hojas', [[x + 0.5, 4.5, z + 0.5, 5, 1, 5], [x + 0.5, 5.5, z + 0.5, 3, 1, 3], [x + 0.5, 6.5, z + 0.5, 1, 1, 1]]);
+      colisiones.push({ x: BLOQUES.x + x + 0.5, z: BLOQUES.z + z + 0.5, r: 0.75 });
+    });
+    // nubes de bloques que pasan despacio
+    for (let k = 0; k < 11; k++) {
+      const nube = new THREE.Group();
+      const n = 3 + Math.floor(az() * 5);
+      for (let j = 0; j < n; j++) {
+        const b = new THREE.Mesh(new THREE.BoxGeometry(4 + az() * 4, 1.4, 3 + az() * 3), new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.92 }));
+        b.position.set(j * 3.2 - n * 1.6 + az(), (az() - 0.5) * 1.2, (az() - 0.5) * 3);
+        nube.add(b);
+      }
+      nube.position.set((az() * 2 - 1) * 110, 34 + az() * 12, (az() * 2 - 1) * 110);
+      nube.userData.v = 0.6 + az() * 0.8;
+      G.add(nube);
+      bl.nubes.push(nube);
+    }
+    // la verja de vuelta a la playa, al sur de la placa
+    const salida = [];
+    for (let y = 0; y < 4; y++) salida.push([-2.5, y + 0.5, 31, 1, 1, 1], [2.5, y + 0.5, 31, 1, 1, 1]);
+    cajasDeBloque('ladrillo', salida.filter((_, i) => i % 4 < 2));
+    cajasDeBloque('piedra', salida.filter((_, i) => i % 4 >= 2));
+    const viga = [];
+    for (let x = -2; x <= 2; x++) viga.push([x, 4.5, 31, 1, 1, 1]);
+    cajasDeBloque('madera', viga);
+    cajasDeBloque('lana_azul', [[-0.5, 5.5, 31, 1, 1, 1], [0.5, 5.5, 31, 1, 1, 1]]);
+    colisiones.push({ x: BLOQUES.x - 2.5, z: BLOQUES.z + 31, r: 0.7 }, { x: BLOQUES.x + 2.5, z: BLOQUES.z + 31, r: 0.7 });
+    const cartelV = cartel('A LA PLAYA', 4.6, 0.8);
+    cartelV.position.set(0, 3.1, 30.45);
+    cartelV.rotation.y = Math.PI;
+    G.add(cartelV);
+    const cartelV2 = cartel('A LA PLAYA', 4.6, 0.8);
+    cartelV2.position.set(0, 3.1, 31.55);
+    G.add(cartelV2);
+    puntosAccion.push({ pos: BL(0, 28.5, 0.02), radio: 2.2, alto: 3, texto: 'A la playa', hacer: volverDelBloques, visible: () => enBloques(ninoE.pos) && ninoE.modo === 'libre' });
+
+    // la verja de bloques de la playa (de aquí se entra al mundo de bloques)
+    const yP = suelo(PUERTA_BLOQUES.x, PUERTA_BLOQUES.z);
+    const entrada = new THREE.Group();
+    entrada.position.set(PUERTA_BLOQUES.x, yP, PUERTA_BLOQUES.z);
+    scene.add(entrada);
+    const guarda = bl.grupo;
+    bl.grupo = entrada;      // cajasDeBloque pone las mallas en bl.grupo: por un momento, la verja
+    const pilares = [], viga2 = [];
+    for (let y = 0; y < 4; y++) { pilares.push([-2.5, y + 0.5, 0, 1, 1, 1], [2.5, y + 0.5, 0, 1, 1, 1]); }
+    cajasDeBloque('ladrillo', pilares.filter((_, i) => i % 4 < 2));
+    cajasDeBloque('adoquin', pilares.filter((_, i) => i % 4 >= 2));
+    for (let x = -2; x <= 2; x++) viga2.push([x, 4.5, 0, 1, 1, 1]);
+    cajasDeBloque('madera', viga2);
+    cajasDeBloque('lana_rojo', [[-2.5, 4.5, 0, 1, 1, 1], [2.5, 4.5, 0, 1, 1, 1]]);
+    cajasDeBloque('oro', [[0, 5.5, 0, 1, 1, 1]]);
+    bl.cuboGira = cajasDeBloque('luz', [[0, 0, 0, 1, 1, 1]], false);
+    bl.cuboGira.position.set(0, 7.2, 0);
+    bl.grupo = guarda;
+    colisiones.push({ x: PUERTA_BLOQUES.x - 2.5, z: PUERTA_BLOQUES.z, r: 0.7 }, { x: PUERTA_BLOQUES.x + 2.5, z: PUERTA_BLOQUES.z, r: 0.7 });
+    const letrero = cartel('MUNDO DE BLOQUES', 4.6, 0.8);
+    letrero.position.set(PUERTA_BLOQUES.x, yP + 3.1, PUERTA_BLOQUES.z + 0.55);
+    scene.add(letrero);
+    const letrero2 = cartel('MUNDO DE BLOQUES', 4.6, 0.8);
+    letrero2.position.set(PUERTA_BLOQUES.x, yP + 3.1, PUERTA_BLOQUES.z - 0.55);
+    letrero2.rotation.y = Math.PI;
+    scene.add(letrero2);
+    puntosAccion.push({ pos: new V3(PUERTA_BLOQUES.x, yP, PUERTA_BLOQUES.z), radio: 2.2, alto: 3, texto: 'Mundo de bloques', hacer: irAlBloques });
+
+    // lo que se ve al colocar: un fantasma verde delante de Manuel, y una marca roja en lo que se quitaría
+    const cubo = new THREE.BoxGeometry(1, 1, 1);
+    const hacerFantasma = (color, opacidad) => {
+      const g = new THREE.Group();
+      const m = new THREE.Mesh(cubo, new THREE.MeshBasicMaterial({ color, transparent: true, opacity: opacidad, depthWrite: false }));
+      const l = new THREE.LineSegments(new THREE.EdgesGeometry(cubo), new THREE.LineBasicMaterial({ color: '#ffffff' }));
+      g.add(m, l);
+      g.visible = false;
+      g.renderOrder = 5;
+      m.renderOrder = 5;
+      G.add(g);
+      return g;
+    };
+    bl.ghost = hacerFantasma('#6dff8e', 0.3);
+    bl.ghostQuitar = hacerFantasma('#ff5a4a', 0.16);
+    bl.ghostQuitar.children[1].material.color.set('#ff8a7a');
+    const anillo = new THREE.Mesh(new THREE.RingGeometry(0.42, 0.56, 28), new THREE.MeshBasicMaterial({ color: '#6dff8e', transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false }));
+    anillo.rotation.x = -Math.PI / 2;
+    anillo.visible = false;
+    anillo.renderOrder = 5;
+    G.add(anillo);
+    bl.ghostFig = anillo;
+
+    prepararPaletaBloques();
+    if (!cargarBloques()) sembrarMundoBloques();
+    bl.listo = true;
+  }
+  // Para que no esté vacío la primera vez: un caminito, una casita, un árbol y una torre de colores
+  function sembrarMundoBloques() {
+    const k = tipoBloque, ps = (t, tam, ix, iy, iz) => crearPieza(k(t), tam, ix, iy, iz, { sinAnim: true, sinGuardar: true });
+    for (let iz = 56; iz < 78; iz += 2) ps('adoquin', 1, 40, 0, iz);                         // el camino desde la salida
+    const cx = 12, cz = 46;                                                                  // casita de ladrillo 3 × 3 con ventanas
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) ps('piedra', 1, cx + 2 * i, 0, cz + 2 * j);
+    for (let capa = 0; capa < 2; capa++) for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) {
+      if (i === 1 && j === 1) continue;
+      if (i === 1 && j === 2) { if (capa === 1) ps('madera', 1, cx + 2 * i, 3, cz + 2 * j); continue; }          // puerta, con dintel de madera
+      const ventana = capa === 1 && ((i === 0 && j === 1) || (i === 2 && j === 1));
+      ps(ventana ? 'cristal' : 'ladrillo', 0, cx + 2 * i, 1 + capa * 2, cz + 2 * j);
+    }
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) ps('lana_rojo', 1, cx + 2 * i, 5, cz + 2 * j);
+    ps('ladrillo', 2, cx + 4, 6, cz);
+    ps('ladrillo', 2, cx + 4, 8, cz);
+    const tx = 62, tz = 52;                                                                  // un árbol
+    for (let y = 0; y < 3; y++) ps('tronco', 0, tx, y * 2, tz);
+    for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) ps('hojas', 0, tx + 2 * i, 6, tz + 2 * j);
+    ps('hojas', 0, tx, 8, tz);
+    ps('hojas', 1, tx, 10, tz);
+    ['lana_rojo', 'lana_naranja', 'lana_amarillo', 'lana_verde', 'lana_azul', 'lana_morado', 'lana_rosa'].forEach((t, y) => ps(t, y % 2 ? 0 : 0, 30, y * 2, 24));   // torre arcoíris
+    ps('oro', 1, 30, 14, 24);
+    ps('diamante', 2, 31, 15, 24);
+    const f = (id, x, z, y, rot) => ponerFiguraDe(id, x, z, y, rot, 1, true);
+    f('unicornio', 6, 8, 0, Math.PI * 0.75);
+    f('gato', -20 + (cx + 3) / 2, -20 + (cz + 3) / 2, 3, Math.PI);
+    f('hada', 11, -8, 2.2, 0);
+    pedirGuardado();
+  }
+
+  // ---------- Entrar y salir (de día) ----------
+  function irAlBloques() {
+    if (!bl.listo) return;
+    fundido(() => {
+      if (ninoE.modo === 'atraccion') terminarAtraccion();
+      if (balon.estado === 'mano') { balon.estado = 'libre'; balon.pos.set(PUERTA_BLOQUES.x + 2, suelo(PUERTA_BLOQUES.x + 2, PUERTA_BLOQUES.z + 3) + 0.5, PUERTA_BLOQUES.z + 3); balon.vel.set(0, 0, 0); }
+      ninoE.modo = 'libre';
+      const p = BL(0, 19.5);
+      ninoE.pos.set(p.x, 0.02, p.z);
+      ninoE.rumbo = Math.PI;
+      ninoE.vy = 0;
+      estado.pos.set(p.x + 1.4, 0.02, p.z + 0.8);
+      estado.descansando = false;
+      cam.yaw = 0;
+      cam.pitch = 0.42;
+      cam.dist = 7;
+      cam.objetivo.copy(ninoE.pos);
+      if (numeros.carrito && numeros.tieneCarrito) colocarCarritoDetras();
+      ocultarParaBloques(true);
+      setTimeout(pintarTarea, 50);
+      setTimeout(() => { avisar('¡El mundo de bloques!', 2400); notas([[523, 0, 0.1], [659, 0.08, 0.1], [784, 0.16, 0.2]], 'square', 0.04); }, 400);
+      setTimeout(() => ninoDice('¡Cuántos bloques!', 2), 1500);
+    });
+  }
+  function volverDelBloques() {
+    fundido(() => {
+      ocultarParaBloques(false);
+      ninoE.modo = 'libre';
+      ninoE.pos.set(PUERTA_BLOQUES.x, 0, PUERTA_BLOQUES.z + 3);
+      ninoE.pos.y = suelo(ninoE.pos.x, ninoE.pos.z);
+      ninoE.rumbo = 0;
+      estado.pos.set(PUERTA_BLOQUES.x + 1.5, 0, PUERTA_BLOQUES.z + 3.5);
+      estado.pos.y = suelo(estado.pos.x, estado.pos.z);
+      cam.yaw = Math.PI;
+      cam.pitch = 0.36;
+      cam.dist = 6.5;
+      cam.objetivo.copy(ninoE.pos);
+      if (numeros.carrito && numeros.tieneCarrito) colocarCarritoDetras();
+    });
+  }
+  function ocultarParaBloques(dentro) {
+    bl.grupo.visible = dentro;
+    agua.visible = !dentro;
+    document.body.classList.toggle('en-bloques', dentro);
+    if (!dentro) {
+      (bl.ocultos || []).forEach((o) => { o.visible = true; });
+      bl.ocultos = null;
+      return;
+    }
+    if (bl.ocultos) return;
+    const quedan = new Set([bl.grupo, nino.grupo, perro, agua, numeros.carrito && numeros.carrito.g]);
+    const c3 = new THREE.Box3();
+    bl.ocultos = [];
+    scene.children.forEach((o) => {
+      if (!o.visible || o.userData.siempre || quedan.has(o) || o.isLight || o.isCamera || o.isPoints) return;
+      c3.setFromObject(o);
+      if (!c3.isEmpty() && c3.max.x - c3.min.x < 900) { o.visible = false; bl.ocultos.push(o); }
+    });
+  }
+  // Los límites: la placa y un paseo alrededor; y los bloques altos no se atraviesan (los medios bloques se suben andando)
+  function limitarBloques(pos, radio) {
+    pos.x = clamp(pos.x, BLOQUES.x - 36, BLOQUES.x + 36);
+    pos.z = clamp(pos.z, BLOQUES.z - 36, BLOQUES.z + 34);
+    const lx = pos.x - BLOQUES.x + MITAD, lz = pos.z - BLOQUES.z + MITAD;
+    if (lx < -1 || lz < -1 || lx > NSUB / 2 + 1 || lz > NSUB / 2 + 1) return;
+    const r = radio || 0.3;
+    const ix0 = Math.floor((lx - r) * 2), ix1 = Math.floor((lx + r) * 2), iz0 = Math.floor((lz - r) * 2), iz1 = Math.floor((lz + r) * 2);
+    for (let iz = iz0; iz <= iz1; iz++) for (let ix = ix0; ix <= ix1; ix++) {
+      if (ix < 0 || iz < 0 || ix >= NSUB || iz >= NSUB) continue;
+      const top = bl.H[celda(ix, iz)] * 0.5;
+      if (top <= pos.y + 0.6) continue;                         // se puede subir
+      const cx = ix * 0.5, cz = iz * 0.5;
+      const px = clamp(lx, cx, cx + 0.5), pz = clamp(lz, cz, cz + 0.5);
+      let dx = lx - px, dz = lz - pz, d = Math.hypot(dx, dz);
+      if (d >= r) continue;
+      if (d < 1e-4) {                                           // el centro está dentro del bloque: salir por el lado más cercano
+        const izq = lx - cx, der = cx + 0.5 - lx, arr = lz - cz, aba = cz + 0.5 - lz, m = Math.min(izq, der, arr, aba);
+        if (m === izq) { dx = -1; dz = 0; } else if (m === der) { dx = 1; dz = 0; } else if (m === arr) { dx = 0; dz = -1; } else { dx = 0; dz = 1; }
+        d = 0;
+      } else { dx /= d; dz /= d; }
+      pos.x += dx * (r - d);
+      pos.z += dz * (r - d);
+    }
+  }
+
+  // ---------- Cada fotograma ----------
+  function actualizarBloques(dt) {
+    if (!bl.listo) return;
+    const t = reloj.elapsedTime;
+    if (guardadoEn && t > guardadoEn) { guardadoEn = 0; guardarBloques(); }
+    if (bl.cuboGira) { bl.cuboGira.rotation.y += dt * 0.9; bl.cuboGira.position.y = 7.2 + Math.sin(t * 1.6) * 0.25; }
+    if (!bl.grupo.visible) return;
+    // aparecen creciendo un poquito
+    for (let i = bl.anim.length - 1; i >= 0; i--) {
+      const a = bl.anim[i];
+      a.t += dt / 0.16;
+      const k = Math.min(1, a.t), e = 0.55 + 0.45 * (1 - Math.pow(1 - k, 3)) + Math.sin(k * Math.PI) * 0.06;
+      if (a.p) { a.p.malla.setMatrixAt(a.p.slot, matrizPieza(a.p, k >= 1 ? 1 : e)); a.p.malla.instanceMatrix.needsUpdate = true; }
+      if (a.f) a.f.obj.scale.setScalar(a.s * (k >= 1 ? 1 : e));
+      if (k >= 1) bl.anim.splice(i, 1);
+    }
+    bl.nubes.forEach((n) => { n.position.x += n.userData.v * dt; if (n.position.x > 130) n.position.x = -130; });
+    // los fantasmas, solo cuando Manuel puede construir
+    const puede = jugador === 'nino' && ninoE.modo === 'libre' && !historia.activa && enBloques(ninoE.pos) && !fundidoEl.classList.contains('activo');
+    bl.hud.raiz.hidden = !puede;
+    bl.ghost.visible = bl.ghostQuitar.visible = bl.ghostFig.visible = false;
+    if (!puede) return;
+    bl.hud.info.textContent = `${bl.total} bloques · ${bl.figuras.length} figuras`;
+    const pulso = 0.22 + 0.1 * Math.sin(t * 5);
+    if (bl.cat === 'bloques') {
+      const o = objetivoPieza(bl.tam);
+      bl.ghost.visible = true;
+      bl.ghost.position.set(-MITAD + (o.ix + o.w / 2) * 0.5, (o.iy + o.h / 2) * 0.5, -MITAD + (o.iz + o.d / 2) * 0.5);
+      bl.ghost.scale.set(o.w * 0.5 + 0.02, o.h * 0.5 + 0.02, o.d * 0.5 + 0.02);
+      bl.ghost.children[0].material.color.set(o.ok ? '#6dff8e' : '#ff5a4a');
+      bl.ghost.children[0].material.opacity = pulso;
+    } else {
+      const o = objetivoFigura();
+      bl.ghostFig.visible = true;
+      bl.ghostFig.position.set(o.x, o.y + 0.03, o.z);
+      bl.ghostFig.scale.setScalar(Math.max(0.6, (figDe(bl.figSel) ? figDe(bl.figSel).ancho * bl.escala : 1) * 0.9));
+    }
+    const q = objetivoQuitar();
+    if (q) {
+      bl.ghostQuitar.visible = true;
+      if (q.pieza) {
+        const p = q.pieza;
+        bl.ghostQuitar.position.set(-MITAD + (p.ix + p.w / 2) * 0.5, (p.iy + p.h / 2) * 0.5, -MITAD + (p.iz + p.d / 2) * 0.5);
+        bl.ghostQuitar.scale.set(p.w * 0.5 + 0.04, p.h * 0.5 + 0.04, p.d * 0.5 + 0.04);
+      } else {
+        const f = q.figura, a = Math.max(0.6, f.def.ancho * f.esc), alto = Math.max(0.6, f.def.tam * f.esc);
+        bl.ghostQuitar.position.set(f.x, f.y + alto / 2, f.z);
+        bl.ghostQuitar.scale.set(a + 0.1, alto + 0.1, a + 0.1);
+      }
+    }
+  }
+
+  // ---------- La casita de Drako: lo que se construye en la historia pulsando «Seguir» ----------
+  // Cada pulsación pone una tanda de piezas del plano. La casita mide 3 × 3 m y se hace con los tres tamaños:
+  // suelo de medios bloques, paredes de bloques enteros, techo de medios bloques y chimenea de cuartos.
+  const CASITA = { x: 5, z: -9 };                       // esquina de la casita, en metros desde el centro de la placa
+  const casitaFrente = () => BL(CASITA.x + 1.5, CASITA.z + 5);
+  function planCasita(fase) {
+    const ix0 = Math.round((CASITA.x + MITAD) * 2), iz0 = Math.round((CASITA.z + MITAD) * 2);
+    const k = tipoBloque, lista = [];
+    for (let j = 0; j < 3; j++) for (let i = 0; i < 3; i++) {
+      if (fase === 'suelo') lista.push([k('adoquin'), 1, ix0 + 2 * i, 0, iz0 + 2 * j]);
+      if (fase === 'paredes' && !(i === 1 && j === 1) && !(i === 1 && j === 2)) lista.push([k('ladrillo'), 0, ix0 + 2 * i, 1, iz0 + 2 * j]);   // sin el centro y con hueco para la puerta
+      if (fase === 'techo') lista.push([k('madera'), 1, ix0 + 2 * i, 3, iz0 + 2 * j]);
+    }
+    if (fase === 'chimenea') lista.push([k('ladrillo'), 2, ix0 + 4, 4, iz0], [k('ladrillo'), 2, ix0 + 4, 6, iz0]);
+    return lista;
+  }
+  function reiniciarCasita() {
+    [...bl.casita].forEach((p) => quitarPieza(p, true));
+    if (bl.gatoCasita) { quitarFigura(bl.gatoCasita, true); bl.gatoCasita = null; }
+    bl.plan = {};
+    pedirGuardado();
+  }
+  function ponerTanda(fase) {
+    if (!bl.plan) bl.plan = {};
+    const lista = planCasita(fase), ptr = bl.plan[fase] || 0, n = fase === 'chimenea' ? 2 : 3;
+    if (ptr >= lista.length) return false;
+    for (let j = 0; j < n && ptr + j < lista.length; j++) {
+      const e = lista[ptr + j];
+      setTimeout(() => ponerPieza(e[0], e[1], e[2], e[3], e[4], { casita: true, apoyar: true }), j * 230);
+    }
+    bl.plan[fase] = ptr + n;
+    return true;
+  }
+  function ponerGatitoCasita() {
+    const ix = Math.round((CASITA.x + 1.5 + MITAD) * 2), iz = Math.round((CASITA.z + 1.5 + MITAD) * 2);
+    const y = alturaCasilla(ix, iz) * 0.5;
+    if (bl.gatoCasita) quitarFigura(bl.gatoCasita, true);
+    bl.gatoCasita = ponerFiguraDe('gato', CASITA.x + 1.5, CASITA.z + 1.5, y, 0, 1.2, false);
+    notas([[420, 0, 0.07], [630, 0.06, 0.09]], 'triangle', 0.05);
+    ninoDice('¡Miau!', 1.4);
+    historiaEvento('bloqueFigura');
+    return true;
+  }
+
+  function teclaBloques(code) {
+    if (!bl.listo || jugador !== 'nino' || !enBloques(ninoE.pos) || historia.activa) return;
+    if (code === 'KeyQ') quitarBloque();
+    else if (code === 'KeyZ') deshacerBloque();
+    else if (code === 'Digit1' || code === 'Digit2' || code === 'Digit3') { bl.cat = 'bloques'; bl.tam = +code.slice(5) - 1; pintarPaletaBloques(); }
   }
 
 
@@ -18888,7 +19933,33 @@
         ['miguel', '¡Eres un piloto estupendo! Ahora te espera Carlos en el parque de bolas.'],
         ['manuel', '¡Gracias, Miguel! ¡Hasta luego!']] },
     ] },
-    { id: 'bolas', titulo: 'Capítulo 5 · El parque de bolas con Carlos', lugar: 'playa', con: ['carlos'], llegada: () => new V3(84, 0, -38), pasos: [
+    { id: 'bloques', titulo: 'Capítulo 5 · El mundo de bloques con Miguel', lugar: 'bloques', con: ['miguel'], pasos: [
+      { tipo: 'hacer', fn: () => reiniciarCasita() },
+      { tipo: 'hablar', lineas: [
+        ['miguel', '¡Mira, Manuel! Este es el mundo de bloques. Aquí se puede construir lo que quieras.'],
+        ['miguel', 'Hay bloques enteros, medios bloques, que son como escalones, y cuartos de bloque, que son finitos como columnas.'],
+        ['manuel', '¡Quiero hacerle una casita a Drako!'],
+        ['miguel', '¡Buena idea! Empezamos por el suelo, con medios bloques de piedra.']] },
+      { tipo: 'mision', texto: 'Pon nueve medios bloques de piedra para el suelo', evento: 'bloqueMedio', n: 9, sitio: () => casitaFrente(), radio: 5,
+        accion: { texto: 'Poner suelo', hacer: () => ponerTanda('suelo') } },
+      { tipo: 'hablar', lineas: [['miguel', '¡Qué bien queda! Ahora las paredes, con bloques enteros de ladrillo. Dejamos un hueco para la puerta.']] },
+      { tipo: 'mision', texto: 'Pon siete bloques enteros de ladrillo para las paredes', evento: 'bloqueEntero', n: 7, sitio: () => casitaFrente(), radio: 5,
+        accion: { texto: 'Poner paredes', hacer: () => ponerTanda('paredes') } },
+      { tipo: 'hablar', lineas: [['miguel', 'Para el techo usamos otra vez medios bloques, pero de madera.']] },
+      { tipo: 'mision', texto: 'Pon nueve medios bloques de madera para el techo', evento: 'bloqueMedio', n: 9, sitio: () => casitaFrente(), radio: 5,
+        accion: { texto: 'Poner techo', hacer: () => ponerTanda('techo') } },
+      { tipo: 'hablar', lineas: [['miguel', 'Falta la chimenea. Usaremos cuartos de bloque, ¡los más pequeñitos!']] },
+      { tipo: 'mision', texto: 'Pon dos cuartos de bloque para la chimenea', evento: 'bloqueCuarto', n: 2, sitio: () => casitaFrente(), radio: 5,
+        accion: { texto: 'Poner chimenea', hacer: () => ponerTanda('chimenea') } },
+      { tipo: 'hablar', lineas: [['miguel', '¡Casi está! Y para que no se aburra nadie, pondremos un gatito en el tejado.']] },
+      { tipo: 'mision', texto: 'Coloca un gatito en el tejado', evento: 'bloqueFigura', sitio: () => casitaFrente(), radio: 5,
+        accion: { texto: 'Poner gatito', hacer: () => ponerGatitoCasita() } },
+      { tipo: 'hablar', lineas: [
+        ['miguel', '¡Qué casita tan bonita! Drako va a estar muy contento.'],
+        ['manuel', '¡Gracias, Miguel! ¡Ha sido muy divertido!'],
+        ['miguel', 'Cuando quieras, vuelve y construye lo que se te ocurra, con muchos bloques y figuras. ¡Y ahora, a los karts... no, a por el siguiente plan!']] },
+    ] },
+    { id: 'bolas', titulo: 'Capítulo 6 · El parque de bolas con Carlos', lugar: 'playa', con: ['carlos'], llegada: () => new V3(84, 0, -38), pasos: [
       { tipo: 'hablar', lineas: [
         ['carlos', '¡Hola, primo! ¿Jugamos al escondite en el parque de bolas?'],
         ['manuel', '¡Vale! Tú te escondes y yo te busco.'],
@@ -18900,7 +19971,7 @@
       { tipo: 'mision', texto: 'Prueba una atracción del parque de bolas con Carlos', evento: 'bolasAtr', sitio: () => atraccionBolasCerca() },
       { tipo: 'hablar', lineas: [['carlos', '¡Qué divertido! ¿Vamos a la feria? ¡Dicen que hay una noria gigante!']] },
     ] },
-    { id: 'feria', titulo: 'Capítulo 6 · La feria con Carlos', lugar: 'feria', con: ['carlos'], pasos: [
+    { id: 'feria', titulo: 'Capítulo 7 · La feria con Carlos', lugar: 'feria', con: ['carlos'], pasos: [
       { tipo: 'hablar', lineas: [
         ['carlos', '¡Halaaa! Cuánta gente y cuántas atracciones.'],
         ['manuel', '¡Vamos a la noria!']] },
@@ -18916,7 +19987,7 @@
         ['carlos', '¡Pum, pum, pum! ¡Qué risa!'],
         ['carlos', '¡Primo, se me ocurre una cosa! Hoy hay competición de atletismo en el estadio de las dunas. ¡Vamos!']] },
     ] },
-    { id: 'atletismo', titulo: 'Capítulo 7 · El estadio de atletismo con Carlos', lugar: 'estadio', con: ['carlos'], pasos: [
+    { id: 'atletismo', titulo: 'Capítulo 8 · El estadio de atletismo con Carlos', lugar: 'estadio', con: ['carlos'], pasos: [
       { tipo: 'hablar', lineas: [
         ['carlos', '¡Manuel! ¡Hoy hay competición de atletismo en el estadio de las dunas!'],
         ['manuel', '¡Yo quiero competir! ¡Voy a correr muchísimo!'],
@@ -18941,7 +20012,7 @@
         ['carlos', '¡Eres un campeón, primo! Y mira: la gente te aplaude.'],
         ['carlos', 'Me tengo que ir con mis papás. ¡Adiós, primo! Tu mamá te espera en el pueblo de los números.']] },
     ] },
-    { id: 'numeros', titulo: 'Capítulo 8 · Los números con mamá', lugar: 'numeros', con: ['mama'], pasos: [
+    { id: 'numeros', titulo: 'Capítulo 9 · Los números con mamá', lugar: 'numeros', con: ['mama'], pasos: [
       { tipo: 'hablar', lineas: [
         ['mama', 'Bienvenido al pueblo de los números. Aquí viven unos amigos hechos de bloques.'],
         ['mama', '¡Ay! El número siete se ha perdido. ¿Le ayudamos a volver con sus amigos?']] },
@@ -18951,14 +20022,14 @@
       { tipo: 'mision', texto: 'Supera un juego de números con mamá', evento: 'juegoNum', sitio: () => (numeros.puestos[0] ? numeros.puestos[0].sitio : null) },
       { tipo: 'hablar', lineas: [['mama', '¡Qué listo eres! Ahora vamos a tu cuarto: ¡tengo una sorpresa con las pistas de coches!']] },
     ] },
-    { id: 'pistas', titulo: 'Capítulo 9 · Las pistas de coches con mamá', lugar: 'juguetes', con: ['mama'], pasos: [
+    { id: 'pistas', titulo: 'Capítulo 10 · Las pistas de coches con mamá', lugar: 'juguetes', con: ['mama'], pasos: [
       { tipo: 'hablar', lineas: [
         ['mama', 'Mira cuántas pistas. Elige un coche y lánzalo con fuerza, pero no demasiada.'],
         ['manuel', '¡Voy a hacer un rizo!']] },
       { tipo: 'mision', texto: 'Supera una pista de coches', evento: 'pista', sitio: () => (juguetes.estaciones[0] ? juguetes.estaciones[0].sitio : null) },
       { tipo: 'hablar', lineas: [['mama', '¡Bravo! Ahora papá te lleva al arroyo mágico. Ponte cómodo, ¡que hace calor!']] },
     ] },
-    { id: 'arroyo', titulo: 'Capítulo 10 · El arroyo mágico con papá', lugar: 'arroyo', con: ['papa'], pasos: [
+    { id: 'arroyo', titulo: 'Capítulo 11 · El arroyo mágico con papá', lugar: 'arroyo', con: ['papa'], pasos: [
       { tipo: 'hablar', lineas: [
         ['papa', '¡Qué sitio tan bonito! Escucha el agua de la cascada.'],
         ['papa', 'Mira, ahí hay una ranita perdida, junto a la cascada. Vamos a ayudarla.']] },
@@ -18975,7 +20046,7 @@
       { tipo: 'mision', texto: 'Mira saltar dos peces con papá', evento: 'arroyo', n: 2, sitio: () => historia.sitioPuente },
       { tipo: 'hablar', lineas: [['papa', '¡Qué saltos! ¿Te apetece bucear? Vamos al mar a ver el arrecife.']] },
     ] },
-    { id: 'arrecife', titulo: 'Capítulo 11 · El fondo del mar con papá', lugar: 'arrecife', con: ['papa'], pasos: [
+    { id: 'arrecife', titulo: 'Capítulo 12 · El fondo del mar con papá', lugar: 'arrecife', con: ['papa'], pasos: [
       { tipo: 'hablar', lineas: [
         ['papa', '¡Al agua! Mira qué peces de colores.'],
         ['papa', 'Me encantan las tortugas. ¿Me ayudas a encontrarlas?']] },
@@ -18984,7 +20055,7 @@
       { tipo: 'mision', texto: 'Encuentra el cofre del tesoro', cerca: 'tesoro', sitio: () => zonaArrecife('tesoro'), radio: 7 },
       { tipo: 'hablar', lineas: [['manuel', '¡Monedas de oro!'], ['papa', '¡Somos piratas! Ahora vamos con mamá, que nos espera en el safari.']] },
     ] },
-    { id: 'safari', titulo: 'Capítulo 12 · El safari con papá y mamá', lugar: 'safari', con: ['papa', 'mama'], pasos: [
+    { id: 'safari', titulo: 'Capítulo 13 · El safari con papá y mamá', lugar: 'safari', con: ['papa', 'mama'], pasos: [
       { tipo: 'hablar', lineas: [
         ['mama', '¡Bienvenido al safari! Aquí viven muchos animales.'],
         ['papa', 'El guarda dice que hay un lagarto malito junto a la roca de los leones. ¿Le ayudamos?']] },
@@ -18998,7 +20069,7 @@
       { tipo: 'mision', texto: 'Sube al jeep y deja que te saluden tres manadas', evento: 'manada', n: 3, sitio: () => (safari.jeep ? safari.jeep.g.position : null), radio: 3.2 },
       { tipo: 'hablar', lineas: [['mama', '¡Qué día tan bonito! Se está haciendo de noche...'], ['papa', '¡Mira quién viene! Son tus primos Carlos y Miguel.']] },
     ] },
-    { id: 'castillo', titulo: 'Capítulo 13 · El castillo del terror', lugar: 'castillo', con: ['carlos', 'miguel'], pasos: [
+    { id: 'castillo', titulo: 'Capítulo 14 · El castillo del terror', lugar: 'castillo', con: ['carlos', 'miguel'], pasos: [
       { tipo: 'hablar', lineas: [
         ['miguel', '¡Manuel! Hoy es Halloween y en las dunas hay un castillo del terror. ¿Te atreves a entrar?'],
         ['carlos', 'Yo... tengo un poquito de miedo.'],
@@ -19032,7 +20103,7 @@
         ['manuel', '¡Claro! ¡Para ti y para Miguel!'],
         ['miguel', '¡Qué valiente has sido! Vamos a casa, que papá y mamá nos esperan.']] },
     ] },
-    { id: 'estrellas', titulo: 'Capítulo 14 · Viaje a las estrellas', lugar: 'playa', con: ['papa', 'mama'], llegada: () => new V3(PUERTA_ESPACIO.x + 2, 0, PUERTA_ESPACIO.z + 14), pasos: [
+    { id: 'estrellas', titulo: 'Capítulo 15 · Viaje a las estrellas', lugar: 'playa', con: ['papa', 'mama'], llegada: () => new V3(PUERTA_ESPACIO.x + 2, 0, PUERTA_ESPACIO.z + 14), pasos: [
       { tipo: 'hablar', lineas: [
         ['papa', '¡Hola, campeón! Antes de dormir, ¿vamos a ver las estrellas de cerca?'],
         ['mama', 'Papá ha preparado una nave espacial. ¡Drako también viene!'],
@@ -19043,7 +20114,7 @@
       { tipo: 'mision', texto: 'Vuelve a la Tierra en la nave', evento: 'espacioAterrizaje' },
       { tipo: 'hablar', lineas: [['manuel', '¡Ha sido el mejor viaje del mundo!'], ['papa', 'Otro día seguimos explorando el universo.']] },
     ] },
-    { id: 'noche', titulo: 'Capítulo 15 · A dormir', lugar: 'casa', con: [], pasos: [
+    { id: 'noche', titulo: 'Capítulo 16 · A dormir', lugar: 'casa', con: [], pasos: [
       { tipo: 'hablar', lineas: [['mama', '¡Qué calabaza tan bonita! La he puesto en tu cuarto.'], ['papa', '¡Hora de cenar! Hoy has ayudado a mucha gente y a muchos animales.']] },
       { tipo: 'mision', texto: 'Cena con papá y mamá', evento: 'comer', sitio: () => SALA(-4.0, -0.3) },
       { tipo: 'hablar', lineas: [['mama', 'Y ahora, a la cama. Drako también está cansado.']] },
@@ -19065,6 +20136,7 @@
   function zonaDe(p) {
     if (enElEspacio) return 'espacio';
     if (enCastillo(p)) return 'castillo';
+    if (enBloques(p)) return 'bloques';
     if (enEstadio(p)) return 'estadio';
     if (p.x > 500) return 'arrecife';
     if (p.x < -500) return 'circuito';
@@ -19077,9 +20149,9 @@
     return 'playa';
   }
   const SALIR_DE = { arrecife: () => salirDelAgua(), circuito: () => volverDelCircuito(), casa: () => salirDeCasa(), juguetes: () => volverDeJuguetes(),
-    numeros: () => volverDeNumeros(), feria: () => volverDeFeria(), arroyo: () => volverDelArroyo(), safari: () => volverDelSafari(), castillo: () => volverDelCastillo(), estadio: () => volverDelEstadio() };
+    numeros: () => volverDeNumeros(), feria: () => volverDeFeria(), arroyo: () => volverDelArroyo(), safari: () => volverDelSafari(), castillo: () => volverDelCastillo(), estadio: () => volverDelEstadio(), bloques: () => volverDelBloques() };
   const ENTRAR_EN = { arrecife: () => irAlArrecife(), circuito: () => irAlCircuito(), casa: () => entrarEnCasa(), juguetes: () => irAJuguetes(),
-    numeros: () => irANumeros(), feria: () => irAFeria(), arroyo: () => irAlArroyo(), safari: () => irAlSafari(), castillo: () => { if (castillo.fase > 0) reiniciarCastillo(); irAlCastillo(); }, estadio: () => irAlEstadio() };
+    numeros: () => irANumeros(), feria: () => irAFeria(), arroyo: () => irAlArroyo(), safari: () => irAlSafari(), castillo: () => { if (castillo.fase > 0) reiniciarCastillo(); irAlCastillo(); }, estadio: () => irAlEstadio(), bloques: () => irAlBloques() };
   // Lleva a Manuel a una zona (pasando por la playa si hace falta) y luego llama a listo()
   function viajarA(zona, llegada, listo) {
     historia.ocupado = true;
@@ -20032,6 +21104,14 @@
       irFeria: () => irAFeria(),
       irArroyo: () => irAlArroyo(),
       irEstadio: () => irAlEstadio(),
+      irBloques: () => irAlBloques(),
+      bloques: () => ({ total: bl.total, figuras: bl.figuras.length, tipo: bl.tipo, tam: bl.tam, cat: bl.cat, hud: !bl.hud.raiz.hidden, pos: ninoE.pos.toArray().map((v) => +v.toFixed(2)), zona: zonaDe(ninoE.pos), nuevos: bl.nuevos, enSuelo: ninoE.enSuelo,
+        figCat: bl.catalogoFig.length, H: [...bl.H].reduce((a, b) => Math.max(a, b), 0), mision: misionNino() && misionNino().id }),
+      bloquesPoner: (tipo, tam) => { if (tipo !== undefined) bl.tipo = typeof tipo === 'string' ? tipoBloque(tipo) : tipo; if (tam !== undefined) bl.tam = tam; bl.cat = 'bloques'; return ponerBloque(); },
+      bloquesQuitar: () => quitarBloque(),
+      bloquesDeshacer: () => deshacerBloque(),
+      bloquesFigura: (id) => { bl.cat = figDe(id).cat; bl.figSel = id; return ponerBloque(); },
+      bloquesTanda: (f) => ponerTanda(f),
       estadio: () => ({ activa: atl.activa, ev: atl.ev && { id: atl.ev.id, fase: atl.ev.fase, boton: atl.ev.boton, ronda: atl.ev.ronda, nivel: atl.ev.nivel, intento: atl.ev.intento, t: +atl.ev.t.toFixed(2), puesto: atl.ev.puesto,
         st: atl.ev.st ? atl.ev.st.fase : null, v: atl.ev.corr ? +atl.ev.corr[0].v.toFixed(2) : null, s: atl.ev.corr ? +atl.ev.corr[0].s.toFixed(1) : null }, hechas: [...atl.hechas], medallas: atl.medallas,
         pos: ninoE.pos.toArray().map((v) => +v.toFixed(1)), zona: zonaDe(ninoE.pos), sesion: atl.sesion ? [...atl.sesion] : [], carlos: atl.carlos ? atl.carlos.grupo.position.toArray().map((v) => +v.toFixed(1)) : null }),
@@ -20405,6 +21485,7 @@
         actualizarCastillo(dt);
         actualizarEspacio(dt);
         actualizarAtletismo(dt);
+        actualizarBloques(dt);
         tripulacionLibre(dt);
         comprobarPuertasAuto();
       }
