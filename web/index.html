@@ -1394,9 +1394,9 @@
   const cargarOpcional = (n) => cargar(n).catch(() => null);
   Promise.all([cargar('playa.glb'), cargar('perro.glb'), cargar('nino.glb'), cargarOpcional('papa.glb'), cargarOpcional('mama.glb'),
     cargarOpcional('arrecife.glb'), cargarOpcional('coches.glb'), cargarOpcional('pistas.glb'), cargarOpcional('numeros.glb'), cargarOpcional('cochesjuguete.glb'), cargarOpcional('feria.glb'), cargarOpcional('safari.glb'),
-    cargarOpcional('papa_verano.glb'), cargarOpcional('mama.glb'), cargarOpcional('carlos.glb'), cargarOpcional('miguel.glb'), cargarOpcional('halloween.glb'), cargarOpcional('espacio.glb'),
+    cargarOpcional('papa_verano.glb'), cargarOpcional('mama.glb'), cargarOpcional('carlos.glb'), cargarOpcional('miguel.glb'), cargarOpcional('halloween.glb'), cargarOpcional('espacio.glb'), cargarOpcional('fantasticos.glb'),
     cargarOpcional('amigo1.glb'), cargarOpcional('amigo2.glb'), cargarOpcional('amigo3.glb'), cargarOpcional('amigo4.glb')])
-    .then(([playa, gPerro, gNino, gPapa, gMama, gArrecife, gCoches, gPistas, gNumeros, gJuguetes, gFeria, gSafari, gPapaV, gMama2, gCarlos, gMiguel, gHalloween, gEspacio, ...gAmigos]) => {
+    .then(([playa, gPerro, gNino, gPapa, gMama, gArrecife, gCoches, gPistas, gNumeros, gJuguetes, gFeria, gSafari, gPapaV, gMama2, gCarlos, gMiguel, gHalloween, gEspacio, gFantasticos, ...gAmigos]) => {
     prepararPlaya(playa);
     prepararPerro(gPerro);
     prepararNino(gNino);
@@ -1411,6 +1411,7 @@
     try { construirJuguetes(gJuguetes); } catch (e) { console.error('Cuarto de las pistas:', e); }
     try { construirFeria(gFeria); } catch (e) { console.error('Feria:', e); }
     try { construirArroyo(); } catch (e) { console.error('Arroyo mágico:', e); }
+    try { construirFantasticos(gFantasticos); } catch (e) { console.error('Animales fantásticos:', e); }
     try { construirSafari(gSafari); } catch (e) { console.error('Safari:', e); }
     try { construirCastillo(gHalloween); } catch (e) { console.error('Castillo del terror:', e); }
     try { construirEspacio(gEspacio); } catch (e) { console.error('Espacio:', e); }
@@ -3156,6 +3157,14 @@
       } },
     { id: 'arroyo', titulo: 'Entra en el portal mágico delante de la casa y mira saltar 5 peces en el arroyo', total: 5, cuenta: 0,
       objetivo: () => (enArroyo(ninoE.pos) ? null : PORTAL_ARROYO) },
+    { id: 'fantasticos', titulo: 'Descubre los 8 animales fantásticos del arroyo mágico (portal delante de la casa)', total: 8, cuenta: 0,
+      objetivo: () => {
+        if (!enArroyo(ninoE.pos)) return PORTAL_ARROYO;
+        const pend = fanta.criaturas.filter((c) => !fanta.vistas.has(c.id)).map((c) => c.sitio);
+        return pend.length ? masCercanoA(pend, ninoE.pos) : null;
+      } },
+    { id: 'dianas', titulo: 'Acierta 5 dianas en los árboles del arroyo mágico', total: 5, cuenta: 0,
+      objetivo: () => (!enArroyo(ninoE.pos) ? PORTAL_ARROYO : fanta.arboles.length ? masCercanoA(fanta.arboles.map((a) => a.tiro), ninoE.pos) : null) },
     { id: 'safari', titulo: 'Ve al safari (arco de madera delante del parque acuático) y deja que te saluden las 11 manadas de animales', total: 11, cuenta: 0,
       objetivo: () => {
         if (!enSafari(ninoE.pos)) return PUERTA_SAFARI;
@@ -3176,6 +3185,7 @@
   const misionNino = () => (buceando && !hechaNino('arrecife') ? misionPor('arrecife') :
     enCircuito(ninoE.pos) && !hechaNino('carrera') ? misionPor('carrera') : enCircuito(ninoE.pos) && !hechaNino('copas') ? misionPor('copas') :
     enArroyo(ninoE.pos) && !hechaNino('arroyo') ? misionPor('arroyo') :
+    enArroyo(ninoE.pos) && !hechaNino('fantasticos') ? misionPor('fantasticos') : enArroyo(ninoE.pos) && !hechaNino('dianas') ? misionPor('dianas') :
     enSafari(ninoE.pos) && !hechaNino('safari') ? misionPor('safari') :
     enCastillo(ninoE.pos) && !hechaNino('castillo') ? misionPor('castillo') :
     enFeria(ninoE.pos) && !hechaNino('feria') ? misionPor('feria') :
@@ -11958,11 +11968,11 @@
         uniform float uT; uniform vec3 uSol; uniform vec3 uNiebla;
         varying vec2 vUv; varying vec3 vW; varying float vProf;
         float onda(vec2 p, float t) {
-          return 0.05 * sin(p.x * 2.1 + p.y * 1.3 - t * 2.4) + 0.035 * sin(p.x * 3.7 - p.y * 4.1 - t * 3.1) + 0.02 * sin(p.y * 7.3 - t * 5.0 + p.x * 2.0);
+          return 0.07 * sin(p.x * 2.1 + p.y * 1.3 - t * 2.4) + 0.05 * sin(p.x * 3.7 - p.y * 4.1 - t * 3.1) + 0.03 * sin(p.y * 7.3 - t * 5.0 + p.x * 2.0);
         }
         void main() {
           // la corriente baja por el cauce: el dibujo se desplaza en "v"
-          vec2 p = vec2(vUv.x * 8.0, vUv.y * 6.0 - uT * 1.1);
+          vec2 p = vec2(vUv.x * 8.0, vUv.y * 6.0 - uT * 1.4);
           float e = 0.05, h0 = onda(p, uT);
           vec2 g = vec2(onda(p + vec2(e, 0.0), uT) - h0, onda(p + vec2(0.0, e), uT) - h0) / e;
           vec3 N = normalize(vec3(-g.x * 0.6, 1.0, -g.y * 0.6));
@@ -11985,6 +11995,11 @@
           float borde = min(vUv.x, 1.0 - vUv.x);
           float espuma = smoothstep(0.1, 0.0, borde - 0.03 * sin(p.y * 4.0 + uT * 2.0));
           col = mix(col, vec3(1.0), espuma * 0.45); alpha = max(alpha, espuma * 0.4);
+          // rayas de corriente que bajan por el cauce: así se ve hacia dónde va el agua
+          float rx = vUv.x * 9.0 + sin(vUv.y * 2.3) * 0.8;
+          float linea = smoothstep(0.8, 1.0, sin(rx * 6.2832)) * smoothstep(0.45, 1.0, sin(vUv.y * 9.0 - uT * 2.3 + floor(rx) * 1.7));
+          linea *= smoothstep(0.02, 0.15, borde);
+          col = mix(col, vec3(0.95, 1.0, 1.0), linea * 0.5); alpha = max(alpha, linea * 0.55);
           float dist = length(cameraPosition - vW);
           float niebla = smoothstep(60.0, 220.0, dist);
           col = mix(col, uNiebla, niebla);
@@ -12494,6 +12509,700 @@
       if (enArroyo(estado.pos) && hArroyo(estado.pos.x, estado.pos.z) < -0.05 && estado.pos.y < 0.3) salpicar(new V3(estado.pos.x, 0.05, estado.pos.z), 2);
     }
   }
+
+  // =====================================================================
+  // ---------- Animales fantásticos del arroyo y árboles con dianas ----------
+  // =====================================================================
+  // Los modelos vienen de Fantasticos.py (fantasticos.glb). Cada criatura está escondida (bajo el agua, en el bosque,
+  // en el cielo, en una roca, en un tronco hueco, en su nido o entre setas) y sale cuando Manuel pasa cerca: entonces
+  // la cámara se acerca para verla bien. Junto al arroyo hay árboles con dianas colgando para tirar flechas de ventosa.
+  const fanta = { listo: false, P: {}, criaturas: [], arboles: [], flechas: [], espuma: null, espumaDatos: [], ondas: [], chispas: null, chispasDatos: [], vistas: new Set(), aciertos: 0 };
+  let primerPlano = null;  // la cámara se acerca a algo durante unos segundos
+  function acercarCamara(p, dur = 3.5, cerca = 8, alto = 2.5) { primerPlano = { p, t: 0, dur, cerca, alto }; }
+  // Un punto junto al arroyo: u (0 en la cascada, 1 al sur) y lat (metros más allá de la orilla; 0 es el centro del agua)
+  function orillaArroyo(u, lat) {
+    const NP = arroyo.pts.length - 1, i = Math.round(clamp(u, 0, 1) * NP), p = arroyo.pts[i], t = arroyo.tan[i], W = arroyo.anchos[i];
+    const l = lat === 0 ? 0 : lat + Math.sign(lat) * W;
+    const x = ARROYO.x + p.x - t.z * l, z = ARROYO.z + p.z + t.x * l;
+    return new V3(x, hArroyo(x, z), z);
+  }
+  const FANTASTICOS = [
+    { id: 'grifo', nombre: 'el grifo', corto: 'grifo', u: 0.1, lat: 12, radio: 13,
+      hola: '¡Hola, grifo!', dato: 'El grifo es mitad águila y mitad león. Tiene cabeza y alas de águila, y cuerpo de león.', grito: '¡Un grifo! ¡Medio águila y medio león!' },
+    { id: 'dragon', nombre: 'el dragón de agua', corto: 'dragón', u: 0.165, lat: 0, radio: 14, agua: true,
+      hola: '¡Hola, dragón!', dato: 'El dragón de agua vive en los ríos. Nada haciendo olas con su cuerpo largo y tiene bigotes como un gato.', grito: '¡Un dragón sale del agua!' },
+    { id: 'dragoncito', nombre: 'el dragoncito', corto: 'dragoncito', u: 0.33, lat: -8, radio: 11,
+      hola: '¡Hola, dragoncito!', dato: 'Es un dragón bebé. Todavía no sabe echar fuego, ¡solo chispitas!', grito: '¡Un dragón bebé en el tronco!' },
+    { id: 'unicornio', nombre: 'el unicornio', corto: 'unicornio', u: 0.45, lat: 7, radio: 14,
+      hola: '¡Hola, unicornio!', dato: 'El unicornio es un caballo mágico con un cuerno en la frente. Su crin tiene todos los colores del arcoíris.', grito: '¡Un unicornio!' },
+    { id: 'fenix', nombre: 'el fénix', corto: 'fénix', u: 0.53, lat: -9, radio: 12,
+      hola: '¡Hola, fénix!', dato: 'El fénix es un pájaro de fuego. Cuando se hace viejo, se convierte en fuego y vuelve a nacer de su nido.', grito: '¡Un pájaro de fuego!' },
+    { id: 'hidra', nombre: 'la hidra', corto: 'hidra', u: 0.62, lat: 0, radio: 15, agua: true,
+      hola: '¡Hola, hidra!', dato: 'La hidra es un monstruo del agua con muchas cabezas. ¡Esta tiene tres y las tres quieren saludarte!', grito: '¡Una hidra de tres cabezas!' },
+    { id: 'hadas', nombre: 'las hadas', corto: 'hadas', u: 0.72, lat: 8, radio: 10,
+      hola: '¡Hola, hadas!', dato: 'Las hadas son pequeñitas y viven en los corros de setas. Dejan un rastro de polvo brillante.', grito: '¡Hadas en las setas!' },
+    { id: 'pegaso', nombre: 'el pegaso', corto: 'pegaso', u: 0.82, lat: -6, radio: 14,
+      hola: '¡Hola, pegaso!', dato: 'Pegaso es un caballo con alas. Puede volar más alto que las nubes.', grito: '¡Un caballo con alas!' },
+  ];
+
+  function construirFantasticos(gF) {
+    if (!gF || !arroyo.listo) return;
+    const G = arroyo.grupo;
+    gF.scene.children.forEach((o) => { fanta.P[o.name] = o; });
+    const copia = (n) => {
+      const o = fanta.P[n].clone(true);
+      o.traverse((m) => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } });
+      return o;
+    };
+    const NP = arroyo.pts.length - 1;
+    // ---------- Chispas mágicas (polvo de hada, fuego, arcoíris) ----------
+    const NC = 400, posC = new Float32Array(NC * 3), colC = new Float32Array(NC * 3);
+    const geoC = new THREE.BufferGeometry();
+    geoC.setAttribute('position', new THREE.BufferAttribute(posC, 3));
+    geoC.setAttribute('color', new THREE.BufferAttribute(colC, 3));
+    const texC = lienzo(64, 64, (c, w, h) => {
+      const g = c.createRadialGradient(32, 32, 0, 32, 32, 32);
+      g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.35, 'rgba(255,255,255,0.6)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+      c.fillStyle = g; c.fillRect(0, 0, w, h);
+    });
+    fanta.chispas = new THREE.Points(geoC, new THREE.PointsMaterial({ map: texC, size: 0.35, vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+    fanta.chispas.frustumCulled = false;
+    for (let k = 0; k < NC; k++) { fanta.chispasDatos.push({ p: new V3(0, -99, 0), v: new V3(), t: 9, vida: 1, c: new THREE.Color() }); }
+    fanta.siguienteChispa = 0;
+    G.add(fanta.chispas);
+    // ---------- Ondas en el agua (cuando sale algo) ----------
+    for (let k = 0; k < 14; k++) {
+      const o = new THREE.Mesh(new THREE.RingGeometry(0.85, 1, 40), new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide }));
+      o.rotation.x = -Math.PI / 2;
+      o.visible = false;
+      o.renderOrder = 3;
+      G.add(o);
+      fanta.ondas.push({ o, t: 9, dur: 1.6, r: 1 });
+    }
+    // ---------- Espuma que baja con la corriente: así se ve cómo se mueve el agua ----------
+    const NE = 220;
+    const geoE = new THREE.CircleGeometry(0.13, 10);
+    geoE.rotateX(-Math.PI / 2);
+    fanta.espuma = new THREE.InstancedMesh(geoE, new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.75, depthWrite: false }), NE);
+    fanta.espuma.renderOrder = 3;
+    fanta.espuma.frustumCulled = false;
+    for (let k = 0; k < NE; k++) {
+      const e = { p: new V3(), t: 0, vida: 1, s: 0.6 + Math.random() * 1.2, f: Math.random() * 6 };
+      soltarEspuma(e, true);
+      fanta.espumaDatos.push(e);
+    }
+    G.add(fanta.espuma);
+
+    // ---------- Las criaturas y sus escondites ----------
+    FANTASTICOS.forEach((d) => {
+      const nombreModelo = { grifo: 'Grifo', dragon: 'DragonAgua', dragoncito: 'Dragoncito', unicornio: 'Unicornio', fenix: 'Fenix', hidra: 'Hidra', hadas: 'Hada', pegaso: 'Pegaso' }[d.id];
+      if (!fanta.P[nombreModelo]) return;
+      const sitio = orillaArroyo(d.u, d.lat);
+      const centro = orillaArroyo(d.u, 0);
+      // mira hacia el agua (o, si está en el agua, hacia la orilla de fuera)
+      const hacia = d.agua ? Math.atan2(orillaArroyo(d.u, 6).x - sitio.x, orillaArroyo(d.u, 6).z - sitio.z) : Math.atan2(centro.x - sitio.x, centro.z - sitio.z);
+      const c = { ...d, sitio, ry: hacia, estado: 'escondido', t: 0, tFuera: 0, enfriar: 0, feliz: 0, piezas: {}, extra: {}, punto: sitio.clone(), mira: sitio.clone() };
+      const o = copia(nombreModelo);
+      o.visible = false;
+      o.rotation.y = hacia;
+      G.add(o);
+      c.o = o;
+      o.traverse((m) => { if (m.name.startsWith(nombreModelo + '_')) c.piezas[m.name.slice(nombreModelo.length + 1)] = m; });
+      if (d.id === 'hidra') { o.scale.setScalar(1.5); c.mira.y = 3.4; }
+      if (d.id === 'dragon') {
+        o.scale.setScalar(1.3);
+        c.mira.y = 2.2;
+        const tg = arroyo.tan[Math.round(d.u * NP)];
+        c.jorobas = [2.6, 4.6, 6.4].map((dd, k) => {
+          const j = copia('DragonAgua_Joroba');
+          j.scale.setScalar(1.25 - k * 0.15);
+          j.position.set(sitio.x - tg.x * dd, -1.5, sitio.z - tg.z * dd);
+          j.rotation.y = Math.atan2(tg.x, tg.z);
+          j.visible = false;
+          G.add(j);
+          return j;
+        });
+      }
+      if (d.id === 'unicornio' || d.id === 'pegaso') c.mira.y += 1.6;
+      if (d.id === 'grifo') {
+        // la roca donde vive el grifo
+        const roca = new THREE.Mesh(new THREE.DodecahedronGeometry(2.3, 1), new THREE.MeshStandardMaterial({ color: '#9a948a', roughness: 0.95, flatShading: true }));
+        roca.scale.set(1.1, 0.85, 1);
+        const pr = orillaArroyo(d.u, d.lat + 6);
+        roca.position.set(pr.x, pr.y + 1.2, pr.z);
+        roca.castShadow = roca.receiveShadow = true;
+        G.add(roca);
+        colisiones.push({ x: pr.x, z: pr.z, r: 2.4 });
+        c.extra.alto = new V3(pr.x, pr.y + 3.05, pr.z);
+        c.mira.y += 1.2;
+      }
+      if (d.id === 'fenix') {
+        // tocón con el nido encima
+        const toc = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.9, 1.3, 14), new THREE.MeshStandardMaterial({ color: '#7a5232', roughness: 0.9 }));
+        toc.position.set(sitio.x, sitio.y + 0.65, sitio.z);
+        toc.castShadow = toc.receiveShadow = true;
+        G.add(toc);
+        const ni = copia('Nido');
+        ni.position.set(sitio.x, sitio.y + 1.3, sitio.z);
+        G.add(ni);
+        colisiones.push({ x: sitio.x, z: sitio.z, r: 1.0 });
+        c.extra.nido = new V3(sitio.x, sitio.y + 1.55, sitio.z);
+        c.mira.y += 3.5;
+      }
+      if (d.id === 'dragoncito') {
+        // tronco hueco tumbado, con la boca hacia el agua
+        // el tronco (su eje es la X del modelo) apunta al arroyo: el dragoncito sale por la boca de ese lado
+        const boca = new V3(Math.sin(hacia), 0, Math.cos(hacia));
+        const tr = copia('TroncoHueco');
+        tr.position.copy(sitio).add(new V3(0, -0.05, 0));
+        tr.rotation.y = Math.atan2(-boca.z, boca.x);
+        G.add(tr);
+        c.extra.dentro = sitio.clone();
+        c.extra.fuera = sitio.clone().addScaledVector(boca, 2.7);
+        c.extra.fuera.y = hArroyo(c.extra.fuera.x, c.extra.fuera.z);
+        colisiones.push({ x: sitio.x + boca.x * 0.7, z: sitio.z + boca.z * 0.7, r: 0.75 }, { x: sitio.x - boca.x * 0.7, z: sitio.z - boca.z * 0.7, r: 0.75 });
+        c.mira = c.extra.fuera.clone().add(new V3(0, 0.6, 0));
+      }
+      if (d.id === 'hadas') {
+        // corro de setas, y tres hadas
+        for (let k = 0; k < 9; k++) {
+          const a = k / 9 * Math.PI * 2, x = sitio.x + Math.cos(a) * 1.8, z = sitio.z + Math.sin(a) * 1.8;
+          const s = copia('Seta');
+          s.position.set(x, hArroyo(x, z), z);
+          s.scale.setScalar(1.4 + 0.5 * Math.sin(k * 2.1));
+          s.rotation.y = k;
+          G.add(s);
+        }
+        c.hadas = [0, 1, 2].map((k) => {
+          const h = k === 0 ? o : copia('Hada');
+          h.visible = false;
+          h.scale.setScalar(0.01);
+          if (k) G.add(h);
+          const pz = {};
+          h.traverse((m) => { if (m.name.startsWith('Hada_')) pz[m.name.slice(5)] = m; });
+          return { h, pz, f: k * 2.1 };
+        });
+        c.mira.y += 1.0;
+      }
+      if (d.id === 'fenix' || d.id === 'pegaso' || d.id === 'unicornio' || d.id === 'grifo') o.scale.setScalar(d.id === 'fenix' ? 1.3 : 1);
+      // saludar a la criatura cuando ya ha salido
+      c.punto.copy(d.agua ? orillaArroyo(d.u, 1.5) : sitio);
+      puntosAccion.push({ pos: c.punto, radio: d.agua ? 4 : 4.2, alto: 3.5, texto: `Saludar al ${d.corto}`.replace('al hadas', 'a las hadas').replace('al hidra', 'a la hidra'),
+        hacer: () => saludarCriatura(c), visible: () => c.estado === 'fuera' && enArroyo(ninoE.pos) });
+      fanta.criaturas.push(c);
+    });
+
+    // ---------- Árboles con dianas colgando ----------
+    [[0.27, 13], [0.4, -15], [0.66, -12], [0.9, 10]].forEach(([u, lat]) => {
+      if (!fanta.P.ArbolDianas) return;
+      const p = orillaArroyo(u, lat), agua = orillaArroyo(u, 0);
+      const a = copia('ArbolDianas');
+      a.position.copy(p);
+      a.rotation.y = Math.atan2(agua.x - p.x, agua.z - p.z);
+      G.add(a);
+      colisiones.push({ x: p.x, z: p.z, r: 0.6 });
+      const dianas = [-1.5, 1.5].map((x, k) => {
+        const d = copia('Diana');
+        d.position.set(x, 3.18, 0);
+        a.add(d);
+        return { d, ang: 0, vel: 0, f: k * 1.7 + u * 9 };
+      });
+      a.updateMatrixWorld(true);
+      const tiro = a.localToWorld(new V3(0, 0, 5.2));
+      tiro.y = hArroyo(tiro.x, tiro.z);
+      const arbol = { a, dianas, tiro, turno: 0 };
+      fanta.arboles.push(arbol);
+      puntosAccion.push({ pos: tiro, radio: 2.6, alto: 2, texto: 'Tirar a la diana', hacer: () => tirarFlecha(arbol), visible: () => enArroyo(ninoE.pos) && !arbol.vuela });
+      // un cartel con una diana pintada en el suelo, donde hay que ponerse
+      const marca = new THREE.Mesh(new THREE.RingGeometry(0.45, 0.6, 32), new THREE.MeshBasicMaterial({ color: '#ffd42a', transparent: true, opacity: 0.85, side: THREE.DoubleSide }));
+      marca.rotation.x = -Math.PI / 2;
+      marca.position.copy(tiro).add(new V3(0, 0.04, 0));
+      G.add(marca);
+    });
+    // flechas de ventosa (unas cuantas, que se reutilizan)
+    if (fanta.P.Flecha) {
+      for (let k = 0; k < 6; k++) {
+        const f = copia('Flecha');
+        f.visible = false;
+        G.add(f);
+        fanta.flechas.push({ f, estado: null, t: 0 });
+      }
+    }
+    fanta.listo = fanta.criaturas.length > 0;
+  }
+
+  // ---------- Efectos ----------
+  // Para la historia: junto a una criatura (las del agua, en la orilla)
+  function fantaSitio(id, lat) {
+    const c = fanta.criaturas.find((q) => q.id === id);
+    if (!c) return historia.sitioPuente;
+    return c.agua ? orillaArroyo(c.u, lat || 3) : c.sitio;
+  }
+  function chispear(p, n, colores, fuerza = 1.5, vida = 1.2, sube = 0.6) {
+    if (!fanta.chispas) return;
+    for (let k = 0; k < n; k++) {
+      const c = fanta.chispasDatos[fanta.siguienteChispa];
+      fanta.siguienteChispa = (fanta.siguienteChispa + 1) % fanta.chispasDatos.length;
+      c.p.copy(p).add(new V3((Math.random() - 0.5) * 0.6, (Math.random() - 0.5) * 0.6, (Math.random() - 0.5) * 0.6));
+      c.v.set((Math.random() - 0.5) * fuerza, Math.random() * fuerza * 0.6 + sube, (Math.random() - 0.5) * fuerza);
+      c.t = 0;
+      c.vida = vida * (0.6 + Math.random() * 0.6);
+      c.c.set(colores[k % colores.length]);
+    }
+  }
+  function onda(p, r = 3, dur = 1.6) {
+    const o = fanta.ondas.find((q) => q.t >= q.dur) || fanta.ondas[0];
+    o.t = 0;
+    o.dur = dur;
+    o.r = r;
+    o.o.position.set(p.x, 0.04, p.z);
+    o.o.visible = true;
+  }
+  function soltarEspuma(e, alAzar) {
+    const NP = arroyo.pts.length - 1;
+    const i = alAzar ? 30 + Math.floor(Math.random() * (NP - 60)) : 30 + Math.floor(Math.random() * 40);
+    const p = arroyo.pts[i], t = arroyo.tan[i], lat = (Math.random() * 2 - 1) * arroyo.anchos[i] * 0.75;
+    e.p.set(ARROYO.x + p.x - t.z * lat, 0.025, ARROYO.z + p.z + t.x * lat);
+    e.t = 0;
+    e.vida = 8 + Math.random() * 14;
+  }
+  function sonidoMagia(grave) {
+    const b = grave ? 330 : 660;
+    notas([[b, 0, 0.18], [b * 1.26, 0.08, 0.18], [b * 1.5, 0.16, 0.2], [b * 2, 0.24, 0.35], [b * 2.52, 0.34, 0.4]], 'sine', 0.06);
+  }
+
+  // ---------- Saludar y tirar a la diana ----------
+  function saludarCriatura(c) {
+    const E = ninoE;
+    E.rumbo = Math.atan2(c.o.position.x - E.pos.x, c.o.position.z - E.pos.z);
+    ninoCelebra(c.hola);
+    c.feliz = 2.2;
+    sonidoMagia(c.id === 'hidra' || c.id === 'dragon');
+    chispear(c.mira, 40, c.id === 'fenix' ? ['#ffd23a', '#ff7a1a', '#ff3a1a'] : ['#ff9ad8', '#7ff6ff', '#fff3a8', '#b98aff']);
+    decirEnVoz('narrador', c.dato);
+    acercarCamara(c.mira, 3, c.agua ? 9 : 7, 2.2);
+  }
+  function tirarFlecha(arbol) {
+    const fl = fanta.flechas.find((q) => !q.estado);
+    if (!fl || arbol.vuela) return;
+    const E = ninoE;
+    // a qué diana: se van turnando
+    const dn = arbol.dianas[arbol.turno % arbol.dianas.length];
+    arbol.turno++;
+    const centro = Math.random() < 0.4;
+    const r = centro ? Math.random() * 0.06 : 0.14 + Math.random() * 0.24, a = Math.random() * Math.PI * 2;
+    const local = new V3(Math.cos(a) * r, -1.1 + Math.sin(a) * r, 0.55);
+    arbol.a.updateMatrixWorld(true);
+    const destino = dn.d.localToWorld(local.clone().setZ(0.05));
+    E.rumbo = Math.atan2(destino.x - E.pos.x, destino.z - E.pos.z);
+    E.modo = 'celebrar';
+    E.t = 1.2;
+    animarNino('attack', true, 0.12);
+    const desde = E.pos.clone().add(new V3(Math.sin(E.rumbo) * 0.4, 1.15, Math.cos(E.rumbo) * 0.4));
+    const medio = desde.clone().lerp(destino, 0.5).add(new V3(0, 0.9, 0));
+    fl.estado = 'vuela';
+    fl.t = 0;
+    fl.curva = new THREE.QuadraticBezierCurve3(desde, medio, destino);
+    fl.dn = dn;
+    fl.local = local;
+    fl.centro = centro;
+    fl.arbol = arbol;
+    fl.f.visible = true;
+    arbol.vuela = true;
+    notas([[880, 0, 0.06], [440, 0.03, 0.12]], 'triangle', 0.05);
+  }
+
+  // ---------- Cada fotograma ----------
+  const _fa = new V3(), _fb = new V3();
+  function actualizarFantasticos(dt) {
+    if (!fanta.listo || !arroyo.grupo.visible) { if (primerPlano && !enArroyo(ninoE.pos)) primerPlano = null; return; }
+    const t = reloj.elapsedTime;
+    const foco = jugador === 'perro' ? estado.pos : ninoE.pos;
+    const misionH = historia.activa && historia.mision && !historia.mision.hecha && historia.mision.P.evento;
+    fanta.criaturas.forEach((c) => {
+      c.t += dt;
+      c.enfriar = Math.max(0, c.enfriar - dt);
+      c.feliz = Math.max(0, c.feliz - dt);
+      const d = distXZ(foco, c.sitio);
+      const laQuiere = misionH === 'fantastico:' + c.id;
+      if (c.estado === 'escondido' && d < c.radio && (c.enfriar <= 0 || laQuiere)) salirCriatura(c);
+      else if (c.estado === 'fuera') {
+        c.tFuera += dt;
+        if (laQuiere && d < c.radio) historiaEvento('fantastico:' + c.id);
+        if (d > 45 && c.tFuera > 20) { c.estado = 'vuelve'; c.t = 0; }
+      }
+      animarCriatura(c, dt, t);
+    });
+    // flechas
+    fanta.flechas.forEach((fl) => {
+      if (fl.estado === 'vuela') {
+        fl.t += dt / 0.7;
+        const k = Math.min(1, fl.t);
+        fl.curva.getPoint(k, _fa);
+        fl.curva.getPoint(Math.min(1, k + 0.02), _fb);
+        fl.f.position.copy(_fa);
+        if (_fb.distanceToSquared(_fa) > 1e-6) fl.f.lookAt(_fb);
+        if (k >= 1) {
+          // ¡plof! se queda pegada en la diana
+          fl.estado = 'pegada';
+          fl.t = 0;
+          fl.dn.d.add(fl.f);
+          fl.f.position.copy(fl.local);
+          fl.f.rotation.set(0, Math.PI, 0);
+          fl.dn.vel += 2.4;
+          fl.arbol.vuela = false;
+          const p = fl.dn.d.localToWorld(new V3(0, -1.1, 0.1));
+          chispear(p, fl.centro ? 40 : 20, fl.centro ? ['#ffd21f', '#ffffff', '#ff5a7a'] : ['#ffffff', '#ffd21f']);
+          fanta.aciertos++;
+          if (fl.centro) { sonPremio(); avisar('¡En el centro! +10', 1600); ninoDice('¡En el centro!', 1.6); }
+          else { sonAcierto(); avisar('¡Diana! +5', 1400); ninoDice(['¡Le he dado!', '¡Toma!', '¡Bien!'][fanta.aciertos % 3], 1.4); }
+          sumarNino('dianas');
+          historiaEvento('diana');
+        }
+      } else if (fl.estado === 'pegada') {
+        fl.t += dt;
+        if (fl.t > 2.5) {
+          // se despega y cae al suelo
+          fl.f.updateMatrixWorld(true);
+          fl.f.getWorldPosition(_fa);
+          arroyo.grupo.add(fl.f);
+          fl.f.position.copy(_fa);
+          fl.estado = 'cae';
+          fl.t = 0;
+          fl.vy = 0;
+        }
+      } else if (fl.estado === 'cae') {
+        fl.t += dt;
+        fl.vy -= 9.8 * dt;
+        fl.f.position.y += fl.vy * dt;
+        fl.f.rotation.x += dt * 6;
+        if (fl.f.position.y < hArroyo(fl.f.position.x, fl.f.position.z) + 0.05 || fl.t > 2) { fl.f.visible = false; fl.estado = null; }
+      }
+    });
+    // dianas que se balancean con el viento y al darles
+    fanta.arboles.forEach((A) => A.dianas.forEach((dn) => {
+      dn.vel += (-dn.ang * 9 - dn.vel * 1.2) * dt;
+      dn.ang += dn.vel * dt;
+      dn.d.rotation.x = dn.ang + Math.sin(t * 1.3 + dn.f) * 0.05;
+      dn.d.rotation.z = Math.sin(t * 0.9 + dn.f * 2) * 0.03;
+    }));
+    // espuma que baja con la corriente
+    const NP = arroyo.pts.length - 1, mm = new THREE.Matrix4(), qq = new THREE.Quaternion(), es = new V3();
+    fanta.espumaDatos.forEach((e, k) => {
+      e.t += dt;
+      corriente(e.p.x, e.p.z, _fa);
+      e.p.x += _fa.x * 1.15 * dt + Math.sin(t * 1.3 + e.f) * 0.08 * dt;
+      e.p.z += _fa.z * 1.15 * dt + Math.cos(t * 1.1 + e.f) * 0.08 * dt;
+      const i = indiceArroyo(e.p.x, e.p.z);
+      if (e.t > e.vida || i > NP - 15 || hArroyo(e.p.x, e.p.z) > -0.05) soltarEspuma(e, false);
+      const s = e.s * Math.min(1, e.t * 2, (e.vida - e.t) * 0.8);
+      es.set(s * (1.3 + 0.3 * Math.sin(t * 3 + e.f)), 1, s);
+      qq.setFromAxisAngle(_fb.set(0, 1, 0), Math.atan2(_fa.x, _fa.z));
+      mm.compose(e.p, qq, es);
+      fanta.espuma.setMatrixAt(k, mm);
+    });
+    fanta.espuma.instanceMatrix.needsUpdate = true;
+    // ondas
+    fanta.ondas.forEach((o) => {
+      if (o.t >= o.dur) { o.o.visible = false; return; }
+      o.t += dt;
+      const k = o.t / o.dur;
+      o.o.scale.setScalar(0.3 + k * o.r);
+      o.o.material.opacity = 0.7 * (1 - k);
+    });
+    // chispas
+    const posC = fanta.chispas.geometry.attributes.position, colC = fanta.chispas.geometry.attributes.color;
+    fanta.chispasDatos.forEach((c, k) => {
+      if (c.t < c.vida) {
+        c.t += dt;
+        c.v.y -= 0.6 * dt;
+        c.p.addScaledVector(c.v, dt);
+        const b = Math.max(0, 1 - c.t / c.vida);
+        posC.setXYZ(k, c.p.x, c.p.y, c.p.z);
+        colC.setXYZ(k, c.c.r * b, c.c.g * b, c.c.b * b);
+      } else posC.setXYZ(k, 0, -99, 0);
+    });
+    posC.needsUpdate = true;
+    colC.needsUpdate = true;
+  }
+
+  function salirCriatura(c) {
+    c.estado = 'sale';
+    c.t = 0;
+    c.o.visible = true;
+    const nueva = !fanta.vistas.has(c.id);
+    fanta.vistas.add(c.id);
+    if (nueva) sumarNino('fantasticos');
+    historiaEvento('fantastico:' + c.id);
+    setTimeout(() => {
+      avisar(c.grito, 2200);
+      ninoDice(c.grito, 2.2);
+      decirEnVoz('manuel', c.grito);
+    }, 500);
+    sonidoMagia(c.agua);
+    if (c.id === 'hidra' || c.id === 'dragon') { setTimeout(() => sonidoTerror('rugido'), 900); }
+    // la cámara se acerca: más y durante más tiempo si sale del arroyo
+    acercarCamara(c.mira, c.agua ? 5 : 3.8, c.agua ? 10 : 8, c.agua ? 3 : 2.4);
+  }
+
+  // Animaciones de cada criatura: salir, estar fuera y volver a esconderse
+  function animarCriatura(c, dt, t) {
+    const o = c.o, P = c.piezas, S = c.sitio;
+    const ease = (x) => 1 - Math.pow(1 - clamp(x, 0, 1), 3);
+    const feliz = c.feliz > 0 ? Math.sin(c.feliz * 9) : 0;
+    const mirar = (desde, hasta, k = 1) => { o.rotation.y = angulo(o.rotation.y, Math.atan2(hasta.x - desde.x, hasta.z - desde.z), k); };
+    const patas = (vel, amp) => {
+      ['PataDI', 'PataTD'].forEach((n) => { if (P[n]) P[n].rotation.x = Math.sin(t * vel) * amp; });
+      ['PataDD', 'PataTI'].forEach((n) => { if (P[n]) P[n].rotation.x = -Math.sin(t * vel) * amp; });
+    };
+    const alas = (vel, amp, base = 0) => {
+      if (P.AlaI) P.AlaI.rotation.z = base + Math.sin(t * vel) * amp;
+      if (P.AlaD) P.AlaD.rotation.z = -(base + Math.sin(t * vel) * amp);
+    };
+    if (c.estado === 'escondido') { o.visible = c.id === 'grifo' || c.id === 'fenix' ? o.visible : false; }
+    switch (c.id) {
+      case 'hidra': {
+        const abajo = -4.6, arriba = -0.45;
+        if (c.estado === 'escondido') { o.position.set(S.x, abajo, S.z); o.visible = false; break; }
+        if (c.estado === 'sale') {
+          const k = ease(c.t / 2.6);
+          o.position.set(S.x, abajo + (arriba - abajo) * k, S.z);
+          if (Math.random() < dt * 30) salpicar(new V3(S.x + (Math.random() - 0.5) * 3, 0.05, S.z + (Math.random() - 0.5) * 3), 6);
+          if (c.t < 2 && Math.random() < dt * 4) onda(S, 5 + Math.random() * 3);
+          if (c.t > 2.6) { c.estado = 'fuera'; c.t = 0; c.tFuera = 0; }
+        } else if (c.estado === 'vuelve') {
+          const k = ease(c.t / 2);
+          o.position.y = arriba + (abajo - arriba) * k;
+          if (Math.random() < dt * 10) salpicar(new V3(S.x, 0.05, S.z), 5);
+          if (c.t > 2) { c.estado = 'escondido'; c.enfriar = 6; }
+        } else {
+          o.position.y = arriba + Math.sin(t * 1.2) * 0.12;
+          if (Math.random() < dt * 0.8) onda(S, 4);
+        }
+        mirar(o.position, ninoE.pos, 1 - Math.exp(-1.5 * dt));
+        for (let k = 1; k <= 3; k++) {
+          const cu = P['Cuello' + k], ma = P['Mandibula' + k];
+          if (!cu) continue;
+          cu.rotation.z = Math.sin(t * 0.9 + k * 2.1) * 0.18 + feliz * 0.2;
+          cu.rotation.x = Math.sin(t * 0.7 + k * 1.3) * 0.12 - (c.estado === 'sale' ? 0.2 : 0);
+          if (ma) ma.rotation.x = Math.max(0, Math.sin(t * 2.2 + k * 1.9)) * 0.45 + (c.feliz > 0 ? 0.3 : 0);
+        }
+        if (P.Cola) P.Cola.rotation.y = Math.sin(t * 0.8) * 0.4;
+        break;
+      }
+      case 'dragon': {
+        const abajo = -3.8, arriba = -0.2;
+        const js = c.jorobas;
+        if (c.estado === 'escondido') { o.position.set(S.x, abajo, S.z); o.visible = false; js.forEach((j) => { j.visible = false; }); break; }
+        js.forEach((j) => { j.visible = true; });
+        let k = 1;
+        if (c.estado === 'sale') {
+          k = ease(c.t / 2.4);
+          if (Math.random() < dt * 25) salpicar(new V3(S.x + (Math.random() - 0.5) * 2, 0.05, S.z + (Math.random() - 0.5) * 2), 6);
+          if (c.t < 1.8 && Math.random() < dt * 4) onda(S, 4 + Math.random() * 2);
+          if (c.t > 2.4) { c.estado = 'fuera'; c.t = 0; c.tFuera = 0; }
+        } else if (c.estado === 'vuelve') {
+          k = 1 - ease(c.t / 1.8);
+          if (Math.random() < dt * 10) salpicar(new V3(S.x, 0.05, S.z), 5);
+          if (c.t > 1.8) { c.estado = 'escondido'; c.enfriar = 6; }
+        }
+        o.position.set(S.x, abajo + (arriba - abajo) * k + Math.sin(t * 1.6) * 0.1, S.z);
+        js.forEach((j, n) => {
+          const kk = clamp(k * 1.3 - n * 0.15, 0, 1);
+          j.position.y = -1.6 + (1.4 + Math.sin(t * 2.2 - n * 1.2) * 0.22) * kk;
+          if (Math.random() < dt * 3 * kk) salpicar(new V3(j.position.x, 0.05, j.position.z), 2);
+        });
+        mirar(o.position, ninoE.pos, 1 - Math.exp(-1.2 * dt));
+        if (P.Cabeza) { P.Cabeza.rotation.z = Math.sin(t * 1.1) * 0.12; P.Cabeza.rotation.x = Math.sin(t * 0.8) * 0.08 + feliz * 0.15; }
+        if (P.Mandibula) P.Mandibula.rotation.x = Math.max(0, Math.sin(t * 1.7)) * 0.35 + (c.feliz > 0 ? 0.3 : 0);
+        if (c.estado === 'fuera' && Math.random() < dt * 0.6) onda(S, 3);
+        break;
+      }
+      case 'unicornio': {
+        const lejos = orillaArroyo(c.u, c.lat + 26);
+        if (c.estado === 'escondido') { o.position.copy(lejos); o.visible = false; break; }
+        if (c.estado === 'sale' || c.estado === 'vuelve') {
+          // galopa desde el bosque hasta el prado junto al arroyo (o se vuelve)
+          const k = c.estado === 'sale' ? ease(c.t / 3) : clamp(c.t / 3, 0, 1);
+          const a = c.estado === 'sale' ? lejos : S, b = c.estado === 'sale' ? S : lejos;
+          o.position.lerpVectors(a, b, k);
+          o.position.y = hArroyo(o.position.x, o.position.z) + Math.abs(Math.sin(t * 9)) * 0.25 * (1 - k * 0.7);
+          mirar(a, b);
+          patas(18, 0.7 * (1 - k * 0.6));
+          if (P.Cabeza) P.Cabeza.rotation.x = Math.sin(t * 9) * 0.12;
+          if (Math.random() < dt * 30) chispear(o.position.clone().add(new V3(0, 1.4, 0)), 2, ARCOIRIS_WEB, 0.6, 1.4, 0.2);
+          if (c.t > 3) { if (c.estado === 'sale') { c.estado = 'fuera'; c.tFuera = 0; } else { c.estado = 'escondido'; c.enfriar = 6; } c.t = 0; }
+        } else {
+          o.position.set(S.x, S.y, S.z);
+          mirar(o.position, ninoE.pos, 1 - Math.exp(-1 * dt));
+          patas(3, 0.04);
+          // de vez en cuando se pone de manos (y siempre que lo saludan)
+          const manos = c.feliz > 0 ? Math.sin((2.2 - c.feliz) / 2.2 * Math.PI) : Math.max(0, Math.sin(t * 0.5) - 0.9) * 10;
+          o.rotation.x = -clamp(manos, 0, 1) * 0.5;
+          o.position.y += clamp(manos, 0, 1) * 0.45;
+          if (P.PataDI) { P.PataDI.rotation.x += clamp(manos, 0, 1) * -0.9; P.PataDD.rotation.x += clamp(manos, 0, 1) * -0.6; }
+          if (P.Cabeza) P.Cabeza.rotation.x = Math.sin(t * 1.3) * 0.08 - 0.05;
+          if (Math.random() < dt * 4) chispear(o.position.clone().add(new V3(0, 2.2, 0)).addScaledVector(new V3(Math.sin(o.rotation.y), 0, Math.cos(o.rotation.y)), 1.2), 1, ARCOIRIS_WEB, 0.4, 1.4, 0.2);
+        }
+        if (P.Cola) P.Cola.rotation.y = Math.sin(t * 3) * 0.35;
+        break;
+      }
+      case 'pegaso': {
+        const cielo = S.clone().add(new V3(-14, 26, -10));
+        if (c.estado === 'escondido') { o.position.copy(cielo); o.visible = false; break; }
+        if (c.estado === 'sale' || c.estado === 'vuelve') {
+          const k = c.estado === 'sale' ? ease(c.t / 3.5) : clamp(c.t / 3.5, 0, 1) ** 2;
+          const a = c.estado === 'sale' ? cielo : S, b = c.estado === 'sale' ? S : cielo;
+          o.position.lerpVectors(a, b, k);
+          o.position.y += Math.sin(k * Math.PI) * 3;
+          mirar(a, b, 0.2);
+          o.rotation.x = c.estado === 'sale' ? 0.25 * (1 - k) : -0.3;
+          alas(9, 0.6, 0.1);
+          patas(5, 0.3);
+          if (Math.random() < dt * 20) chispear(o.position.clone().add(new V3(0, 1.2, 0)), 2, ['#ffffff', '#b9c8ff', '#7fd3ff'], 0.5, 1.2, 0);
+          if (c.t > 3.5) {
+            if (c.estado === 'sale') { c.estado = 'fuera'; c.tFuera = 0; o.rotation.x = 0; salpicar(new V3(S.x, S.y + 0.1, S.z), 8); } else { c.estado = 'escondido'; c.enfriar = 6; }
+            c.t = 0;
+          }
+        } else {
+          o.position.copy(S);
+          o.rotation.x = 0;
+          mirar(o.position, ninoE.pos, 1 - Math.exp(-1 * dt));
+          // las alas, plegadas; a ratos las sacude
+          const sacude = c.feliz > 0 ? 1 : Math.max(0, Math.sin(t * 0.6) - 0.85) * 6;
+          alas(10, 0.45 * clamp(sacude, 0, 1), -0.15 + 0.45 * clamp(sacude, 0, 1));
+          patas(3, 0.03);
+          if (P.Cabeza) P.Cabeza.rotation.x = 0.25 + Math.sin(t * 0.9) * 0.15;  // bebe agua y mira
+        }
+        if (P.Cola) P.Cola.rotation.y = Math.sin(t * 2.5) * 0.3;
+        break;
+      }
+      case 'grifo': {
+        const roca = c.extra.alto;
+        if (c.estado === 'escondido') {
+          // está quieto en lo alto de su roca, con las alas plegadas: casi no se ve
+          o.visible = true;
+          o.position.copy(roca);
+          o.rotation.x = 0;
+          alas(1, 0, -0.2);
+          patas(1, 0);
+          if (P.Cabeza) P.Cabeza.rotation.x = 0.35 + Math.sin(t * 0.5) * 0.05;  // dormido
+          break;
+        }
+        if (c.estado === 'sale' || c.estado === 'vuelve') {
+          const k = clamp(c.t / 2.2, 0, 1);
+          const a = c.estado === 'sale' ? roca : S, b = c.estado === 'sale' ? S : roca;
+          o.position.lerpVectors(a, b, ease(k));
+          o.position.y += Math.sin(k * Math.PI) * 2.5;
+          mirar(a, b, 0.3);
+          alas(11, 0.7, 0.2);
+          if (P.Cabeza) P.Cabeza.rotation.x = -0.2;
+          if (c.t > 2.2) { if (c.estado === 'sale') { c.estado = 'fuera'; c.tFuera = 0; } else { c.estado = 'escondido'; c.enfriar = 6; } c.t = 0; }
+        } else {
+          o.position.copy(S);
+          mirar(o.position, ninoE.pos, 1 - Math.exp(-1.2 * dt));
+          const abre = c.feliz > 0 ? 1 : Math.max(0, Math.sin(t * 0.7) - 0.8) * 5;
+          alas(7, 0.5 * clamp(abre, 0, 1), -0.2 + 0.9 * clamp(abre, 0, 1));
+          patas(3, 0.03);
+          if (P.Cabeza) { P.Cabeza.rotation.y = Math.sin(t * 0.8) * 0.4; P.Cabeza.rotation.x = Math.sin(t * 3) * 0.05 + feliz * 0.2; }
+        }
+        if (P.Cola) P.Cola.rotation.y = Math.sin(t * 2) * 0.4;
+        break;
+      }
+      case 'fenix': {
+        const ni = c.extra.nido;
+        if (c.estado === 'escondido') {
+          // dormido en el nido, con un poco de humo de brasas
+          o.visible = true;
+          o.position.copy(ni);
+          o.rotation.set(0, o.rotation.y, 0);
+          alas(1, 0, -0.35);
+          if (Math.random() < dt * 3) chispear(ni.clone().add(new V3(0, 0.2, 0)), 1, ['#ff7a1a', '#ffd23a'], 0.2, 1, 0.4);
+          break;
+        }
+        const vuelo = (k) => {
+          const a = t * 0.9;
+          return ni.clone().add(new V3(Math.cos(a) * 4.5, 3.6 + Math.sin(t * 1.7) * 0.5, Math.sin(a) * 4.5)).lerp(ni, 1 - k);
+        };
+        if (c.estado === 'sale') {
+          // ¡se enciende! y sube en llamas
+          const k = ease(c.t / 2.4);
+          o.position.copy(vuelo(k));
+          chispear(o.position, 4, ['#ffd23a', '#ff7a1a', '#ff3a1a', '#fff3a8'], 1.6 * (1.2 - k), 0.9, 1.2);
+          alas(10, 0.8, 0.2);
+          if (c.t > 2.4) { c.estado = 'fuera'; c.t = 0; c.tFuera = 0; }
+        } else if (c.estado === 'vuelve') {
+          const k = 1 - ease(c.t / 2);
+          o.position.copy(vuelo(k));
+          alas(10, 0.6, 0.2);
+          if (c.t > 2) { c.estado = 'escondido'; c.enfriar = 6; }
+        } else {
+          o.position.copy(vuelo(1));
+          alas(8, 0.7, 0.15);
+          if (Math.random() < dt * 25) chispear(o.position.clone(), 1, ['#ffd23a', '#ff7a1a', '#ff3a1a'], 0.3, 0.9, -0.3);
+          if (c.feliz > 0 && Math.random() < dt * 30) chispear(o.position, 3, ['#ffd23a', '#ff7a1a'], 2, 0.8, 0.5);
+        }
+        // vuela de lado, siguiendo el círculo
+        if (c.estado !== 'escondido') { o.rotation.y = -t * 0.9 + Math.PI; o.rotation.z = 0.35; }
+        if (P.Cola) P.Cola.rotation.x = Math.sin(t * 3) * 0.15;
+        if (P.Cabeza) P.Cabeza.rotation.y = Math.sin(t * 1.3) * 0.3;
+        break;
+      }
+      case 'dragoncito': {
+        const dentro = c.extra.dentro, fuera = c.extra.fuera;
+        if (c.estado === 'escondido') { o.position.copy(dentro); o.visible = false; break; }
+        if (c.estado === 'sale' || c.estado === 'vuelve') {
+          const k = clamp(c.t / 1.6, 0, 1);
+          const a = c.estado === 'sale' ? dentro : fuera, b = c.estado === 'sale' ? fuera : dentro;
+          o.position.lerpVectors(a, b, ease(k));
+          o.position.y = (c.estado === 'sale' ? dentro.y : fuera.y) + (b.y - a.y) * k + Math.abs(Math.sin(k * Math.PI * 3)) * 0.35;
+          mirar(a, b);
+          patas(14, 0.6);
+          if (c.t > 1.6) { if (c.estado === 'sale') { c.estado = 'fuera'; c.tFuera = 0; chispear(o.position.clone().add(new V3(0, 1.1, 0)), 25, ['#ffd23a', '#ff7a1a']); } else { c.estado = 'escondido'; c.enfriar = 6; } c.t = 0; }
+        } else {
+          o.position.copy(fuera);
+          o.position.y += Math.abs(Math.sin(t * 2.4)) * 0.12 + (c.feliz > 0 ? Math.abs(Math.sin(c.feliz * 7)) * 0.4 : 0);
+          mirar(o.position, ninoE.pos, 1 - Math.exp(-2 * dt));
+          patas(2.4, 0.05);
+          // estornuda chispitas (todavía no sabe echar fuego)
+          if (Math.random() < dt * 0.35 || (c.feliz > 0 && Math.random() < dt * 6)) {
+            const f = new V3(Math.sin(o.rotation.y), 0, Math.cos(o.rotation.y));
+            chispear(o.position.clone().add(new V3(0, 1.0, 0)).addScaledVector(f, 0.75), 12, ['#ffd23a', '#ff7a1a', '#ffffff'], 0.8, 0.7, 0.3);
+          }
+        }
+        alas(6, 0.35, 0.1);
+        if (P.Cola) P.Cola.rotation.y = Math.sin(t * 5) * 0.5;
+        if (P.Cabeza) P.Cabeza.rotation.z = Math.sin(t * 1.4) * 0.15 + feliz * 0.2;
+        break;
+      }
+      case 'hadas': {
+        const k = c.estado === 'sale' ? ease(c.t / 1.8) : c.estado === 'vuelve' ? 1 - ease(c.t / 1.5) : c.estado === 'fuera' ? 1 : 0;
+        c.hadas.forEach((H, n) => {
+          H.h.visible = k > 0.01;
+          H.h.scale.setScalar(1.6 * Math.max(0.01, k));
+          const a = t * (0.9 + n * 0.15) + H.f;
+          const r = 1.2 + 0.6 * Math.sin(t * 0.7 + n);
+          H.h.position.set(S.x + Math.cos(a) * r, S.y + 0.8 + n * 0.25 + Math.sin(t * 2 + n) * 0.3 + (c.feliz > 0 ? 0.6 : 0), S.z + Math.sin(a) * r);
+          H.h.rotation.y = -a;
+          const al = Math.sin(t * 30 + n) * 0.8;
+          if (H.pz.AlaI) H.pz.AlaI.rotation.y = al;
+          if (H.pz.AlaD) H.pz.AlaD.rotation.y = -al;
+          if (k > 0.01 && Math.random() < dt * 14) chispear(H.h.position, 1, ['#fff3a8', '#ff9ad8', '#7ff6ff'], 0.2, 1.2, -0.2);
+        });
+        if (c.estado === 'sale') { if (Math.random() < dt * 30) chispear(S.clone().add(new V3(0, 0.5, 0)), 3, ['#fff3a8', '#ff9ad8', '#7ff6ff', '#b98aff'], 1.5, 1.2, 1); if (c.t > 1.8) { c.estado = 'fuera'; c.t = 0; c.tFuera = 0; } }
+        if (c.estado === 'vuelve' && c.t > 1.5) { c.estado = 'escondido'; c.enfriar = 6; }
+        break;
+      }
+      default: break;
+    }
+    // el punto para saludar sigue a la criatura (las del agua, desde la orilla)
+    if (!c.agua && c.id !== 'hadas' && c.id !== 'fenix') { c.punto.x = o.position.x; c.punto.z = o.position.z; c.punto.y = hArroyo(o.position.x, o.position.z); }
+    if (c.id === 'fenix') c.punto.copy(c.sitio);
+    // la cámara mira a la criatura donde esté
+    if (c.id === 'fenix' && c.estado !== 'escondido') c.mira.copy(o.position);
+    else if (c.id === 'pegaso' || c.id === 'unicornio' || c.id === 'grifo' || c.id === 'dragoncito') c.mira.copy(o.position).add(new V3(0, c.id === 'dragoncito' ? 0.6 : 1.6, 0));
+  }
+  const ARCOIRIS_WEB = ['#ff5a7a', '#ffa63d', '#ffe04a', '#6fdc6a', '#4ab8ff', '#9b7bff'];
 
 
   // =====================================================================
@@ -15474,7 +16183,14 @@
         ['papa', 'Mira, ahí hay una ranita perdida, junto a la cascada. Vamos a ayudarla.']] },
       { tipo: 'mision', texto: 'Busca la ranita junto a la cascada', prop: 'rana', sitio: () => historia.sitioRana },
       { tipo: 'mision', texto: 'Lleva la ranita al puente de madera', escolta: true, sitio: () => historia.sitioPuente, radio: 5 },
-      { tipo: 'hablar', lineas: [['papa', '¡Croac! Dice gracias. Ahora vamos a ver saltar a los peces.']] },
+      { tipo: 'hablar', lineas: [['papa', '¡Croac! Dice gracias. Y me ha contado un secreto: en este arroyo viven animales mágicos.'],
+        ['papa', 'Dicen que en lo hondo del agua vive una hidra. ¡Vamos a buscarla!']] },
+      { tipo: 'mision', texto: 'Descubre a la hidra que vive en el arroyo', evento: 'fantastico:hidra', sitio: () => fantaSitio('hidra', 3), radio: 3 },
+      { tipo: 'hablar', lineas: [['manuel', '¡Tiene tres cabezas!'], ['papa', '¡Y las tres sonríen! Ahora busquemos al unicornio, que vive en el prado.']] },
+      { tipo: 'mision', texto: 'Busca al unicornio en el prado', evento: 'fantastico:unicornio', sitio: () => fantaSitio('unicornio', 0), radio: 6 },
+      { tipo: 'hablar', lineas: [['papa', '¡Qué bonito! Mira, esos árboles tienen dianas colgando. ¿Qué puntería tienes?']] },
+      { tipo: 'mision', texto: 'Acierta tres dianas con papá', evento: 'diana', n: 3, sitio: () => (fanta.arboles[2] || fanta.arboles[0] || {}).tiro || historia.sitioPuente, radio: 1.4 },
+      { tipo: 'hablar', lineas: [['papa', '¡Eres un campeón! Ahora vamos a ver saltar a los peces.']] },
       { tipo: 'mision', texto: 'Mira saltar dos peces con papá', evento: 'arroyo', n: 2, sitio: () => historia.sitioPuente },
       { tipo: 'hablar', lineas: [['papa', '¡Qué saltos! ¿Te apetece bucear? Vamos al mar a ver el arrecife.']] },
     ] },
@@ -16525,6 +17241,12 @@
       irPistas: () => irAJuguetes(),
       irFeria: () => irAFeria(),
       irArroyo: () => irAlArroyo(),
+      fantasticos: () => ({ criaturas: fanta.criaturas.map((c) => [c.id, c.estado, c.o.visible, c.o.position.toArray().map((v) => +v.toFixed(1))]), vistas: [...fanta.vistas], aciertos: fanta.aciertos,
+        primerPlano: !!primerPlano, arboles: fanta.arboles.map((a) => a.tiro.toArray().map((v) => +v.toFixed(1))), mision: misionNino() && misionNino().id }),
+      junto: (id, lat = 4) => { const c = fanta.criaturas.find((q) => q.id === id); const p = c.agua ? orillaArroyo(c.u, lat) : orillaArroyo(c.u, c.lat + (c.lat > 0 ? -lat : lat)); ninoE.pos.set(p.x, p.y + 0.05, p.z); ninoE.rumbo = Math.atan2(c.sitio.x - p.x, c.sitio.z - p.z); cam.objetivo.copy(ninoE.pos); cam.yaw = ninoE.rumbo + Math.PI; },
+      alArbol: (k = 0) => { const a = fanta.arboles[k]; ninoE.pos.copy(a.tiro).add(new V3(0, 0.05, 0)); cam.objetivo.copy(ninoE.pos); cam.yaw = a.a.rotation.y; },
+      tirar: (k = 0) => tirarFlecha(fanta.arboles[k]),
+      saludar: (id) => saludarCriatura(fanta.criaturas.find((q) => q.id === id)),
       irSafari: () => irAlSafari(),
       irCastillo: () => irAlCastillo(),
       irEspacio: () => empezarViajeEspacial(),
@@ -16744,6 +17466,7 @@
     estado.nadando = false;
   }
 
+  const _pp = new V3(), _pm = new V3(), _ejeY = new V3(0, 1, 0);
   function actualizarCamara(dt) {
     if (camaraEspacio(dt)) return;  // despegando o en el espacio
     const foco = juguetes.foco || (jugador === 'perro' ? estado.pos : ninoE.pos);
@@ -16788,7 +17511,24 @@
       camera.position.z = clamp(camera.position.z, SC.c.z - SC.Z + 1.2, SC.c.z + SC.Z - 1.2);
       camera.position.y = Math.min(camera.position.y, 22);
     }
-    camera.lookAt(cam.objetivo);
+    let mira = cam.objetivo;
+    if (primerPlano) {
+      // algo interesante (una criatura que sale): la cámara se acerca un rato y luego vuelve
+      const P = primerPlano;
+      P.t += dt;
+      if (P.t > P.dur || !enArroyo(foco)) primerPlano = null;
+      else {
+        const k = smoothstep(0, 0.8, P.t) * (1 - smoothstep(P.dur - 1, P.dur, P.t));
+        _pp.set(camera.position.x - P.p.x, 0, camera.position.z - P.p.z);
+        if (_pp.lengthSq() < 0.01) _pp.set(0, 0, 1);
+        _pp.normalize().applyAxisAngle(_ejeY, 0.55).multiplyScalar(P.cerca).add(P.p);  // un poco de lado: se ve mejor
+        _pp.y = Math.max(P.p.y + P.alto, suelo(_pp.x, _pp.z) + 0.8, 0.6);
+        camera.position.lerp(_pp, k);
+        _pm.copy(P.p).lerp(cam.objetivo, 0.2);
+        mira = _pm.lerpVectors(cam.objetivo, _pm, k);
+      }
+    }
+    camera.lookAt(mira);
     sol.target.position.copy(cam.objetivo);
     sol.position.copy(cam.objetivo).addScaledVector(SOL, 60);
   }
@@ -16837,6 +17577,7 @@
         actualizarJuguetes(dt);
         actualizarFeria(dt);
         actualizarArroyo(dt);
+        actualizarFantasticos(dt);
         actualizarSafari(dt);
         actualizarHistoria(dt);
         actualizarGente(dt);
