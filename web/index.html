@@ -649,6 +649,31 @@
     white-space: nowrap;
   }
   .pistas-grito[hidden] { display: none; }
+  /* ---------- Viaje por el espacio ---------- */
+  body.en-espacio .acciones, body.en-espacio .joystick, body.en-espacio .ayuda { display: none; }
+  body.en-espacio .aviso { top: 20%; }
+  body.en-espacio:not(.en-historia) .seguir { display: none; }
+  body.en-espacio.en-historia .seguir { bottom: calc(250px + env(safe-area-inset-bottom, 0px)); }
+  body.en-espacio .dialogo { bottom: calc(322px + env(safe-area-inset-bottom, 0px)); }
+  .flash { position: fixed; inset: 0; background: #fff; opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+  .flash.activo { opacity: 0.9; transition: none; }
+  .espacio-hud { position: fixed; left: 50%; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); width: min(620px, calc(100% - 32px)); display: grid; gap: 8px; }
+  .espacio-ficha { background: rgba(10, 16, 40, 0.82); color: #f2f6ff; border-radius: 18px; padding: 12px 16px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4); }
+  .espacio-titulo { margin: 0; font: 800 22px "Baloo 2", "Nunito", system-ui, sans-serif; }
+  .espacio-texto { margin: 4px 0 10px; font: 600 16px/1.35 "Nunito", system-ui, sans-serif; color: #d8e2ff; cursor: pointer; }
+  .espacio-botones { display: flex; gap: 8px; flex-wrap: wrap; }
+  .espacio-boton { flex: 1 1 auto; min-height: 50px; border: 0; border-radius: 25px; font: 800 18px "Baloo 2", "Nunito", system-ui, sans-serif; color: #fffdf6; cursor: pointer; touch-action: manipulation; }
+  .espacio-boton.foto { background: #e64aa6; box-shadow: 0 4px 0 #a32f75; }
+  .espacio-boton.siguiente { background: #2f9e6a; box-shadow: 0 4px 0 #1f6f49; }
+  .espacio-boton.casa { background: #5b6b7a; box-shadow: 0 4px 0 #3b4752; flex: 0 1 auto; }
+  .espacio-boton:disabled { opacity: 0.45; }
+  .espacio-boton:active:not(:disabled) { transform: translateY(3px); box-shadow: none; }
+  .espacio-boton:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+  .espacio-album { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; }
+  .espacio-album span { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 8px; background: rgba(255, 255, 255, 0.12); color: #8a96c0; font: 700 16px system-ui, sans-serif; }
+  .espacio-album span.tiene { background: rgba(255, 255, 255, 0.9); }
+  .espacio-album span.nueva { animation: latido 0.6s ease-in-out 3; }
+  @media (max-width: 520px) { .espacio-texto { font-size: 14px; } .espacio-titulo { font-size: 19px; } .espacio-boton { font-size: 16px; min-height: 44px; } .espacio-album span { width: 24px; height: 24px; font-size: 13px; } }
   /* ---------- Historia ---------- */
   .seguir {
     position: fixed;
@@ -758,6 +783,20 @@
 </div>
 <button class="seguir" id="btn-seguir" type="button">📖 Historia</button>
 <button class="salir-historia" id="btn-salir-historia" type="button" hidden aria-label="Dejar la historia y jugar libre">✕ Libre</button>
+
+<div class="flash" id="flash"></div>
+<div class="espacio-hud" id="espacio-hud" hidden>
+  <div class="espacio-album" id="espacio-album" aria-label="Álbum de pegatinas"></div>
+  <div class="espacio-ficha">
+    <p class="espacio-titulo" id="espacio-titulo"></p>
+    <p class="espacio-texto" id="espacio-texto"></p>
+    <div class="espacio-botones">
+      <button type="button" class="espacio-boton foto" id="btn-foto">📷 Foto</button>
+      <button type="button" class="espacio-boton siguiente" id="btn-siguiente">Siguiente ▶</button>
+      <button type="button" class="espacio-boton casa" id="btn-volver-tierra">🏠 A casa</button>
+    </div>
+  </div>
+</div>
 
 <div class="pesca" id="pesca" hidden>
   <div class="pesca-cab"><strong id="pesca-titulo">Elige el cebo</strong><button type="button" class="pesca-salir" id="pesca-salir">Salir</button></div>
@@ -1353,9 +1392,9 @@
   const cargarOpcional = (n) => cargar(n).catch(() => null);
   Promise.all([cargar('playa.glb'), cargar('perro.glb'), cargar('nino.glb'), cargarOpcional('papa.glb'), cargarOpcional('mama.glb'),
     cargarOpcional('arrecife.glb'), cargarOpcional('coches.glb'), cargarOpcional('pistas.glb'), cargarOpcional('numeros.glb'), cargarOpcional('cochesjuguete.glb'), cargarOpcional('feria.glb'), cargarOpcional('safari.glb'),
-    cargarOpcional('papa_verano.glb'), cargarOpcional('mama.glb'), cargarOpcional('carlos.glb'), cargarOpcional('miguel.glb'), cargarOpcional('halloween.glb'),
+    cargarOpcional('papa_verano.glb'), cargarOpcional('mama.glb'), cargarOpcional('carlos.glb'), cargarOpcional('miguel.glb'), cargarOpcional('halloween.glb'), cargarOpcional('espacio.glb'),
     cargarOpcional('amigo1.glb'), cargarOpcional('amigo2.glb'), cargarOpcional('amigo3.glb'), cargarOpcional('amigo4.glb')])
-    .then(([playa, gPerro, gNino, gPapa, gMama, gArrecife, gCoches, gPistas, gNumeros, gJuguetes, gFeria, gSafari, gPapaV, gMama2, gCarlos, gMiguel, gHalloween, ...gAmigos]) => {
+    .then(([playa, gPerro, gNino, gPapa, gMama, gArrecife, gCoches, gPistas, gNumeros, gJuguetes, gFeria, gSafari, gPapaV, gMama2, gCarlos, gMiguel, gHalloween, gEspacio, ...gAmigos]) => {
     prepararPlaya(playa);
     prepararPerro(gPerro);
     prepararNino(gNino);
@@ -1372,8 +1411,10 @@
     try { construirArroyo(); } catch (e) { console.error('Arroyo mágico:', e); }
     try { construirSafari(gSafari); } catch (e) { console.error('Safari:', e); }
     try { construirCastillo(gHalloween); } catch (e) { console.error('Castillo del terror:', e); }
+    try { construirEspacio(gEspacio); } catch (e) { console.error('Espacio:', e); }
     try { construirHistoria(gPapaV, gMama2, gCarlos, gMiguel); } catch (e) { console.error('Historia:', e); }
     try { construirGente(); } catch (e) { console.error('Gente de la feria:', e); }
+    prepararPuertasAuto();
     parque.toboganes.forEach((t) => {
       if (t.aro) return;
       const aro = new THREE.Mesh(new THREE.RingGeometry(0.4, 0.6, 32), new THREE.MeshBasicMaterial({ color: '#ffd42a', side: THREE.DoubleSide, transparent: true, opacity: 0.85 }));
@@ -2176,6 +2217,7 @@
   // ---------- Jugar con Manuel ----------
   // =====================================================================
   let jugador = 'perro';
+  let enElEspacio = false;  // durante el viaje en la nave se dibuja la escena del espacio
   const NADO_NINO = 0.55;  // cuánto se hunde Manuel al nadar (la animación "swim" va tumbada)
   const profundidad = (x, z) => aguaEn(x, z) - suelo(x, z);
   const btnCambiar = document.getElementById('btn-cambiar');
@@ -2341,7 +2383,8 @@
   function actualizarEstadoNino() {
     const E = ninoE;
     let zona = 'arena', texto;
-    if (E.modo === 'bucear') { zona = 'agua'; texto = `Buceando · ${Math.max(0, Math.round(-E.pos.y))} m`; }
+    if (espacio.estado) texto = enElEspacio ? `En el espacio · ${espacio.parada >= 0 ? PARADAS[espacio.parada].nombre : ''}` : espacio.estado === 'cuenta' ? '¡Cuenta atrás!' : '¡Despegando!';
+    else if (E.modo === 'bucear') { zona = 'agua'; texto = `Buceando · ${Math.max(0, Math.round(-E.pos.y))} m`; }
     else if (enCastillo(E.pos)) { const sc = salaC(E.pos); texto = sc >= 0 ? `Castillo del terror · ${SALAS_C[sc].nombre[0].toUpperCase() + SALAS_C[sc].nombre.slice(1)}` : 'En el cementerio del castillo'; }
     else if (enSafari(E.pos)) { zona = E.nadando || E.pos.y < 0.2 ? 'agua' : 'arena'; texto = E.nadando ? 'Nadando en la charca' : `${E.modo === 'atraccion' && E.atr && E.atr.tipo === 'jeep' ? 'De safari en el jeep' : 'En el safari'} · Saludos ${safari.saludadas.size}/${MANADAS.length}`; }
     else if (E.modo === 'atraccion' && E.atr && E.atr.tipo === 'coche') texto = `Conduciendo · ${Math.round(Math.abs(E.atr.vehiculo.vel) * 3.6)} km/h`;
@@ -3073,7 +3116,7 @@
       objetivo: () => (coches.conduciendo || !coches.coche ? PUERTA_CIRCUITO : new V3(coches.coche.x, coches.coche.y, coches.coche.z)) },
     { id: 'carrera', titulo: 'Corre con tus amigos y queda entre los 3 primeros', total: 1, cuenta: 0,
       objetivo: () => (!enCircuito(ninoE.pos) ? PUERTA_CIRCUITO : circuito.fase === 'paddock' && circuito.amigos[0] ? circuito.amigos[0].grupo.position : null) },
-    { id: 'mates', titulo: 'Ve al pueblo de los números (arco junto a la casa) y supera los 11 juegos', total: 11, cuenta: 0,
+    { id: 'mates', titulo: 'Ve al pueblo de los números (arco delante del parque de bolas) y supera los 11 juegos', total: 11, cuenta: 0,
       objetivo: () => {
         if (!enNumeros(ninoE.pos)) return PUERTA_NUMEROS;
         const p = numeros.puestos.find((q) => !mejorEstrella(q.juego.id));
@@ -3102,16 +3145,16 @@
         const e = juguetes.estaciones.find((q) => q.def.sala && !juguetes.estrellas[q.def.id] && pistaAbierta(q.def));
         return e ? e.sitio : null;
       } },
-    { id: 'feria', titulo: 'Ve a la feria (arco junto al parque acuático) y monta en sus 5 atracciones', total: 5, cuenta: 0,
+    { id: 'feria', titulo: 'Ve a la feria (arco al oeste del parque acuático) y monta en sus 5 atracciones', total: 5, cuenta: 0,
       objetivo: () => {
         if (!enFeria(ninoE.pos)) return PUERTA_FERIA;
         const sitios = { noria: FP(-32, 15.2), choque: FP(28, 27.6), rusa: feria.rusa ? feria.rusa.salida : FP(0, 0), sillas: FP(-36, 45.6), torre: FP(36, 47.2) };
         const a = ATRACCIONES_FERIA.find((x) => !feria.montadas.has(x.id));
         return a ? sitios[a.id] : null;
       } },
-    { id: 'arroyo', titulo: 'Entra en el portal mágico de las dunas y mira saltar 5 peces en el arroyo', total: 5, cuenta: 0,
+    { id: 'arroyo', titulo: 'Entra en el portal mágico delante de la casa y mira saltar 5 peces en el arroyo', total: 5, cuenta: 0,
       objetivo: () => (enArroyo(ninoE.pos) ? null : PORTAL_ARROYO) },
-    { id: 'safari', titulo: 'Ve al safari (arco de madera en las dunas) y deja que te saluden las 11 manadas de animales', total: 11, cuenta: 0,
+    { id: 'safari', titulo: 'Ve al safari (arco de madera delante del parque acuático) y deja que te saluden las 11 manadas de animales', total: 11, cuenta: 0,
       objetivo: () => {
         if (!enSafari(ninoE.pos)) return PUERTA_SAFARI;
         if (ninoE.modo === 'atraccion') return null;
@@ -3120,6 +3163,8 @@
       } },
     { id: 'castillo', titulo: 'Supera las 5 pruebas del castillo del terror (verja con calabazas en las dunas)', total: 5, cuenta: 0,
       objetivo: () => (enCastillo(ninoE.pos) ? objetivoCastillo() : PUERTA_CASTILLO) },
+    { id: 'espacio', titulo: 'Sube a la nave (plataforma del centro de las dunas) y haz fotos de los 17 lugares del universo', total: 17, cuenta: 0,
+      objetivo: () => (enElEspacio || espacio.estado ? null : PUERTA_ESPACIO) },
     { id: 'copas', titulo: 'Gana una copa (podio) en los 4 circuitos: verde, ciudad, playa y bosque', total: 4, cuenta: 0,
       objetivo: () => (!enCircuito(ninoE.pos) ? PUERTA_CIRCUITO : circuito.fase === 'paddock' && circuito.amigos[0] ? circuito.amigos[0].grupo.position : null) },
   ];
@@ -3604,6 +3649,15 @@
       bajo: [48, 53, 55, 48, 45, 53, 55, 48],  // una nota cada 4 corcheas
       ritmo: true,
       volumen: 0.16,
+    },
+    // En el espacio: lenta y soñadora, como si flotaras
+    espacio: {
+      corchea: 60 / 76 / 2,
+      melodia: [72, 76, 79, 83, 84, 83, 79, 76, 74, 77, 81, 84, 86, 84, 81, 77,
+        71, 74, 79, 83, 86, 83, 79, 74, 72, 76, 79, 84, 88, 84, 79, -1],
+      bajo: [48, 53, 55, 52, 48, 53, 50, 55],
+      ritmo: false,
+      volumen: 0.1,
     },
     // En el castillo del terror: lenta, en menor y con notas que dan miedo
     terror: {
@@ -4138,7 +4192,7 @@
     const E = ninoE;
     const quien = jugador === 'nino' ? E.pos : estado.pos;
     const enCasa = fueraDe(quien.x, -quien.z, CASA) < 4 || estaDentro(quien);
-    if (!estado.descansando && E.modo !== 'descansar') musica.proximo = enCastillo(quien) ? 'terror' : enCasa ? 'casa' : 'playa';
+    if (!estado.descansando && E.modo !== 'descansar') musica.proximo = enElEspacio ? 'espacio' : enCastillo(quien) ? 'terror' : enCasa ? 'casa' : 'playa';
     drakoIA.llamado = Math.max(0, drakoIA.llamado - dt);
     if (E.modo === 'descansar') {
       if (reloj.elapsedTime > casa.bocadillo) {
@@ -4481,6 +4535,44 @@
   // =====================================================================
   // Cada punto de interacción tiene una posición, un radio y lo que se hace al pulsar el botón
   const puntosAccion = [];
+  // ---------- Entradas automáticas: basta con pasar por la puerta ----------
+  // Para no volver a entrar nada más salir, una puerta solo se activa después de haberse alejado de ella.
+  const TEXTOS_AUTO = ['Ir al circuito', 'Ir a los números', 'Ir a la feria', 'Arroyo mágico', 'Ir al safari', 'Castillo del terror', 'Viaje al espacio',
+    'Volver a la playa', 'A la playa'];
+  let puertasAuto = null;
+  function prepararPuertasAuto() {
+    puertasAuto = puntosAccion.filter((p) => TEXTOS_AUTO.includes(p.texto));
+    puertasAuto.forEach((p) => {
+      p.armada = true;
+      // un aro de luz en el suelo: «pasa por aquí»
+      const aro = new THREE.Mesh(new THREE.RingGeometry(Math.min(p.radio, 2.2) * 0.75, Math.min(p.radio, 2.2), 40), new THREE.MeshBasicMaterial({ color: '#7ff6ff', transparent: true, opacity: 0.6, side: THREE.DoubleSide, depthWrite: false }));
+      aro.rotation.x = -Math.PI / 2;
+      aro.position.set(p.pos.x, (p.pos.y || suelo(p.pos.x, p.pos.z)) + 0.06, p.pos.z);
+      aro.userData.siempre = true;
+      aro.renderOrder = 2;
+      scene.add(aro);
+      p.aro = aro;
+    });
+  }
+  function comprobarPuertasAuto() {
+    if (!puertasAuto || historia.activa || historia.ocupado) return;
+    const pos = jugador === 'nino' ? ninoE.pos : estado.pos;
+    const libre = ninoE.modo === 'libre' && !fundidoEl.classList.contains('activo');
+    const t = reloj.elapsedTime;
+    for (const p of puertasAuto) {
+      const vis = !p.visible || p.visible();
+      if (p.aro) { p.aro.visible = vis; p.aro.material.opacity = 0.4 + 0.25 * Math.sin(t * 3); }
+      if (!vis) continue;
+      const d = distXZ(pos, p.pos);
+      if (d > p.radio + 1.5) { p.armada = true; continue; }
+      if (d < Math.min(p.radio, 2.2) && p.armada && libre && Math.abs(pos.y - (p.pos.y || suelo(p.pos.x, p.pos.z))) < 3) {
+        puertasAuto.forEach((q) => { q.armada = false; });
+        if (jugador === 'perro' && distXZ(ninoE.pos, estado.pos) > 30) continue;
+        p.hacer();
+        return;
+      }
+    }
+  }
   function puntoCerca() {
     const E = ninoE;
     let mejor = null, dMejor = Infinity;
@@ -4934,7 +5026,7 @@
   const INT = new V3(0, 3, 420);
   const dentro = { puertaFuera: new V3(45.3, Y1, -61.1), puertaDentro: new V3(INT.x, INT.y, INT.z + 5.2), tele: null, lienzoTele: null,
     ctxTele: null, tren: null, bloques: [], papa: null, mama: null, plato: null, comida: null, noche: 0, paredes: [] };
-  const estaDentro = (p) => p.z > 300;
+  const estaDentro = (p) => !enElEspacio && p.z > 300;
 
   function texturaCocina() {
     // Azulejo blanco con dos cenefas azules, como en la foto
@@ -5636,7 +5728,7 @@
   // El arrecife está lejos, mar adentro (x = 700): la barca del muelle lleva allí a Manuel y a Drako.
   // Las piezas (corales, rocas, peces, tortuga, cofre y barca) vienen de Arrecife.py (arrecife.glb).
   const ARRECIFE = new V3(700, 0, 0);
-  const enArrecife = (p) => p.x > 500 && p.z > -500;  // más allá, el castillo del terror
+  const enArrecife = (p) => !enElEspacio && p.x > 500 && p.z > -500;  // más allá, el castillo del terror
   const arrecife = {
     activo: false, grupo: new THREE.Group(), piezas: {}, techo: null, zonas: [], descubiertas: new Set(),
     barcaMuelle: null, barcaMar: null, cubierta: 0.55, tortuga: null, tapa: null, abriendo: 0,
@@ -6638,8 +6730,8 @@
   // =====================================================================
   // Piezas de Coches.py (coches.glb) y los cuatro amigos de Amigos.py (amigo1..4.glb)
   const CIRC = new V3(-700, 0, 0);            // el circuito está lejos, tierra adentro
-  const enCircuito = (p) => p.x < -500;
-  const PUERTA_CIRCUITO = new V3(-97, 0, -8);  // arco en la playa que lleva al circuito
+  const enCircuito = (p) => !enElEspacio && p.x < -500;
+  const PUERTA_CIRCUITO = new V3(-100, 0, -22);  // arco en la punta oeste de la playa que lleva al circuito
   const APARCAMIENTO = new V3(10, 0, -9);      // donde está aparcado el coche al empezar
   const coches = { piezas: {}, coche: null, ruedas: [], conduciendo: false, casco: null };
   const circuito = {
@@ -8239,8 +8331,8 @@
   // =====================================================================
   // Personajes de bloques, juguetes, regalos, carrito y decoración: Numeros.py (numeros.glb)
   const NUM = new V3(0, 0, -700);              // el pueblo está lejos, tras las dunas
-  const enNumeros = (p) => p.z < -400 && p.z > -1100 && p.x > -500 && p.x < 500;
-  const PUERTA_NUMEROS = new V3(25, 0, -45);   // arco en las dunas, al lado de la casa
+  const enNumeros = (p) => !enElEspacio && p.z < -400 && p.z > -1100 && p.x > -500 && p.x < 500;
+  const PUERTA_NUMEROS = new V3(90, 0, -30);   // arco en el lado este, delante del parque de bolas
   const LLEGADA_NUMEROS = new V3(NUM.x, 0, NUM.z + 36);
   const MAX_CARRITO = 3;
   const COLOR_NUMERO = ['#ffffff', '#ee3b33', '#ff8c1a', '#ffd21f', '#3dbe4a', '#2cb7e6', '#6b52d9', '#8e4fd6', '#e64aa6', '#8f9aa6', '#e8322a'];
@@ -9655,7 +9747,7 @@
   // ---------- Pistas de coches de juguete: el cuarto de juegos gigante ----------
   // Coches, lanzador, caja y set de regalo: PistasJuguete.py (cochesjuguete.glb)
   const JUG = new V3(0, 0, -1400);              // el cuarto de las pistas, lejos de todo
-  const enJuguetes = (p) => p.z < -1100;
+  const enJuguetes = (p) => !enElEspacio && p.z < -1100;
   const SALA_X = 58, SALA_Z = 55;             // medio ancho y medio fondo del cuarto
   const LLEGADA_JUG = new V3(JUG.x, 0, JUG.z + 47);
   const PAI = new V3(0, 0, -2000);              // el cuarto de los paisajes, más allá
@@ -11058,9 +11150,9 @@
   // =====================================================================
   // Las atracciones vienen de Feria.py (feria.glb). La feria está lejos (tras las dunas del parque acuático).
   const FERIA = new V3(320, 0, -250);
-  const enFeria = (p) => p.x > 200 && p.x < 500 && p.z > -400 && p.z < 300;
+  const enFeria = (p) => !enElEspacio && p.x > 200 && p.x < 500 && p.z > -400 && p.z < 300;
   const SUELO_FERIA = 0.4;
-  const PUERTA_FERIA = new V3(-66, 0, -27);       // arco en la playa, junto al parque acuático
+  const PUERTA_FERIA = new V3(-96, 0, -70);       // arco al oeste, al lado del parque acuático
   const ATRACCIONES_FERIA = [
     { id: 'noria', nombre: 'la noria' }, { id: 'choque', nombre: 'los autos de choque' }, { id: 'rusa', nombre: 'la montaña rusa' },
     { id: 'sillas', nombre: 'las sillas voladoras' }, { id: 'torre', nombre: 'la torre de caída' },
@@ -11676,8 +11768,8 @@
   // =====================================================================
   // Todo se hace aquí con three.js: el terreno, el agua (con su shader), la cascada, los peces, las hojas y las luciérnagas.
   const ARROYO = new V3(-330, 0, 120);
-  const enArroyo = (p) => p.x > -480 && p.x < -200 && p.z > -40 && p.z < 280;
-  const PORTAL_ARROYO = new V3(8, 0, -40);        // portal en las dunas, entre el parque acuático y la casa
+  const enArroyo = (p) => !enElEspacio && p.x > -480 && p.x < -200 && p.z > -40 && p.z < 280;
+  const PORTAL_ARROYO = new V3(52, 0, -30);       // portal en las dunas, delante de la casa
   const TAM_A = 260, RES_A = 1;                    // terreno: 260 m con una muestra por metro
   const NA = TAM_A / RES_A;
   const arroyo = {
@@ -12409,8 +12501,8 @@
   // que giran (cabeza, patas, cola, orejas, trompa, mandíbula, alas, brazos); el terreno, la charca, la hierba
   // y todo el movimiento se hacen aquí.
   const SAFARI = new V3(-340, 0, -225);
-  const enSafari = (p) => p.x > -480 && p.x < -200 && p.z > -395 && p.z < -55;
-  const PUERTA_SAFARI = new V3(-2, 0, -78);      // arco de madera en las dunas, entre la casa y el parque acuático
+  const enSafari = (p) => !enElEspacio && p.x > -480 && p.x < -200 && p.z > -395 && p.z < -55;
+  const PUERTA_SAFARI = new V3(-72, 0, -32);     // arco de madera delante del parque acuático
   const SX = 140, SZ = 170;                        // medio ancho y medio largo de la sabana
   const CHARCA = { x: 62, z: -40, rx: 24, rz: 16 };  // junto al camino, para verla desde el jeep
   const safari = {
@@ -13211,8 +13303,8 @@
   // Un cementerio de noche y un castillo con cuatro salas, cada una con su prueba. Los monstruos y los objetos
   // vienen de Halloween.py (halloween.glb); el castillo, la luz de luna, los rayos y los sustos se hacen aquí.
   const CASTILLO = new V3(700, 0, -900);
-  const enCastillo = (p) => p.x > 500 && p.z < -500;
-  const PUERTA_CASTILLO = new V3(14, 0, -92);     // verja con calabazas en las dunas
+  const enCastillo = (p) => !enElEspacio && p.x > 500 && p.z < -500;
+  const PUERTA_CASTILLO = new V3(12, 0, -95);     // verja con calabazas al fondo de las dunas
   const CL = (x, z, y = 0) => new V3(CASTILLO.x + x, y, CASTILLO.z + z);
   const castillo = {
     listo: false, grupo: new THREE.Group(), P: {}, fase: 0, premio: false, ocultos: null, luz: null,
@@ -14325,6 +14417,897 @@
   }
 
   // =====================================================================
+  // ---------- Viaje por el universo en la nave espacial ----------
+  // =====================================================================
+  // El espacio es una escena aparte (se dibuja en lugar de la playa): el Sol, los planetas, la Luna, los cinturones
+  // de asteroides y de Kuiper, un cometa, y lejos, con un salto, una nebulosa, una estrella de neutrones, un agujero
+  // negro y la Vía Láctea. La nave va sola de un sitio a otro; en cada parada se explica qué es (con voz) y se
+  // puede hacer una foto para el álbum de pegatinas.
+  const PUERTA_ESPACIO = new V3(4, 0, -62);       // plataforma de despegue en el centro de las dunas
+  const espacio = {
+    listo: false, escena: new THREE.Scene(), estado: null, parada: -1, P: {}, naveP: null, naveE: null, cuerpos: {}, t: 0,
+    album: new Set(), viaje: null, foto: false, estrellas: null, rayas: null, humo: [], tripulacion: [], antes: null, uT: { value: 0 },
+  };
+  // ---------- Las paradas ----------
+  const PARADAS = [
+    { id: 'tierra', nombre: 'La Tierra', emoji: '🌍', texto: 'Esta es la Tierra, nuestra casa. Tiene mucha agua, por eso desde el espacio se ve azul. Es el único planeta donde sabemos que hay vida: personas, animales y plantas.' },
+    { id: 'luna', nombre: 'La Luna', emoji: '🌙', texto: 'La Luna gira alrededor de la Tierra. No tiene aire ni agua y está llena de cráteres. Unos astronautas caminaron por ella y dejaron sus huellas.' },
+    { id: 'sol', nombre: 'El Sol', emoji: '☀️', texto: 'El Sol es una estrella: una bola de gas muy caliente que nos da luz y calor. ¡Es tan grande que dentro cabrían más de un millón de Tierras! Nunca hay que mirarlo directamente.' },
+    { id: 'mercurio', nombre: 'Mercurio', emoji: '🪨', texto: 'Mercurio es el planeta más pequeño y el más cercano al Sol. Está lleno de cráteres, como la Luna, y da la vuelta al Sol muy rápido: su año dura solo 88 días.' },
+    { id: 'venus', nombre: 'Venus', emoji: '🟡', texto: 'Venus es el planeta más caliente, más que un horno, porque sus nubes atrapan el calor. Por la noche brilla muchísimo en el cielo: lo llaman el lucero.' },
+    { id: 'marte', nombre: 'Marte', emoji: '🔴', texto: 'Marte es el planeta rojo, por su polvo de color óxido. Tiene el volcán más alto del sistema solar. Allí hay robots exploradores, como este, buscando pistas de agua.' },
+    { id: 'asteroides', nombre: 'El cinturón de asteroides', emoji: '☄️', texto: 'Entre Marte y Júpiter hay muchísimas rocas que giran alrededor del Sol: es el cinturón de asteroides. Algunas son pequeñas como piedras y otras, grandes como montañas.' },
+    { id: 'jupiter', nombre: 'Júpiter', emoji: '🟠', texto: 'Júpiter es el planeta más grande. Está hecho de gas: ¡no se puede pisar! Esa mancha roja es una tormenta más grande que la Tierra. Y tiene muchísimas lunas.' },
+    { id: 'saturno', nombre: 'Saturno', emoji: '🪐', texto: 'Saturno tiene unos anillos preciosos, hechos de trozos de hielo y roca. Es tan ligero que, si hubiera una bañera gigante, ¡flotaría!' },
+    { id: 'urano', nombre: 'Urano', emoji: '🔵', texto: 'Urano es azul verdoso y muy, muy frío. Es especial porque gira tumbado de lado, como una pelota que rueda.' },
+    { id: 'neptuno', nombre: 'Neptuno', emoji: '💙', texto: 'Neptuno es el planeta más lejano del Sol. Es azul oscuro y tiene los vientos más fuertes del sistema solar. Allí siempre hace un frío tremendo.' },
+    { id: 'pluton', nombre: 'Plutón y el cinturón de Kuiper', emoji: '🤍', texto: 'Más allá de Neptuno está el cinturón de Kuiper, lleno de bolas de hielo. Aquí vive Plutón, un planeta enano. ¡Mira, tiene un corazón dibujado!' },
+    { id: 'cometa', nombre: 'Un cometa', emoji: '💫', texto: 'Un cometa es una bola de hielo y polvo. Cuando se acerca al Sol, el hielo se calienta y le sale una cola brillante muy larga, siempre hacia el lado contrario del Sol.' },
+    { id: 'nebulosa', nombre: 'Una nebulosa', emoji: '🌈', salto: true, texto: 'Esto es una nebulosa: una nube gigante de gas y polvo de colores. ¡Aquí nacen las estrellas nuevas!' },
+    { id: 'neutrones', nombre: 'Una estrella de neutrones', emoji: '✨', salto: true, texto: 'Esto es una estrella de neutrones. Es lo que queda cuando una estrella gigante explota. Es pequeña como una ciudad, pero pesa muchísimo, y gira tan rápido que sus rayos de luz parecen un faro.' },
+    { id: 'agujero', nombre: 'Un agujero negro', emoji: '⚫', salto: true, texto: '¡Cuidado! Esto es un agujero negro. Atrae las cosas con tanta fuerza que ni la luz puede escapar, por eso es negro. El gas que gira a su alrededor brilla muchísimo. ¡Mejor lo miramos de lejos!' },
+    { id: 'galaxia', nombre: 'La Vía Láctea', emoji: '🌌', salto: true, texto: 'Esta es la Vía Láctea, nuestra galaxia: una espiral con miles de millones de estrellas. El Sol es solo una de ellas. Nosotros vivimos aquí, en uno de sus brazos.' },
+  ];
+  const REACCIONES = ['¡Hala!', '¡Qué bonito!', '¡Qué grande!', '¡Increíble!', '¡Guau!', '¡Mola!'];
+  // planetas: radio, distancia al Sol, ángulo en la órbita, vueltas
+  const PLANETAS = {
+    mercurio: { r: 0.9, d: 26, a: 2.2 }, venus: { r: 1.8, d: 36, a: 1.3 }, tierra: { r: 2, d: 48, a: 0.3 }, marte: { r: 1.3, d: 60, a: -0.7 },
+    jupiter: { r: 7, d: 95, a: -1.7 }, saturno: { r: 6, d: 125, a: -2.6 }, urano: { r: 3.6, d: 150, a: 2.9 }, neptuno: { r: 3.5, d: 170, a: 2.0 }, pluton: { r: 0.8, d: 200, a: 1.1 },
+  };
+  const LEJOS = { nebulosa: new V3(30000, 0, 0), neutrones: new V3(-30000, 0, 0), agujero: new V3(0, 0, 30000), galaxia: new V3(0, 0, -30000) };
+  const posOrbita = (q) => new V3(Math.cos(q.a) * q.d, 0, Math.sin(q.a) * q.d);
+
+  // ---------- Texturas de los planetas (dibujadas en un lienzo) ----------
+  function lienzoPlaneta(pintor, w = 512, h = 256) {
+    const l = document.createElement('canvas');
+    l.width = w; l.height = h;
+    const c = l.getContext('2d');
+    pintor(c, w, h);
+    const t = new THREE.CanvasTexture(l);
+    t.encoding = THREE.sRGBEncoding;
+    return t;
+  }
+  const rndE = (() => { let s = 77; return () => ((s = (s * 16807) % 2147483647) / 2147483647); })();
+  const crateres = (c, w, h, n, col1, col2) => {
+    for (let i = 0; i < n; i++) {
+      const x = rndE() * w, y = h * 0.1 + rndE() * h * 0.8, r = 3 + rndE() * 16;
+      c.fillStyle = col1; c.beginPath(); c.ellipse(x, y, r, r * 0.8, 0, 0, 7); c.fill();
+      c.strokeStyle = col2; c.lineWidth = 2; c.beginPath(); c.ellipse(x - 1, y - 1, r, r * 0.8, 0, 3.6, 6.2); c.stroke();
+    }
+  };
+  const bandas = (c, w, h, cols, onda = 6) => {
+    for (let y = 0; y < h; y += 2) {
+      const k = Math.floor((y / h) * cols.length * 2 + Math.sin(y * 0.15) * 0.6) % cols.length;
+      c.fillStyle = cols[(k + cols.length) % cols.length];
+      for (let x = 0; x < w; x += 8) c.fillRect(x, y + Math.sin(x * 0.03 + y * 0.1) * onda * 0.3, 8, 3);
+    }
+  };
+  const manchas = (c, w, h, n, col, rmin, rmax) => {
+    for (let i = 0; i < n; i++) {
+      c.fillStyle = col;
+      const x = rndE() * w, y = h * 0.15 + rndE() * h * 0.7;
+      for (let k = 0; k < 6; k++) { c.beginPath(); c.ellipse(x + (rndE() - 0.5) * rmax, y + (rndE() - 0.5) * rmax * 0.6, rmin + rndE() * (rmax - rmin), (rmin + rndE() * (rmax - rmin)) * 0.6, rndE() * 3, 0, 7); c.fill(); }
+    }
+  };
+  const TEXTURAS_P = {
+    mercurio: (c, w, h) => { c.fillStyle = '#8f8a85'; c.fillRect(0, 0, w, h); manchas(c, w, h, 10, '#7a7570', 10, 30); crateres(c, w, h, 90, '#6f6a66', '#b0aba5'); },
+    venus: (c, w, h) => { bandas(c, w, h, ['#e9c27a', '#d9a85a', '#f0d59a', '#c9964a'], 14); },
+    tierra: (c, w, h) => {
+      c.fillStyle = '#1f5fbf'; c.fillRect(0, 0, w, h);
+      manchas(c, w, h, 9, '#3f8f3a', 14, 46); manchas(c, w, h, 5, '#a0844f', 8, 22);
+      c.fillStyle = '#f4f8ff'; c.fillRect(0, 0, w, h * 0.07); c.fillRect(0, h * 0.93, w, h * 0.07);
+    },
+    luna: (c, w, h) => { c.fillStyle = '#b9b7b2'; c.fillRect(0, 0, w, h); manchas(c, w, h, 7, '#8d8b87', 14, 40); crateres(c, w, h, 110, '#a3a19c', '#d6d4cf'); },
+    marte: (c, w, h) => { c.fillStyle = '#c1502e'; c.fillRect(0, 0, w, h); manchas(c, w, h, 12, '#9a3b22', 10, 36); manchas(c, w, h, 6, '#d9774a', 8, 24); c.fillStyle = '#fbf6f0'; c.fillRect(0, 0, w, h * 0.06); c.fillRect(0, h * 0.95, w, h * 0.05); },
+    jupiter: (c, w, h) => {
+      bandas(c, w, h, ['#e8d3b0', '#c79a6a', '#f2e6d0', '#b07a4f', '#ddc39a', '#a8724a'], 10);
+      c.fillStyle = '#c1502e'; c.beginPath(); c.ellipse(w * 0.62, h * 0.66, 34, 16, 0, 0, 7); c.fill();
+      c.fillStyle = '#e07a50'; c.beginPath(); c.ellipse(w * 0.62, h * 0.66, 22, 9, 0, 0, 7); c.fill();
+    },
+    saturno: (c, w, h) => { bandas(c, w, h, ['#ecd9a8', '#d9bf84', '#f4e6c2', '#cfb070'], 6); },
+    urano: (c, w, h) => { bandas(c, w, h, ['#9fe3e6', '#8fd6dc', '#aeeaec'], 2); },
+    neptuno: (c, w, h) => { bandas(c, w, h, ['#2f5fd6', '#3a6ee8', '#2a52c0'], 6); c.fillStyle = '#1a2f80'; c.beginPath(); c.ellipse(w * 0.4, h * 0.6, 24, 12, 0, 0, 7); c.fill(); c.fillStyle = 'rgba(255,255,255,0.7)'; c.fillRect(w * 0.2, h * 0.35, 60, 4); c.fillRect(w * 0.7, h * 0.7, 40, 3); },
+    pluton: (c, w, h) => {
+      c.fillStyle = '#c9a88a'; c.fillRect(0, 0, w, h); manchas(c, w, h, 6, '#8a6a52', 10, 28);
+      // el corazón (Tombaugh Regio)
+      c.fillStyle = '#f6eadc';
+      const x = w * 0.5, y = h * 0.55, s = 34;
+      c.beginPath(); c.moveTo(x, y + s * 0.9);
+      c.bezierCurveTo(x - s * 1.6, y - s * 0.2, x - s * 0.7, y - s * 1.2, x, y - s * 0.45);
+      c.bezierCurveTo(x + s * 0.7, y - s * 1.2, x + s * 1.6, y - s * 0.2, x, y + s * 0.9); c.fill();
+    },
+  };
+
+  // ---------- Construcción ----------
+  function construirEspacio(gE) {
+    if (!gE) return;
+    gE.scene.children.forEach((o) => { espacio.P[o.name] = o; });
+    const copia = (n) => {
+      const o = espacio.P[n].clone(true);
+      o.traverse((m) => {
+        if (!m.isMesh) return;
+        m.castShadow = true;
+        if (m.name === 'Nave_Cupula') { m.material = m.material.clone(); m.material.transparent = true; m.material.opacity = 0.28; m.material.depthWrite = false; m.castShadow = false; }
+        if (m.name === 'Nave_Fuego') { m.material = m.material.clone(); m.material.emissive = new THREE.Color('#ff8a1f'); m.material.emissiveIntensity = 2; }
+      });
+      return o;
+    };
+    espacio.copiar = copia;
+    try { (JSON.parse(localStorage.getItem('playa-del-perro-album') || '[]')).forEach((id) => { if (PARADAS.some((p) => p.id === id)) espacio.album.add(id); }); } catch (e) { /* sin guardar */ }
+    const mis = misionPor('espacio');
+    if (mis) mis.cuenta = Math.min(mis.total, espacio.album.size);
+
+    // ---------- La plataforma de despegue en la playa ----------
+    const yP = suelo(PUERTA_ESPACIO.x, PUERTA_ESPACIO.z);
+    const pla = copia('Plataforma');
+    pla.position.set(PUERTA_ESPACIO.x, yP - 0.05, PUERTA_ESPACIO.z);
+    pla.rotation.y = Math.PI / 2;
+    scene.add(pla);
+    // la base de hormigón, para que no quede volando sobre la duna
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(7.05, 7.6, 8, 48), new THREE.MeshStandardMaterial({ color: '#8f949b', roughness: 0.95 }));
+    base.position.set(PUERTA_ESPACIO.x, yP - 4.05, PUERTA_ESPACIO.z);
+    base.receiveShadow = true;
+    scene.add(base);
+    plataformas.push({ x0: PUERTA_ESPACIO.x - 6.5, x1: PUERTA_ESPACIO.x + 6.5, z0: PUERTA_ESPACIO.z - 6.5, z1: PUERTA_ESPACIO.z + 6.5, y: () => yP + 0.5 });
+    colisiones.push({ x: PUERTA_ESPACIO.x, z: PUERTA_ESPACIO.z - 8, r: 1.4 });  // la torre
+    const nP = copia('Nave');
+    nP.position.set(PUERTA_ESPACIO.x, yP + 0.5, PUERTA_ESPACIO.z);
+    nP.rotation.set(0, 0, 0, 'YXZ');
+    scene.add(nP);
+    espacio.naveP = nP;
+    espacio.baseNave = nP.position.clone();
+    nP.getObjectByName('Nave_Fuego').visible = false;
+    colisiones.push({ x: PUERTA_ESPACIO.x, z: PUERTA_ESPACIO.z, r: 1.8 }, { x: PUERTA_ESPACIO.x, z: PUERTA_ESPACIO.z + 2.6, r: 1.4 }, { x: PUERTA_ESPACIO.x, z: PUERTA_ESPACIO.z - 2.6, r: 1.6 });
+    const letrero = cartel('VIAJE AL ESPACIO', 4.6, 0.8);
+    letrero.position.set(PUERTA_ESPACIO.x - 4, yP + 3.6, PUERTA_ESPACIO.z + 5.5);
+    scene.add(letrero);
+    const poste = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 3.4, 8), new THREE.MeshStandardMaterial({ color: '#9aa0a8' }));
+    poste.position.set(PUERTA_ESPACIO.x - 4, yP + 1.7, PUERTA_ESPACIO.z + 5.5);
+    scene.add(poste);
+    // humo del despegue
+    const texH = texturaHalo();
+    for (let i = 0; i < 40; i++) {
+      const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: texH, color: '#e8e4dc', transparent: true, opacity: 0, depthWrite: false }));
+      s.visible = false;
+      scene.add(s);
+      espacio.humo.push({ s, t: 0, v: new V3() });
+    }
+    puntosAccion.push({ pos: new V3(PUERTA_ESPACIO.x, yP + 0.5, PUERTA_ESPACIO.z + 7.2), radio: 2.2, alto: 3, texto: 'Viaje al espacio', hacer: empezarViajeEspacial });
+
+    // ---------- El espacio ----------
+    const E = espacio.escena;
+    E.background = new THREE.Color('#02030a');
+    E.add(new THREE.AmbientLight('#8890b8', 0.35));
+    E.add(new THREE.HemisphereLight('#b8c4ff', '#201830', 0.3));
+    const luzSol = new THREE.PointLight('#fff1d6', 2.6, 0, 0);
+    E.add(luzSol);
+    espacio.luzNave = new THREE.PointLight('#ffffff', 0.6, 30, 2);
+    E.add(espacio.luzNave);
+    // estrellas del fondo (van con la cámara)
+    const ne = 6000, pe = new Float32Array(ne * 3), ce = new Float32Array(ne * 3);
+    for (let i = 0; i < ne; i++) {
+      const u = rndE() * 2 - 1, a = rndE() * Math.PI * 2, s = Math.sqrt(1 - u * u);
+      const banda = i < 2200;  // la Vía Láctea vista desde dentro: una franja con más estrellas
+      const v = banda ? new V3(Math.cos(a), (rndE() - 0.5) * 0.18, Math.sin(a)).normalize() : new V3(s * Math.cos(a), u, s * Math.sin(a));
+      pe.set([v.x * 20000, v.y * 20000, v.z * 20000], i * 3);
+      const col = new THREE.Color().setHSL(0.55 + rndE() * 0.15, 0.4, 0.7 + rndE() * 0.3);
+      if (rndE() < 0.15) col.setHSL(0.08, 0.6, 0.75);
+      ce.set([col.r, col.g, col.b], i * 3);
+    }
+    const ge = new THREE.BufferGeometry();
+    ge.setAttribute('position', new THREE.BufferAttribute(pe, 3));
+    ge.setAttribute('color', new THREE.BufferAttribute(ce, 3));
+    espacio.estrellas = new THREE.Points(ge, new THREE.PointsMaterial({ size: 2.2, sizeAttenuation: false, vertexColors: true, depthWrite: false }));
+    espacio.estrellas.frustumCulled = false;
+    E.add(espacio.estrellas);
+    // el Sol: una bola de fuego que se mueve, con brillo alrededor
+    const sol_ = new THREE.Mesh(new THREE.SphereGeometry(14, 48, 32), new THREE.ShaderMaterial({
+      uniforms: { uT: espacio.uT },
+      vertexShader: 'varying vec3 vP; void main() { vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+      fragmentShader: `uniform float uT; varying vec3 vP;
+        float r(vec3 p) { return sin(p.x * 0.9 + uT) * sin(p.y * 1.1 - uT * 0.7) * sin(p.z * 0.8 + uT * 0.5); }
+        void main() {
+          vec3 p = normalize(vP) * 6.0;
+          float n = r(p) + 0.5 * r(p * 2.3 + 3.0) + 0.25 * r(p * 5.1 - 1.0);
+          vec3 col = mix(vec3(1.0, 0.45, 0.05), vec3(1.0, 0.92, 0.45), 0.5 + 0.5 * n);
+          gl_FragColor = vec4(col * 1.4, 1.0);
+        }`,
+    }));
+    E.add(sol_);
+    const brillo = new THREE.Sprite(new THREE.SpriteMaterial({ map: texH, color: '#ffb347', transparent: true, opacity: 0.85, depthWrite: false, blending: THREE.AdditiveBlending }));
+    brillo.scale.set(80, 80, 1);
+    E.add(brillo);
+    espacio.cuerpos.sol = { m: sol_, r: 14, pos: new V3() };
+    // órbitas (líneas finas)
+    Object.values(PLANETAS).forEach((q) => {
+      const pts = [];
+      for (let k = 0; k <= 128; k++) { const a = k / 128 * Math.PI * 2; pts.push(new V3(Math.cos(a) * q.d, 0, Math.sin(a) * q.d)); }
+      E.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: '#3a4a7a', transparent: true, opacity: 0.45 })));
+    });
+    // los planetas
+    Object.entries(PLANETAS).forEach(([id, q]) => {
+      const g = new THREE.Group();
+      g.position.copy(posOrbita(q));
+      const m = new THREE.Mesh(new THREE.SphereGeometry(q.r, 48, 32), new THREE.MeshStandardMaterial({ map: lienzoPlaneta(TEXTURAS_P[id]), roughness: 0.85 }));
+      g.add(m);
+      E.add(g);
+      espacio.cuerpos[id] = { g, m, r: q.r, pos: g.position };
+    });
+    // la Tierra: nubes y un poquito de atmósfera; y un satélite
+    const T = espacio.cuerpos.tierra;
+    const nubes = new THREE.Mesh(new THREE.SphereGeometry(2.05, 40, 28), new THREE.MeshStandardMaterial({ map: lienzoPlaneta((c, w, h) => { c.clearRect(0, 0, w, h); manchas(c, w, h, 14, 'rgba(255,255,255,0.75)', 6, 26); }), transparent: true, depthWrite: false }));
+    T.g.add(nubes);
+    T.nubes = nubes;
+    const atm = new THREE.Mesh(new THREE.SphereGeometry(2.25, 40, 28), new THREE.MeshBasicMaterial({ color: '#6fb7ff', transparent: true, opacity: 0.18, blending: THREE.AdditiveBlending, depthWrite: false }));
+    T.g.add(atm);
+    const sat = copia('Satelite');
+    sat.scale.setScalar(0.25);
+    T.g.add(sat);
+    T.sat = sat;
+    // la Luna
+    const lu = new THREE.Mesh(new THREE.SphereGeometry(0.55, 32, 24), new THREE.MeshStandardMaterial({ map: lienzoPlaneta(TEXTURAS_P.luna), roughness: 0.95 }));
+    E.add(lu);
+    espacio.cuerpos.luna = { m: lu, r: 0.55, pos: lu.position };
+    // Marte: el robot explorador encima
+    const ro = copia('Rover');
+    ro.scale.setScalar(0.22);
+    ro.position.set(0, 1.3, 0);
+    espacio.cuerpos.marte.g.add(ro);
+    // Saturno: los anillos (con bandas)
+    const S = espacio.cuerpos.saturno;
+    const anillo = new THREE.RingGeometry(7.5, 13.5, 128, 4);
+    const uv = anillo.attributes.uv, pa = anillo.attributes.position;
+    for (let i = 0; i < uv.count; i++) { const r = Math.hypot(pa.getX(i), pa.getY(i)); uv.setXY(i, (r - 7.5) / 6, 0.5); }
+    const texA = lienzoPlaneta((c, w) => {
+      for (let x = 0; x < w; x++) {
+        const a = 0.25 + 0.6 * Math.abs(Math.sin(x * 0.09)) * (x > w * 0.55 && x < w * 0.6 ? 0.1 : 1);
+        c.fillStyle = `rgba(${215 + Math.sin(x * 0.2) * 20},${190 + Math.sin(x * 0.13) * 20},${140},${a})`;
+        c.fillRect(x, 0, 1, 4);
+      }
+    }, 512, 4);
+    const an = new THREE.Mesh(anillo, new THREE.MeshStandardMaterial({ map: texA, transparent: true, side: THREE.DoubleSide, depthWrite: false }));
+    an.rotation.x = -Math.PI / 2 + 0.45;
+    S.g.add(an);
+    S.m.rotation.z = 0.45;
+    // Urano tumbado, con anillos finos
+    const U = espacio.cuerpos.urano;
+    U.g.rotation.z = Math.PI / 2 - 0.1;
+    const anU = new THREE.Mesh(new THREE.RingGeometry(4.6, 5.4, 96), new THREE.MeshBasicMaterial({ color: '#cfeff2', transparent: true, opacity: 0.35, side: THREE.DoubleSide }));
+    anU.rotation.x = Math.PI / 2;
+    U.g.add(anU);
+    // lunas de Júpiter
+    const J = espacio.cuerpos.jupiter;
+    J.lunas = [0, 1, 2, 3].map((k) => { const m = new THREE.Mesh(new THREE.SphereGeometry(0.4 + k * 0.08, 16, 12), new THREE.MeshStandardMaterial({ color: ['#e8d36a', '#c9b89a', '#a8a39a', '#8f8a85'][k] })); E.add(m); return { m, r: 10 + k * 3, w: 0.5 - k * 0.08, a: k * 1.7 }; });
+    // cinturones de asteroides y de Kuiper
+    const roca = new THREE.DodecahedronGeometry(1, 0);
+    const cinturon = (n, r0, r1, col, es) => {
+      const im = new THREE.InstancedMesh(roca, new THREE.MeshStandardMaterial({ color: col, roughness: 1, flatShading: true }), n);
+      const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), s = new V3(), p = new V3();
+      for (let i = 0; i < n; i++) {
+        const a = rndE() * Math.PI * 2, r = r0 + rndE() * (r1 - r0), t = es * (0.2 + rndE() * rndE() * 1.6);
+        p.set(Math.cos(a) * r, (rndE() - 0.5) * 3, Math.sin(a) * r);
+        m4.compose(p, q.setFromEuler(e.set(rndE() * 6, rndE() * 6, rndE() * 6)), s.set(t, t * (0.6 + rndE() * 0.5), t * (0.7 + rndE() * 0.4)));
+        im.setMatrixAt(i, m4);
+      }
+      E.add(im);
+      return im;
+    };
+    espacio.asteroides = cinturon(1600, 68, 78, '#8a7a6a', 0.35);
+    espacio.kuiper = cinturon(1600, 185, 222, '#bcd2e6', 0.4);
+    espacio.cuerpos.asteroides = { pos: new V3(Math.cos(-1.2) * 73, 0, Math.sin(-1.2) * 73), r: 2 };
+    // un cometa con su cola (hacia fuera del Sol)
+    const cPos = new V3(Math.cos(0.6) * 112, 6, Math.sin(0.6) * 112);
+    const co = new THREE.Mesh(new THREE.DodecahedronGeometry(0.7, 1), new THREE.MeshStandardMaterial({ color: '#9a9690', roughness: 1, flatShading: true }));
+    co.position.copy(cPos);
+    E.add(co);
+    const coma = new THREE.Sprite(new THREE.SpriteMaterial({ map: texH, color: '#bfe8ff', transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false }));
+    coma.scale.set(6, 6, 1);
+    coma.position.copy(cPos);
+    E.add(coma);
+    const nc = 1400, pc = new Float32Array(nc * 3), cc = new Float32Array(nc * 3), fuera = cPos.clone().normalize();
+    for (let i = 0; i < nc; i++) {
+      const t = Math.pow(rndE(), 1.5) * 40, ab = (0.2 + t * 0.12) * Math.sqrt(rndE()), a = rndE() * Math.PI * 2;
+      const lado = new V3(-fuera.z, 0, fuera.x);
+      const p = cPos.clone().addScaledVector(fuera, t).addScaledVector(lado, Math.cos(a) * ab).add(new V3(0, Math.sin(a) * ab, 0));
+      if (i % 3 === 0) p.addScaledVector(lado, t * 0.25);  // la cola de polvo se curva un poco
+      pc.set([p.x, p.y, p.z], i * 3);
+      const col = new THREE.Color(i % 3 === 0 ? '#ffe9b0' : '#9fd8ff').multiplyScalar(1 - t / 45);
+      cc.set([col.r, col.g, col.b], i * 3);
+    }
+    const gco = new THREE.BufferGeometry();
+    gco.setAttribute('position', new THREE.BufferAttribute(pc, 3));
+    gco.setAttribute('color', new THREE.BufferAttribute(cc, 3));
+    E.add(new THREE.Points(gco, new THREE.PointsMaterial({ size: 0.35, vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false })));
+    espacio.cuerpos.cometa = { pos: cPos, r: 0.7, m: co };
+
+    // ---------- Lejos: nebulosa, estrella de neutrones, agujero negro y la galaxia ----------
+    // nebulosa: nubes de colores y estrellas recién nacidas
+    const NB = LEJOS.nebulosa;
+    for (let i = 0; i < 70; i++) {
+      const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: texH, color: new THREE.Color().setHSL([0.92, 0.6, 0.78, 0.5][i % 4] + rndE() * 0.05, 0.8, 0.55), transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false }));
+      const t = 30 + rndE() * 90;
+      s.scale.set(t, t, 1);
+      s.position.copy(NB).add(new V3((rndE() - 0.5) * 220, (rndE() - 0.5) * 120, (rndE() - 0.5) * 160));
+      E.add(s);
+    }
+    for (let i = 0; i < 25; i++) {
+      const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: texH, color: '#ffffff', transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+      s.scale.set(5, 5, 1);
+      s.position.copy(NB).add(new V3((rndE() - 0.5) * 150, (rndE() - 0.5) * 80, (rndE() - 0.5) * 120));
+      E.add(s);
+    }
+    espacio.cuerpos.nebulosa = { pos: NB, r: 60 };
+    // estrella de neutrones (púlsar): pequeñita, brillante y con dos rayos que giran como un faro
+    const NS = LEJOS.neutrones;
+    const pul = new THREE.Group();
+    pul.position.copy(NS);
+    pul.add(new THREE.Mesh(new THREE.SphereGeometry(2, 32, 24), new THREE.MeshBasicMaterial({ color: '#dff4ff' })));
+    const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: texH, color: '#8fd0ff', transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+    halo.scale.set(26, 26, 1);
+    pul.add(halo);
+    const eje = new THREE.Group();
+    eje.rotation.z = 0.5;
+    [-1, 1].forEach((l) => {
+      const rayo = new THREE.Mesh(new THREE.ConeGeometry(5, 90, 24, 1, true), new THREE.MeshBasicMaterial({ color: '#9fdcff', transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+      rayo.position.y = l * 46;
+      rayo.rotation.x = l > 0 ? Math.PI : 0;
+      eje.add(rayo);
+    });
+    for (let k = 0; k < 6; k++) {
+      const lin = new THREE.Mesh(new THREE.TorusGeometry(7 + k * 1.5, 0.08, 6, 64), new THREE.MeshBasicMaterial({ color: '#5aa8ff', transparent: true, opacity: 0.45 }));
+      lin.rotation.y = k / 6 * Math.PI;
+      eje.add(lin);
+    }
+    pul.add(eje);
+    E.add(pul);
+    espacio.pulsar = { eje, halo };
+    espacio.cuerpos.neutrones = { pos: NS, r: 6 };
+    // agujero negro con su disco de gas que gira
+    const AN = LEJOS.agujero;
+    const ag = new THREE.Group();
+    ag.position.copy(AN);
+    ag.add(new THREE.Mesh(new THREE.SphereGeometry(10, 48, 32), new THREE.MeshBasicMaterial({ color: '#000000' })));
+    const matDisco = new THREE.ShaderMaterial({
+      uniforms: { uT: espacio.uT }, transparent: true, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending,
+      vertexShader: 'varying vec2 vP; void main() { vP = position.xy; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+      fragmentShader: `uniform float uT; varying vec2 vP;
+        void main() {
+          float r = length(vP), a = atan(vP.y, vP.x);
+          float t = clamp((r - 12.0) / 30.0, 0.0, 1.0);
+          float remolino = 0.6 + 0.4 * sin(a * 5.0 + r * 0.7 - uT * 3.0) * sin(a * 3.0 - r * 0.3 + uT * 1.7);
+          vec3 col = mix(vec3(1.0, 0.95, 0.75), vec3(0.95, 0.35, 0.05), t);
+          float alfa = (1.0 - t) * remolino * smoothstep(11.0, 13.0, r);
+          gl_FragColor = vec4(col * 1.6, alfa);
+        }`,
+    });
+    const disco = new THREE.Mesh(new THREE.RingGeometry(11, 42, 128, 8), matDisco);
+    disco.rotation.x = -Math.PI / 2 + 0.25;
+    ag.add(disco);
+    const lente = new THREE.Mesh(new THREE.RingGeometry(10.6, 20, 96, 4), matDisco);  // la luz del disco, doblada por detrás
+    ag.add(lente);
+    espacio.lente = lente;
+    ag.add(new THREE.Mesh(new THREE.TorusGeometry(10.4, 0.18, 8, 96), new THREE.MeshBasicMaterial({ color: '#ffe8b0' })));
+    E.add(ag);
+    espacio.cuerpos.agujero = { pos: AN, r: 14 };
+    // la Vía Láctea vista desde fuera: una espiral de estrellas, y una flecha «aquí estamos»
+    const GX = LEJOS.galaxia;
+    const ng = 16000, pg = new Float32Array(ng * 3), cg = new Float32Array(ng * 3);
+    for (let i = 0; i < ng; i++) {
+      let p;
+      if (i < 3000) {
+        const r = Math.pow(rndE(), 2) * 120;
+        const a = rndE() * Math.PI * 2;
+        p = new V3(Math.cos(a) * r, (rndE() - 0.5) * 40 * (1 - r / 140), Math.sin(a) * r);
+      } else {
+        const brazo = i % 2, t = rndE();
+        const r = 40 + t * 520, a = brazo * Math.PI + Math.log(r / 40) * 2.4 + (rndE() - 0.5) * 0.5;
+        p = new V3(Math.cos(a) * r + (rndE() - 0.5) * 30, (rndE() - 0.5) * 12, Math.sin(a) * r + (rndE() - 0.5) * 30);
+      }
+      pg.set([GX.x + p.x, GX.y + p.y, GX.z + p.z], i * 3);
+      const d = Math.hypot(p.x, p.z);
+      const col = new THREE.Color().setHSL(d < 130 ? 0.1 : 0.6 - rndE() * 0.1, d < 130 ? 0.7 : 0.5, 0.65 + rndE() * 0.3);
+      cg.set([col.r, col.g, col.b], i * 3);
+    }
+    const gg = new THREE.BufferGeometry();
+    gg.setAttribute('position', new THREE.BufferAttribute(pg, 3));
+    gg.setAttribute('color', new THREE.BufferAttribute(cg, 3));
+    const galaxia = new THREE.Points(gg, new THREE.PointsMaterial({ size: 2.6, vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+    E.add(galaxia);
+    espacio.galaxia = galaxia;
+    const nucleo = new THREE.Sprite(new THREE.SpriteMaterial({ map: texH, color: '#ffd9a0', transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+    nucleo.scale.set(320, 320, 1);
+    nucleo.position.copy(GX);
+    E.add(nucleo);
+    const aqui = cartel('AQUÍ ESTAMOS', 70, 16);
+    const pAqui = GX.clone().add(new V3(Math.cos(Math.PI + Math.log(330 / 40) * 2.4) * 330, 0, Math.sin(Math.PI + Math.log(330 / 40) * 2.4) * 330));
+    aqui.position.copy(pAqui).add(new V3(0, 60, 0));
+    E.add(aqui);
+    espacio.cartelAqui = aqui;
+    const flecha = new THREE.Mesh(new THREE.ConeGeometry(8, 30, 12), new THREE.MeshBasicMaterial({ color: '#ff4040' }));
+    flecha.position.copy(pAqui).add(new V3(0, 30, 0));
+    flecha.rotation.x = Math.PI;
+    E.add(flecha);
+    espacio.cuerpos.galaxia = { pos: GX, r: 300 };
+
+    // ---------- La nave del espacio y las rayas del salto ----------
+    const nE = copia('Nave');
+    nE.rotation.order = 'YXZ';
+    nE.getObjectByName('Nave_Patas').visible = false;
+    E.add(nE);
+    espacio.naveE = nE;
+    const nr = 300, pr = new Float32Array(nr * 6);
+    const gr = new THREE.BufferGeometry();
+    gr.setAttribute('position', new THREE.BufferAttribute(pr, 3));
+    espacio.rayas = new THREE.LineSegments(gr, new THREE.LineBasicMaterial({ color: '#cfe6ff', transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending }));
+    espacio.rayas.frustumCulled = false;
+    espacio.rayas.visible = false;
+    E.add(espacio.rayas);
+
+    // ---------- Botones ----------
+    document.getElementById('btn-foto').addEventListener('click', (e) => { e.stopPropagation(); hacerFoto(); });
+    document.getElementById('btn-siguiente').addEventListener('click', (e) => { e.stopPropagation(); siguienteParada(); });
+    document.getElementById('btn-volver-tierra').addEventListener('click', (e) => { e.stopPropagation(); volverALaTierra(); });
+    document.getElementById('espacio-texto').addEventListener('click', (e) => { e.stopPropagation(); repetirParada(); });
+    espacio.listo = true;
+  }
+
+  // ---------- Despegue desde la playa ----------
+  const _ve = new V3(), _ve2 = new V3(), _qe = new THREE.Quaternion();
+  const naveActual = () => (enElEspacio ? espacio.naveE : espacio.naveP);
+  const ASIENTOS = { manuel: new V3(-0.45, 1.53, 1.0), papa: new V3(0.45, 1.53, 1.0), mama: new V3(-0.45, 1.53, -0.45), carlos: new V3(0.45, 1.53, 1.0), miguel: new V3(-0.45, 1.53, -0.45), drako: new V3(0.45, 1.53, -0.45) };
+  function tripulacionNave() {
+    // en la historia, los acompañantes del capítulo; si no, papá y mamá
+    const con = historia.activa ? capitulo().con : ['papa', 'mama'];
+    return con.map((k) => historia.acomp[k]).filter(Boolean);
+  }
+  function empezarViajeEspacial() {
+    if (!espacio.listo || espacio.estado) return;
+    fundido(() => {
+      if (ninoE.modo === 'atraccion') terminarAtraccion();
+      if (balon.estado === 'mano') { balon.estado = 'libre'; balon.pos.set(PUERTA_ESPACIO.x + 3, suelo(PUERTA_ESPACIO.x + 3, PUERTA_ESPACIO.z + 9) + 0.5, PUERTA_ESPACIO.z + 9); balon.vel.set(0, 0, 0); }
+      ninoE.modo = 'libre';
+      estado.descansando = false;
+      espacio.tripulacion = tripulacionNave();
+      espacio.tripulacion.forEach((p) => { p.grupo.visible = true; });
+      espacio.naveP.position.copy(espacio.baseNave);
+      espacio.naveP.rotation.set(0, 0, 0, 'YXZ');
+      espacio.estado = 'cuenta';
+      espacio.t = 0;
+      sentarseEnLaNave();
+      cam.yaw = Math.PI * 0.75;
+      cam.pitch = 0.2;
+      cam.dist = 14;
+    });
+    setTimeout(() => { decirEnVoz('narrador', '¡Abróchate el cinturón! Tres, dos, uno... ¡despegue!'); }, 600);
+  }
+  function sentarseEnLaNave() {
+    empezarAtraccion({ tipo: 'nave', pos: new V3(), ry: 0, sentado: true, fijo: true, asientoY: 0, vehiculo: { rumbo: 0, vel: 0 },
+      actualizar: (dt, a) => {
+        const N = naveActual();
+        N.updateMatrixWorld();
+        _ve.copy(ASIENTOS.manuel).applyMatrix4(N.matrixWorld);
+        a.pos.set(_ve.x, _ve.y - 0.5, _ve.z);
+        a.asientoY = _ve.y - 0.05;
+        const e = new THREE.Euler().setFromQuaternion(N.getWorldQuaternion(_qe), 'YXZ');
+        a.ry = e.y; a.rx = e.x; a.rz = e.z;
+        a.vehiculo.rumbo = e.y;
+      },
+      accion: () => ({ texto: '…', hacer: () => {} }) });
+    animarNino('idle');
+  }
+  // Drako, sentado detrás en la nave
+  function perroEnNave() {
+    if (!espacio.estado || !espacio.naveP) return false;
+    const N = naveActual();
+    N.updateMatrixWorld();
+    _ve2.copy(ASIENTOS.drako).applyMatrix4(N.matrixWorld);
+    estado.pos.copy(_ve2);
+    const e = new THREE.Euler().setFromQuaternion(N.getWorldQuaternion(_qe), 'YXZ');
+    estado.rumbo = e.y;
+    perro.position.copy(_ve2);
+    perro.rotation.set(e.x, e.y, e.z, 'YXZ');
+    return true;
+  }
+  // Los acompañantes, sentados en la nave
+  function acompananteEnNave(p) {
+    const N = naveActual();
+    N.updateMatrixWorld();
+    _ve2.copy(ASIENTOS[p.clave] || ASIENTOS.papa).applyMatrix4(N.matrixWorld);
+    const e = new THREE.Euler().setFromQuaternion(N.getWorldQuaternion(_qe), 'YXZ');
+    p.grupo.rotation.set(e.x, e.y, e.z, 'YXZ');
+    _ve.set(0, p.cadera - 0.05, 0).applyEuler(p.grupo.rotation);
+    p.grupo.position.set(_ve2.x - _ve.x, _ve2.y - _ve.y, _ve2.z - _ve.z);
+    animarPadre(p, 'sentado');
+  }
+
+  // ---------- Entrar y salir del espacio ----------
+  function objetosDeViaje() { return [nino.grupo, perro, ...espacio.tripulacion.map((p) => p.grupo)]; }
+  function entrarAlEspacio() {
+    enElEspacio = true;
+    objetosDeViaje().forEach((o) => espacio.escena.add(o));
+    espacio.antes = { near: camera.near, far: camera.far, exp: renderer.toneMappingExposure };
+    camera.near = 0.3;
+    camera.far = 60000;
+    camera.updateProjectionMatrix();
+    renderer.toneMappingExposure = 0.85;
+    document.body.classList.add('en-espacio');
+    espacioHud.hidden = false;
+    musica.proximo = 'espacio';
+    // la nave aparece junto a la Tierra
+    const T = espacio.cuerpos.tierra;
+    espacio.naveE.position.copy(T.pos).add(new V3(0, 1, 14));
+    espacio.naveE.rotation.set(0, Math.PI, 0, 'YXZ');
+    espacio.parada = -1;
+    irAParada(0, true);
+  }
+  function salirDelEspacio() {
+    enElEspacio = false;
+    objetosDeViaje().forEach((o) => scene.add(o));
+    if (espacio.antes) { camera.near = espacio.antes.near; camera.far = espacio.antes.far; renderer.toneMappingExposure = espacio.antes.exp; camera.updateProjectionMatrix(); }
+    camera.fov = 55;
+    camera.updateProjectionMatrix();
+    document.body.classList.remove('en-espacio');
+    espacioHud.hidden = true;
+    espacio.rayas.visible = false;
+  }
+  function volverALaTierra() {
+    if (espacio.estado !== 'parada' && espacio.estado !== 'viaje') return;
+    espacio.saltoHecho = false;
+    espacio.estado = 'salto';
+    espacio.t = 0;
+    espacio.saltoA = 'casa';
+    decirEnVoz('narrador', '¡Volvemos a casa! ¡Agarraos fuerte!');
+    sonidoSalto();
+  }
+  function aterrizar() {
+    // ya en la playa: la nave baja despacio hasta la plataforma
+    salirDelEspacio();
+    espacio.estado = 'aterriza';
+    espacio.t = 0;
+    espacio.naveP.position.copy(espacio.baseNave).add(new V3(0, 120, 0));
+    espacio.naveP.rotation.set(0, 0, 0, 'YXZ');
+    espacio.naveP.getObjectByName('Nave_Fuego').visible = true;
+    cam.yaw = Math.PI * 0.75;
+    cam.pitch = 0.15;
+    cam.dist = 16;
+  }
+  function bajarseDeLaNave() {
+    fundido(() => {
+      espacio.estado = null;
+      terminarAtraccion();
+      espacio.naveP.getObjectByName('Nave_Fuego').visible = false;
+      ninoE.pos.set(PUERTA_ESPACIO.x + 2, suelo(PUERTA_ESPACIO.x + 2, PUERTA_ESPACIO.z + 9.5) + 0.02, PUERTA_ESPACIO.z + 9.5);
+      ninoE.rumbo = 0;
+      ninoE.vy = 0;
+      estado.pos.set(PUERTA_ESPACIO.x + 3.5, suelo(PUERTA_ESPACIO.x + 3.5, PUERTA_ESPACIO.z + 10), PUERTA_ESPACIO.z + 10);
+      espacio.tripulacion.forEach((p, k) => {
+        p.grupo.rotation.set(0, 0, 0);
+        p.grupo.position.set(PUERTA_ESPACIO.x - 0.5 - k * 1.3, suelo(PUERTA_ESPACIO.x - 0.5 - k * 1.3, PUERTA_ESPACIO.z + 10), PUERTA_ESPACIO.z + 10);
+        p.rumbo = 0;
+        if (!historia.activa || !capitulo().con.includes(p.clave)) p.grupo.visible = false;
+      });
+      cam.yaw = Math.PI;
+      cam.pitch = 0.36;
+      cam.dist = 7;
+      cam.objetivo.copy(ninoE.pos);
+      historiaEvento('espacioAterrizaje');
+      avisar('¡Bienvenidos a casa, astronautas!', 2400);
+    });
+  }
+
+  // ---------- Las paradas: viajar, contar, foto ----------
+  const espacioHud = document.getElementById('espacio-hud');
+  const flashEl = document.getElementById('flash');
+  const espacioTitulo = document.getElementById('espacio-titulo');
+  const espacioTexto = document.getElementById('espacio-texto');
+  const espacioAlbum = document.getElementById('espacio-album');
+  const btnFoto = document.getElementById('btn-foto');
+  const btnSiguiente = document.getElementById('btn-siguiente');
+  function centroParada(k) {
+    const id = PARADAS[k].id;
+    if (id === 'luna') return espacio.cuerpos.luna.m.position;
+    const c = espacio.cuerpos[id];
+    return c.g ? c.g.position : c.pos;
+  }
+  function radioParada(k) {
+    const id = PARADAS[k].id;
+    return { sol: 14, galaxia: 300, nebulosa: 70, agujero: 30, neutrones: 14, asteroides: 6, cometa: 6 }[id] || espacio.cuerpos[id].r;
+  }
+  // Dónde se para la nave: por el lado iluminado, un poco por encima
+  function puntoDeVista(k) {
+    const c = centroParada(k), r = radioParada(k), id = PARADAS[k].id;
+    const haciaSol = c.lengthSq() > 1 && !PARADAS[k].salto ? c.clone().negate().normalize() : new V3(0, 0, 1);
+    const lado = new V3(-haciaSol.z, 0, haciaSol.x);
+    const dir = haciaSol.multiplyScalar(0.75).addScaledVector(lado, 0.55).add(new V3(0, id === 'galaxia' ? 1.6 : 0.3, 0)).normalize();
+    if (id === 'sol') dir.set(0.3, 0.25, 1).normalize();
+    const dist = id === 'galaxia' ? 850 : id === 'sol' ? 55 : id === 'nebulosa' ? 170 : id === 'agujero' ? 95 : id === 'neutrones' ? 60 : r * 2.4 + 7;
+    return c.clone().addScaledVector(dir, dist);
+  }
+  function irAParada(k, directo) {
+    if (k >= PARADAS.length || !enElEspacio) return;
+    const P = PARADAS[k];
+    espacio.parada = k;
+    espacio.foto = false;
+    espacio.saltoHecho = false;
+    pintarAlbum();
+    espacioTitulo.textContent = 'Viajando…';
+    espacioTexto.textContent = '';
+    btnFoto.disabled = true;
+    btnSiguiente.disabled = true;
+    const destino = puntoDeVista(k);
+    if (P.salto || (k > 0 && PARADAS[k - 1].salto && !P.salto)) {
+      espacio.estado = 'salto';
+      espacio.t = 0;
+      espacio.saltoA = k;
+      sonidoSalto();
+      decirEnVoz('narrador', '¡Salto al hiperespacio!');
+      return;
+    }
+    const desde = espacio.naveE.position.clone();
+    if (directo) { espacio.naveE.position.copy(destino); llegarAParada(); return; }
+    const mitad = desde.clone().lerp(destino, 0.5).add(new V3(0, desde.distanceTo(destino) * 0.18, 0));
+    // que no atraviese el Sol: si el camino pasa cerca, se rodea
+    if (mitad.length() < 40) mitad.setLength(60);
+    espacio.viaje = { curva: new THREE.QuadraticBezierCurve3(desde, mitad, destino), t: 0, dur: clamp(desde.distanceTo(destino) / 30, 2.2, 6) };
+    espacio.estado = 'viaje';
+    espacio.naveE.getObjectByName('Nave_Fuego').visible = true;
+  }
+  function llegarAParada() {
+    const k = espacio.parada, P = PARADAS[k];
+    espacio.estado = 'parada';
+    espacio.t = 0;
+    espacio.naveE.getObjectByName('Nave_Fuego').visible = false;
+    espacioTitulo.textContent = `${P.emoji} ${P.nombre}`;
+    espacioTexto.textContent = P.texto;
+    btnFoto.disabled = false;
+    btnSiguiente.disabled = false;
+    btnSiguiente.textContent = k + 1 < PARADAS.length ? 'Siguiente ▶' : '🏠 A casa';
+    const quien = espacio.tripulacion.length ? espacio.tripulacion[k % espacio.tripulacion.length] : null;
+    decirEnVoz(quien ? quien.clave : 'narrador', `${P.nombre}. ${P.texto}`);
+    if (quien) { diga(quien, P.nombre, 3); if (quien.acciones.hablar) animarPadre(quien, 'hablar'); }
+    setTimeout(() => ninoDice(REACCIONES[k % REACCIONES.length], 1.8), 900);
+    historiaEvento('espacioParada');
+  }
+  function repetirParada() {
+    const P = PARADAS[espacio.parada];
+    if (P && espacio.estado === 'parada') decirEnVoz('narrador', `${P.nombre}. ${P.texto}`);
+  }
+  function siguienteParada() {
+    if (espacio.estado !== 'parada') return;
+    if (espacio.parada + 1 >= PARADAS.length) return volverALaTierra();
+    irAParada(espacio.parada + 1);
+  }
+  function hacerFoto() {
+    if (espacio.estado !== 'parada' || espacio.foto) return;
+    const P = PARADAS[espacio.parada];
+    espacio.foto = true;
+    flashEl.classList.add('activo');
+    setTimeout(() => flashEl.classList.remove('activo'), 160);
+    notas([[1200, 0, 0.05], [900, 0.06, 0.08]], 'square', 0.05);
+    const nueva = !espacio.album.has(P.id);
+    espacio.album.add(P.id);
+    try { localStorage.setItem('playa-del-perro-album', JSON.stringify([...espacio.album])); } catch (e) { /* sin guardar */ }
+    if (nueva) sumarNino('espacio');
+    historiaEvento('espacioFoto');
+    pintarAlbum(P.id);
+    avisar(`📷 ¡Pegatina de ${P.nombre.replace(/^(La|El|Un|Una) /, '').toLowerCase()}! · ${espacio.album.size} de ${PARADAS.length}`, 2000);
+    sonPremio();
+    btnFoto.disabled = true;
+  }
+  function pintarAlbum(nueva) {
+    espacioAlbum.innerHTML = PARADAS.map((P) => `<span class="${espacio.album.has(P.id) ? 'tiene' : ''}${P.id === nueva ? ' nueva' : ''}" title="${P.nombre}">${espacio.album.has(P.id) ? P.emoji : '?'}</span>`).join('');
+  }
+  function sonidoSalto() {
+    try {
+      const ctx = audioCtx(), t = ctx.currentTime, o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'sawtooth'; o.frequency.setValueAtTime(80, t); o.frequency.exponentialRampToValueAtTime(1600, t + 2);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.06, t + 0.4); g.gain.exponentialRampToValueAtTime(0.0001, t + 2.3);
+      o.connect(g).connect(ctx.destination); o.start(t); o.stop(t + 2.4);
+    } catch (e) { /* sin sonido */ }
+  }
+  // Lo que hace el botón «Seguir» de la historia en el espacio
+  function espacioSeguir() {
+    if (espacio.estado === 'parada') { if (!espacio.foto) hacerFoto(); else siguienteParada(); }
+  }
+
+  // ---------- Cada fotograma ----------
+  function actualizarEspacio(dt) {
+    if (!espacio.listo) return;
+    const t = reloj.elapsedTime;
+    espacio.uT.value = t;
+    const N = espacio.naveP;
+    // humo del despegue y del aterrizaje
+    espacio.humo.forEach((h) => {
+      if (!h.s.visible) return;
+      h.t += dt;
+      h.s.position.addScaledVector(h.v, dt);
+      h.v.multiplyScalar(Math.exp(-1.2 * dt));
+      const s = 2 + h.t * 4;
+      h.s.scale.set(s, s, 1);
+      h.s.material.opacity = Math.max(0, 0.7 - h.t * 0.25);
+      if (h.t > 3) h.s.visible = false;
+    });
+    const echarHumo = (n) => {
+      for (let i = 0; i < n; i++) {
+        const h = espacio.humo.find((q) => !q.s.visible);
+        if (!h) return;
+        h.s.visible = true; h.t = 0;
+        h.s.position.copy(N.position).add(new V3((Math.random() - 0.5) * 2, 0.3, -3 + (Math.random() - 0.5) * 2));
+        h.v.set((Math.random() - 0.5) * 12, Math.random() * 2, (Math.random() - 0.5) * 12);
+      }
+    };
+    if (espacio.estado === 'cuenta') {
+      espacio.t += dt;
+      const n = 3 - Math.floor(espacio.t);
+      if (n !== espacio.cuentaAnt && n >= 1 && n <= 3) { espacio.cuentaAnt = n; gritoGrande(String(n)); notas([[440, 0, 0.15]], 'square', 0.05); }
+      const fu = N.getObjectByName('Nave_Fuego');
+      fu.visible = espacio.t > 1.5;
+      fu.scale.set(1, 0.3 + Math.random() * 0.3, 1);
+      if (espacio.t > 1.5) echarHumo(1);
+      if (espacio.t > 3) { espacio.estado = 'despegue'; espacio.t = 0; espacio.cuentaAnt = 0; gritoGrande('¡DESPEGUE!'); notas([[523, 0, 0.12], [659, 0.1, 0.12], [784, 0.2, 0.4]], 'square', 0.06); historiaEvento('espacioDespegue'); ninoDice('¡Allá vamos!', 2); }
+    } else if (espacio.estado === 'despegue') {
+      espacio.t += dt;
+      const T = espacio.t;
+      const fu = N.getObjectByName('Nave_Fuego');
+      fu.scale.set(1, 0.9 + Math.random() * 0.4, 1);
+      const nariz = Math.min(1, T / 1.2) * 1.25;   // la nave se pone de morro hacia arriba
+      N.rotation.set(-nariz, 0, 0, 'YXZ');
+      N.position.y = espacio.baseNave.y + 0.6 * T * T * T + T * 2;
+      if (T < 2) echarHumo(2);
+      // el cielo se oscurece al subir
+      const k = clamp((T - 2) / 3, 0, 1);
+      scene.background = k > 0 ? new THREE.Color('#9fd6ef').lerp(new THREE.Color('#05081a'), k) : null;
+      cielo.visible = k < 0.6;
+      if (T > 5) {
+        espacio.estado = 'cambio';
+        fundido(() => { scene.background = null; cielo.visible = true; N.position.copy(espacio.baseNave); N.rotation.set(0, 0, 0, 'YXZ'); fu.visible = false; entrarAlEspacio(); });
+      }
+    } else if (espacio.estado === 'aterriza') {
+      espacio.t += dt;
+      const T = espacio.t, k = clamp(T / 5, 0, 1);
+      N.position.y = espacio.baseNave.y + 120 * Math.pow(1 - k, 2.2);
+      N.getObjectByName('Nave_Fuego').scale.set(1, 0.5 + Math.random() * 0.3, 1);
+      if (k > 0.85) echarHumo(1);
+      if (T > 5.2 && espacio.estado === 'aterriza') { espacio.estado = 'fin'; bajarseDeLaNave(); }
+    }
+    if (!enElEspacio) return;
+    // ---------- En el espacio ----------
+    const E = espacio.naveE;
+    espacio.estrellas.position.copy(camera.position);
+    espacio.luzNave.position.copy(E.position).add(new V3(0, 4, 0));
+    Object.entries(espacio.cuerpos).forEach(([id, c]) => { if (c.m && id !== 'sol' && id !== 'cometa') c.m.rotation.y += dt * (id === 'jupiter' || id === 'saturno' ? 0.25 : 0.12); });
+    const T = espacio.cuerpos.tierra;
+    T.nubes.rotation.y += dt * 0.05;
+    T.sat.position.set(Math.cos(t * 0.6) * 3.4, 0.6, Math.sin(t * 0.6) * 3.4);
+    T.sat.rotation.y = -t * 0.6;
+    espacio.cuerpos.luna.m.position.copy(T.pos).add(new V3(Math.cos(t * 0.08) * 6, 0.5, Math.sin(t * 0.08) * 6));
+    espacio.cuerpos.jupiter.lunas.forEach((L) => L.m.position.copy(espacio.cuerpos.jupiter.g.position).add(new V3(Math.cos(t * L.w + L.a) * L.r, 0, Math.sin(t * L.w + L.a) * L.r)));
+    espacio.asteroides.rotation.y += dt * 0.004;
+    espacio.kuiper.rotation.y += dt * 0.0015;
+    espacio.pulsar.eje.rotation.y += dt * 4;
+    espacio.pulsar.halo.material.opacity = 0.6 + 0.4 * Math.abs(Math.sin(t * 8));
+    espacio.lente.quaternion.copy(camera.quaternion);
+    espacio.galaxia.rotation.y += 0;
+    const fu = E.getObjectByName('Nave_Fuego');
+    if (fu.visible) fu.scale.set(1, 0.8 + Math.random() * 0.4, 1);
+    if (espacio.estado === 'viaje') {
+      const V = espacio.viaje;
+      V.t += dt / V.dur;
+      const u = smoothstep(0, 1, Math.min(1, V.t));
+      V.curva.getPointAt(u, E.position);
+      V.curva.getTangentAt(Math.min(0.999, u + 0.001), _ve);
+      E.rotation.set(-Math.asin(clamp(_ve.y, -1, 1)), Math.atan2(_ve.x, _ve.z), Math.sin(t * 2) * 0.05, 'YXZ');
+      if (V.t >= 1) llegarAParada();
+    } else if (espacio.estado === 'parada') {
+      espacio.t += dt;
+      // flota mirando al planeta
+      const c = centroParada(espacio.parada);
+      _ve.subVectors(c, E.position).normalize();
+      const yaw = Math.atan2(_ve.x, _ve.z);
+      E.rotation.y = angulo(E.rotation.y, yaw, 1 - Math.exp(-1.5 * dt));
+      E.rotation.x = damp(E.rotation.x, -Math.asin(clamp(_ve.y, -1, 1)) * 0.5, 1.5, dt);
+      E.rotation.z = Math.sin(t * 0.8) * 0.05;
+      E.position.y += Math.sin(t * 1.2) * 0.003;
+    } else if (espacio.estado === 'salto') {
+      espacio.t += dt;
+      const s = espacio.t;
+      espacio.rayas.visible = true;
+      // rayas de estrellas que pasan a toda velocidad
+      const pr = espacio.rayas.geometry.attributes.position;
+      camera.getWorldDirection(_ve);
+      for (let i = 0; i < pr.count / 2; i++) {
+        const a = (i * 2.399) % (Math.PI * 2), r = 3 + (i % 17) * 1.4;
+        const z = ((i * 13.7 + s * 260) % 300) - 50;
+        const base = camera.position.clone().addScaledVector(_ve, 300 - z);
+        const up = new V3(0, 1, 0), lado = new V3().crossVectors(_ve, up).normalize(), arriba = new V3().crossVectors(lado, _ve);
+        const p = base.addScaledVector(lado, Math.cos(a) * r).addScaledVector(arriba, Math.sin(a) * r);
+        pr.setXYZ(i * 2, p.x, p.y, p.z);
+        const q = p.clone().addScaledVector(_ve, -Math.min(40, s * 30));
+        pr.setXYZ(i * 2 + 1, q.x, q.y, q.z);
+      }
+      pr.needsUpdate = true;
+      camera.fov = 55 + Math.min(1, s) * 30;
+      camera.updateProjectionMatrix();
+      fu.visible = true;
+      if (s > 2.2 && !espacio.saltoHecho) {
+        espacio.saltoHecho = true;
+        flashEl.classList.add('activo');
+        setTimeout(() => flashEl.classList.remove('activo'), 250);
+        if (espacio.saltoA === 'casa') { espacio.saltoHecho = false; espacio.rayas.visible = false; aterrizar(); return; }
+        const k = espacio.saltoA;
+        E.position.copy(puntoDeVista(k));
+        _ve.subVectors(centroParada(k), E.position).normalize();
+        E.rotation.set(0, Math.atan2(_ve.x, _ve.z), 0, 'YXZ');
+        espacio.parada = k;
+      }
+      if (s > 2.6) {
+        espacio.saltoHecho = false;
+        espacio.rayas.visible = false;
+        camera.fov = 55;
+        camera.updateProjectionMatrix();
+        llegarAParada();
+      }
+    }
+  }
+  // La cámara durante el despegue y en el espacio
+  function camaraEspacio(dt) {
+    if (!espacio.estado) return false;
+    if (!enElEspacio) {
+      if (espacio.estado === 'fin') return false;
+      // en la playa: de lado, siguiendo a la nave
+      const N = espacio.naveP;
+      const objetivo = N.position.clone().add(new V3(0, 2, 0));
+      const y = Math.max(N.position.y - espacio.baseNave.y, 0);
+      _ve.set(objetivo.x + 22 + y * 0.15, espacio.baseNave.y + 4 + y * 0.75, objetivo.z + 18 + y * 0.1);
+      camera.position.lerp(_ve, 1 - Math.exp(-3 * dt));
+      camera.lookAt(objetivo);
+      return true;
+    }
+    const E = espacio.naveE;
+    const fw = new V3(Math.sin(E.rotation.y), 0, Math.cos(E.rotation.y));
+    let deseo, mira;
+    if (espacio.estado === 'parada') {
+      // detrás de la nave, viendo la nave y el planeta; da una vueltecita
+      // por detrás y a un lado de la nave: el planeta en grande y la nave en una esquina
+      const c = centroParada(espacio.parada), r = radioParada(espacio.parada);
+      const lejos = E.position.distanceTo(c);
+      const dir = E.position.clone().sub(c).normalize().applyAxisAngle(new V3(0, 1, 0), 0.32 + Math.sin(espacio.t * 0.12) * 0.12);
+      deseo = c.clone().addScaledVector(dir, lejos + 8 + lejos * 0.12).add(new V3(0, 3 + lejos * 0.16, 0));
+      mira = c.clone().lerp(E.position, 0.15).add(new V3(0, -lejos * 0.16, 0));
+      if (r > 200) mira = c.clone().add(new V3(0, -lejos * 0.2, 0));
+    } else {
+      deseo = E.position.clone().addScaledVector(fw, -11).add(new V3(0, 3.5, 0));
+      mira = E.position.clone().addScaledVector(fw, 12);
+    }
+    camera.position.lerp(deseo, 1 - Math.exp(-(espacio.estado === 'salto' ? 8 : 2.5) * dt));
+    camera.lookAt(mira);
+    return true;
+  }
+  // Papá y mamá en la nave cuando no es la historia (la historia ya mueve a sus acompañantes)
+  function tripulacionLibre(dt) {
+    if (!espacio.estado || historia.activa) return;
+    const t = reloj.elapsedTime;
+    espacio.tripulacion.forEach((p) => {
+      p.mixer.update(dt);
+      acompananteEnNave(p);
+      if (p.globo.hasta > t) ponerEnPantalla(p.globo.el, p.cabeza, p.altoGlobo + 0.15);
+      else if (!p.globo.el.hidden) p.globo.el.hidden = true;
+    });
+  }
+  // Números grandes en pantalla (cuenta atrás)
+  function gritoGrande(texto) {
+    const el = document.querySelector('.pistas-grito') || (() => { const d = document.createElement('div'); d.className = 'pistas-grito'; d.hidden = true; document.body.appendChild(d); return d; })();
+    el.textContent = texto;
+    el.hidden = false;
+    el.classList.remove('sale');
+    void el.offsetWidth;
+    el.classList.add('sale');
+    clearTimeout(el._t);
+    el._t = setTimeout(() => { el.hidden = true; }, 1300);
+    decirEnVoz('narrador', texto.replace(/[¡!]/g, ''));
+  }
+
+  // =====================================================================
   // ---------- La historia: un día con la familia y los primos ----------
   // =====================================================================
   // Capítulos que enlazan los sitios del juego. En cada sitio Manuel va acompañado (papá, mamá, el primo Carlos
@@ -14531,7 +15514,18 @@
         ['manuel', '¡Claro! ¡Para ti y para Miguel!'],
         ['miguel', '¡Qué valiente has sido! Vamos a casa, que papá y mamá nos esperan.']] },
     ] },
-    { id: 'noche', titulo: 'Capítulo 13 · A dormir', lugar: 'casa', con: [], pasos: [
+    { id: 'estrellas', titulo: 'Capítulo 13 · Viaje a las estrellas', lugar: 'playa', con: ['papa', 'mama'], llegada: () => new V3(PUERTA_ESPACIO.x + 2, 0, PUERTA_ESPACIO.z + 14), pasos: [
+      { tipo: 'hablar', lineas: [
+        ['papa', '¡Hola, campeón! Antes de dormir, ¿vamos a ver las estrellas de cerca?'],
+        ['mama', 'Papá ha preparado una nave espacial. ¡Drako también viene!'],
+        ['manuel', '¡Nos vamos al espacio!']] },
+      { tipo: 'mision', texto: 'Sube a la nave espacial', evento: 'espacioDespegue', sitio: () => new V3(PUERTA_ESPACIO.x, 0, PUERTA_ESPACIO.z + 7.2), radio: 2.2 },
+      { tipo: 'mision', texto: 'Haz fotos de cinco sitios del espacio para tu álbum', evento: 'espacioFoto', n: 5 },
+      { tipo: 'hablar', lineas: [['papa', '¡Qué fotos tan bonitas! Pero ya es muy tarde.'], ['mama', 'Volvemos a casa, que hay que dormir.']] },
+      { tipo: 'mision', texto: 'Vuelve a la Tierra en la nave', evento: 'espacioAterrizaje' },
+      { tipo: 'hablar', lineas: [['manuel', '¡Ha sido el mejor viaje del mundo!'], ['papa', 'Otro día seguimos explorando el universo.']] },
+    ] },
+    { id: 'noche', titulo: 'Capítulo 14 · A dormir', lugar: 'casa', con: [], pasos: [
       { tipo: 'hablar', lineas: [['mama', '¡Qué calabaza tan bonita! La he puesto en tu cuarto.'], ['papa', '¡Hora de cenar! Hoy has ayudado a mucha gente y a muchos animales.']] },
       { tipo: 'mision', texto: 'Cena con papá y mamá', evento: 'comer', sitio: () => SALA(-4.0, -0.3) },
       { tipo: 'hablar', lineas: [['mama', 'Y ahora, a la cama. Drako también está cansado.']] },
@@ -14551,6 +15545,7 @@
 
   // ---------- Dónde está Manuel y cómo se va a cada sitio ----------
   function zonaDe(p) {
+    if (enElEspacio) return 'espacio';
     if (enCastillo(p)) return 'castillo';
     if (p.x > 500) return 'arrecife';
     if (p.x < -500) return 'circuito';
@@ -14801,6 +15796,8 @@
     if (P.tipo === 'hablar') return siguienteLinea();
     const m = historia.mision;
     if (!m || m.hecha) return;
+    if (enElEspacio) return m.P.evento === 'espacioAterrizaje' ? volverALaTierra() : espacioSeguir();
+    if (espacio.estado) return;
     const E = ninoE;
     if (E.modo === 'celebrar') return;
     const s0 = P.sitio && P.sitio();
@@ -15244,6 +16241,8 @@
       animarPadre(p, 'nadar');
       return;
     }
+    // En la nave espacial
+    if (E.modo === 'atraccion' && E.atr && E.atr.tipo === 'nave') { acompananteEnNave(p); return; }
     // En el jeep: papá delante y mamá detrás, con Drako
     if (E.modo === 'atraccion' && E.atr && E.atr.tipo === 'jeep' && safari.jeep) {
       const J = safari.jeep;
@@ -15317,6 +16316,7 @@
       const P = pasoActual();
       if (historia.ocupado) t = '…';
       else if (!P || P.tipo === 'hablar') t = 'Seguir ▶';
+      else if (historia.mision && !historia.mision.hecha && enElEspacio) t = historia.mision.P.evento === 'espacioAterrizaje' ? '🏠 A casa ▶' : espacio.estado === 'parada' ? (espacio.foto ? 'Siguiente ▶' : '📷 Foto ▶') : '…';
       else if (historia.mision && !historia.mision.hecha) {
         const E = ninoE;
         const s = P.sitio && P.sitio();
@@ -15505,6 +16505,12 @@
       irArroyo: () => irAlArroyo(),
       irSafari: () => irAlSafari(),
       irCastillo: () => irAlCastillo(),
+      irEspacio: () => empezarViajeEspacial(),
+      espacio: () => ({ estado: espacio.estado, enElEspacio, viajeT: espacio.viaje && +espacio.viaje.t.toFixed(3), dur: espacio.viaje && espacio.viaje.dur, parada: espacio.parada >= 0 ? PARADAS[espacio.parada].id : null, foto: espacio.foto, album: [...espacio.album], nave: naveActual() && naveActual().position.toArray().map((v) => +v.toFixed(1)),
+        pos: ninoE.pos.toArray().map((v) => +v.toFixed(1)), modo: ninoE.modo, perro: estado.pos.toArray().map((v) => +v.toFixed(1)) }),
+      foto: () => hacerFoto(), siguiente: () => siguienteParada(), aCasa: () => volverALaTierra(), parada: (k) => irAParada(k),
+      puertas: () => (puertasAuto || []).map((p) => ({ t: p.texto, pos: p.pos.toArray().map((v) => +v.toFixed(1)), r: p.radio, armada: p.armada, vis: !p.visible || p.visible() })),
+      zona: () => zonaDe(ninoE.pos),
       castillo: () => ({ fase: castillo.fase, abiertos: castillo.abiertos, cogidas: castillo.cogidas, encendidas: castillo.encendidas, saludado: castillo.saludado, premio: castillo.premio,
         objetivo: objetivoCastillo() && objetivoCastillo().toArray().map((v) => +(v.toFixed(1))), sala: salaC(ninoE.pos), pos: ninoE.pos.toArray().map((v) => +v.toFixed(1)), accion: btnAccion.textContent }),
       historia: () => ({ activa: historia.activa, cap: historia.cap, capId: CAPITULOS[historia.cap].id, paso: historia.paso, linea: historia.linea, ocupado: historia.ocupado,
@@ -15585,6 +16591,7 @@
   function actualizarPerro(dt) {
     if (estado.descansando) return perroTumbado(dt);
     if (perroEnJeep()) return;
+    if (perroEnNave()) return;
     if (drakoIA.enBalancin) {
       // Sentado al otro lado del balancín (la posición la mueve el balancín)
       perro.position.copy(estado.pos);
@@ -15716,6 +16723,7 @@
   }
 
   function actualizarCamara(dt) {
+    if (camaraEspacio(dt)) return;  // despegando o en el espacio
     const foco = juguetes.foco || (jugador === 'perro' ? estado.pos : ninoE.pos);
     const alto = juguetes.foco ? 0.3 : jugador === 'perro' ? 0.6 : 1.0;
     cam.objetivo.x = damp(cam.objetivo.x, foco.x, 6, dt);
@@ -15811,6 +16819,9 @@
         actualizarHistoria(dt);
         actualizarGente(dt);
         actualizarCastillo(dt);
+        actualizarEspacio(dt);
+        tripulacionLibre(dt);
+        comprobarPuertasAuto();
       }
       actualizarSalpicaduras(dt);
       actualizarBotonAccion();
@@ -15827,7 +16838,7 @@
       camera.position.set(-20, 6, -18);
       camera.lookAt(0, 0, 4);
     }
-    renderer.render(scene, camera);
+    renderer.render(enElEspacio ? espacio.escena : scene, camera);
   }
   bucle();
 })();
