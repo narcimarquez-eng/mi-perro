@@ -5,7 +5,8 @@ blender -b --factory-startup --python Amigos.py
 Usa el creador de personas de Padres.py (con la cabeza más grande, como los niños) y exporta
 amigo1.glb ... amigo4.glb y una vista previa (amigos.png).
 Cada niño lleva su casco como una malla aparte ("Casco"), que la web enseña al subir al kart.
-Animaciones: reposo, saludar, conducir (sentado con las manos en el volante) y celebrar.
+Animaciones: reposo, saludar, conducir (sentado con las manos en el volante), celebrar, andar y las de atletismo
+de AnimAtletismo.py (correr, agachado, lanzar, saltar y cansado). Se ejecuta desde la carpeta web/ (exporta ahí).
 """
 import bpy
 import bmesh
@@ -16,6 +17,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import Padres as P  # noqa: E402  (crea la escena vacía y trae crear_persona y las animaciones)
+from AnimAtletismo import ANIMS_ATLETISMO  # noqa: E402
 from mathutils import Vector  # noqa: E402
 
 X, Y, Z, S2 = P.X, P.Y, P.Z, P.S2
@@ -171,7 +173,7 @@ for i, (nombre, piel, camiseta, pantalon, zapas, pelo, peinado, color_casco, esc
     })
     c = casco(arm, color_casco, esc, K_CABEZA)
     for nombreA, seg, pose in (("reposo", 4.0, P.reposo), ("saludar", 1.2, P.saludar), ("conducir", 2.0, conducir),
-                               ("celebrar", 1.0, celebrar), ("andar", 1.0, P.andar)):
+                               ("celebrar", 1.0, celebrar), ("andar", 1.0, P.andar)) + ANIMS_ATLETISMO:
         P.animar(arm, nombreA, seg, pose)
     personas.append((arm, malla, c))
 

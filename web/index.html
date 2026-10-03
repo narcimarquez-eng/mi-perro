@@ -653,6 +653,34 @@
   body.en-espacio .acciones, body.en-espacio .joystick, body.en-espacio .ayuda { display: none; }
   body.en-espacio .aviso { top: 20%; }
   body.en-espacio .tarea { display: none; }
+  /* El estadio de atletismo: el panel de la prueba arriba y los resultados a un lado */
+  body.en-atl .tarea, body.en-atl .ayuda, body.en-atl .joystick, body.en-atl #btn-cambiar { display: none; }
+  body.en-atl .aviso { top: 26%; }
+  .atl-hud { position: fixed; top: calc(58px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); width: min(540px, calc(100% - 24px)); display: grid; gap: 6px; text-align: center; pointer-events: none; z-index: 5; }
+  .atl-hud[hidden], .atl-resultado[hidden], .atl-medidor[hidden], .atl-lista-carrera[hidden] { display: none; }
+  .atl-titulo { margin: 0; justify-self: center; padding: 6px 18px; border-radius: 20px; background: rgba(12, 24, 48, 0.82); color: #ffd21f; font: 800 22px "Baloo 2", "Nunito", system-ui, sans-serif; }
+  .atl-info { margin: 0; justify-self: center; padding: 4px 14px; border-radius: 14px; background: rgba(255, 255, 255, 0.9); color: #123b4a; font: 800 16px "Nunito", system-ui, sans-serif; }
+  .atl-info:empty { display: none; }
+  .atl-medidor { background: rgba(12, 24, 48, 0.84); border-radius: 16px; padding: 6px 12px 10px; }
+  .atl-med-etiqueta { display: block; color: #fff; font: 800 15px "Baloo 2", "Nunito", system-ui, sans-serif; margin-bottom: 4px; }
+  .atl-barra { position: relative; height: 22px; border-radius: 11px; background: linear-gradient(90deg, #e8463a, #ffb400 45%, #e8463a); overflow: hidden; }
+  .atl-verde { position: absolute; top: 0; bottom: 0; background: #34d27a; box-shadow: 0 0 10px #34d27a; }
+  .atl-marca { position: absolute; top: -2px; bottom: -2px; width: 8px; margin-left: -4px; border-radius: 4px; background: #fff; box-shadow: 0 0 6px #000; }
+  .atl-lista-carrera { display: flex; flex-wrap: wrap; gap: 4px 8px; justify-content: center; padding: 6px 10px; border-radius: 14px; background: rgba(12, 24, 48, 0.74); color: #fff; font: 700 14px "Nunito", system-ui, sans-serif; }
+  .atl-lista-carrera span { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 10px; }
+  .atl-lista-carrera span.yo { background: rgba(255, 210, 31, 0.3); }
+  .atl-lista-carrera i, .atl-res-lista i { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+  .atl-resultado { position: fixed; right: 16px; top: calc(70px + env(safe-area-inset-top, 0px)); width: min(340px, calc(100% - 32px)); padding: 14px 16px 16px; border-radius: 22px; background: rgba(255, 253, 246, 0.96); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); text-align: center; z-index: 6; }
+  .atl-medalla { font-size: 54px; line-height: 1; }
+  .atl-res-titulo { margin: 4px 0 0; font: 800 24px "Baloo 2", "Nunito", system-ui, sans-serif; color: #123b4a; }
+  .atl-res-marca { margin: 2px 0 8px; font: 700 14px "Nunito", system-ui, sans-serif; color: #4a6a78; }
+  .atl-res-lista { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 3px; text-align: left; }
+  .atl-res-lista li { display: grid; grid-template-columns: 14px 28px 1fr auto; align-items: center; gap: 6px; padding: 3px 8px; border-radius: 10px; font: 700 15px "Nunito", system-ui, sans-serif; color: #123b4a; }
+  .atl-res-lista li.yo { background: #ffe9a0; }
+  .atl-res-lista em { font-style: normal; color: #4a6a78; }
+  .atl-ok { width: 100%; min-height: 50px; border: 0; border-radius: 25px; background: #2f9e6a; box-shadow: 0 4px 0 #1f6f49; color: #fffdf6; font: 800 20px "Baloo 2", "Nunito", system-ui, sans-serif; cursor: pointer; touch-action: manipulation; }
+  .atl-ok:active { transform: translateY(3px); box-shadow: none; }
+  @media (max-width: 520px) { .atl-titulo { font-size: 18px; } .atl-resultado { right: 8px; top: calc(60px + env(safe-area-inset-top, 0px)); } }
   body.en-espacio:not(.en-historia) .seguir { display: none; }
   body.en-espacio.en-historia .seguir { left: auto; right: 16px; transform: none; max-width: calc(100% - 32px); bottom: calc(250px + env(safe-area-inset-bottom, 0px)); }
   body.en-espacio.en-historia .seguir:active { transform: translateY(4px); }
@@ -798,6 +826,23 @@
       <button type="button" class="espacio-boton casa" id="btn-volver-tierra">🏠 A casa</button>
     </div>
   </div>
+</div>
+
+<div class="atl-hud" id="atl-hud" hidden>
+  <p class="atl-titulo" id="atl-titulo"></p>
+  <p class="atl-info" id="atl-info"></p>
+  <div class="atl-medidor" id="atl-medidor" hidden>
+    <span class="atl-med-etiqueta" id="atl-med-etiqueta"></span>
+    <div class="atl-barra"><i class="atl-verde" id="atl-verde"></i><b class="atl-marca" id="atl-marca"></b></div>
+  </div>
+  <div class="atl-lista-carrera" id="atl-lista-carrera" hidden></div>
+</div>
+<div class="atl-resultado" id="atl-resultado" hidden>
+  <div class="atl-medalla" id="atl-medalla">🥇</div>
+  <p class="atl-res-titulo" id="atl-res-titulo"></p>
+  <p class="atl-res-marca" id="atl-res-marca"></p>
+  <ol class="atl-res-lista" id="atl-res-lista"></ol>
+  <button type="button" class="atl-ok" id="atl-ok">✔ ¡Genial!</button>
 </div>
 
 <div class="pesca" id="pesca" hidden>
@@ -1394,9 +1439,9 @@
   const cargarOpcional = (n) => cargar(n).catch(() => null);
   Promise.all([cargar('playa.glb'), cargar('perro.glb'), cargar('nino.glb'), cargarOpcional('papa.glb'), cargarOpcional('mama.glb'),
     cargarOpcional('arrecife.glb'), cargarOpcional('coches.glb'), cargarOpcional('pistas.glb'), cargarOpcional('numeros.glb'), cargarOpcional('cochesjuguete.glb'), cargarOpcional('feria.glb'), cargarOpcional('safari.glb'),
-    cargarOpcional('papa_verano.glb'), cargarOpcional('mama.glb'), cargarOpcional('carlos.glb'), cargarOpcional('miguel.glb'), cargarOpcional('halloween.glb'), cargarOpcional('espacio.glb'), cargarOpcional('fantasticos.glb'),
+    cargarOpcional('papa_verano.glb'), cargarOpcional('mama.glb'), cargarOpcional('carlos.glb'), cargarOpcional('miguel.glb'), cargarOpcional('halloween.glb'), cargarOpcional('espacio.glb'), cargarOpcional('fantasticos.glb'), cargarOpcional('atletismo.glb'),
     cargarOpcional('amigo1.glb'), cargarOpcional('amigo2.glb'), cargarOpcional('amigo3.glb'), cargarOpcional('amigo4.glb')])
-    .then(([playa, gPerro, gNino, gPapa, gMama, gArrecife, gCoches, gPistas, gNumeros, gJuguetes, gFeria, gSafari, gPapaV, gMama2, gCarlos, gMiguel, gHalloween, gEspacio, gFantasticos, ...gAmigos]) => {
+    .then(([playa, gPerro, gNino, gPapa, gMama, gArrecife, gCoches, gPistas, gNumeros, gJuguetes, gFeria, gSafari, gPapaV, gMama2, gCarlos, gMiguel, gHalloween, gEspacio, gFantasticos, gAtletismo, ...gAmigos]) => {
     prepararPlaya(playa);
     prepararPerro(gPerro);
     prepararNino(gNino);
@@ -1416,6 +1461,7 @@
     try { construirCastillo(gHalloween); } catch (e) { console.error('Castillo del terror:', e); }
     try { construirEspacio(gEspacio); } catch (e) { console.error('Espacio:', e); }
     try { construirHistoria(gPapaV, gMama2, gCarlos, gMiguel); } catch (e) { console.error('Historia:', e); }
+    try { construirAtletismo(gAtletismo, null, gAmigos); } catch (e) { console.error('Estadio de atletismo:', e); }
     try { construirGente(); } catch (e) { console.error('Gente de la feria:', e); }
     prepararPuertasAuto();
     parque.toboganes.forEach((t) => {
@@ -1560,6 +1606,7 @@
 
   function saltar() {
     if (!listo) return;
+    if (atl.activa) return atlPulsar();
     if (jugador === 'nino') return saltarNino();
     if (!estado.enSuelo || estado.nadando || estado.descansando) return;
     estado.vy = 6;
@@ -1669,6 +1716,8 @@
     } else if (enCastillo(pos)) {
       pos.x = clamp(pos.x, CASTILLO.x - 60, CASTILLO.x + 60);
       pos.z = clamp(pos.z, CASTILLO.z - 78, CASTILLO.z + 68);
+    } else if (enEstadio(pos)) {
+      limitarEstadio(pos);
     } else if (pos.x > 500) {
       // En el arrecife (Manuel bucea con sus propios límites)
     } else if (pos.x < -500) {
@@ -2227,6 +2276,7 @@
   const btnAccion = document.getElementById('btn-guau');
 
   function cambiarJugador() {
+    if (atl.activa) return;
     if (!listo || ninoE.modo === 'pescar' || ninoE.modo === 'tobogan' || ninoE.modo === 'volando' || ninoE.modo === 'bucear') return;
     if (ninoE.modo === 'atraccion' && ninoE.atr && ninoE.atr.vehiculo) return;
     if (enCircuito(ninoE.pos)) return;
@@ -2282,6 +2332,7 @@
   }
   function accionPrincipal() {
     if (!listo || pesca.activa) return;
+    if (atl.activa) return atlPulsar();
     if (jugador === 'perro') return ladrar();
     const a = accionNino();
     if (a) a.hacer();
@@ -2389,6 +2440,7 @@
     if (espacio.estado) texto = enElEspacio ? `En el espacio · ${espacio.parada >= 0 ? PARADAS[espacio.parada].nombre : ''}` : espacio.estado === 'cuenta' ? '¡Cuenta atrás!' : '¡Despegando!';
     else if (E.modo === 'bucear') { zona = 'agua'; texto = `Buceando · ${Math.max(0, Math.round(-E.pos.y))} m`; }
     else if (enCastillo(E.pos)) { const sc = salaC(E.pos); texto = sc >= 0 ? `Castillo del terror · ${SALAS_C[sc].nombre[0].toUpperCase() + SALAS_C[sc].nombre.slice(1)}` : 'En el cementerio del castillo'; }
+    else if (enEstadio(E.pos)) texto = atl.activa && atl.ev ? `${atl.ev.P.emoji} ${atl.ev.P.nombre}` : `Estadio de atletismo · ${atl.sesion ? atl.sesion.size : 0} de 7 pruebas`;
     else if (enSafari(E.pos)) { zona = E.nadando || E.pos.y < 0.2 ? 'agua' : 'arena'; texto = E.nadando ? 'Nadando en la charca' : `${E.modo === 'atraccion' && E.atr && E.atr.tipo === 'jeep' ? 'De safari en el jeep' : 'En el safari'} · Saludos ${safari.saludadas.size}/${MANADAS.length}`; }
     else if (E.modo === 'atraccion' && E.atr && E.atr.tipo === 'coche') texto = `Conduciendo · ${Math.round(Math.abs(E.atr.vehiculo.vel) * 3.6)} km/h`;
     else if (enCircuito(E.pos)) texto = circuito.fase === 'carrera' || circuito.fase === 'cuenta' ? `${circuito.pista ? circuito.pista.def.nombre : 'Carrera'} · ${Math.round(Math.abs(circuito.yo ? circuito.yo.vel : 0) * 3.6)} km/h` : 'En el circuito de karts';
@@ -3165,6 +3217,13 @@
       } },
     { id: 'dianas', titulo: 'Acierta 5 dianas en los árboles del arroyo mágico', total: 5, cuenta: 0,
       objetivo: () => (!enArroyo(ninoE.pos) ? PORTAL_ARROYO : fanta.arboles.length ? masCercanoA(fanta.arboles.map((a) => a.tiro), ninoE.pos) : null) },
+    { id: 'atletismo', titulo: 'Compite en las 7 pruebas del estadio de atletismo (verja amarilla al fondo de las dunas) con Carlos y los demás niños', total: 7, cuenta: 0,
+      objetivo: () => {
+        if (!enEstadio(ninoE.pos)) return PUERTA_ESTADIO;
+        if (atl.activa) return null;
+        const pend = PRUEBAS.filter((q) => !(atl.sesion && atl.sesion.has(q.id))).map((q) => atl.sitios[q.id]).filter(Boolean);
+        return pend.length ? masCercanoA(pend, ninoE.pos) : null;
+      } },
     { id: 'safari', titulo: 'Ve al safari (arco de madera delante del parque acuático) y deja que te saluden las 11 manadas de animales', total: 11, cuenta: 0,
       objetivo: () => {
         if (!enSafari(ninoE.pos)) return PUERTA_SAFARI;
@@ -3186,6 +3245,7 @@
     enCircuito(ninoE.pos) && !hechaNino('carrera') ? misionPor('carrera') : enCircuito(ninoE.pos) && !hechaNino('copas') ? misionPor('copas') :
     enArroyo(ninoE.pos) && !hechaNino('arroyo') ? misionPor('arroyo') :
     enArroyo(ninoE.pos) && !hechaNino('fantasticos') ? misionPor('fantasticos') : enArroyo(ninoE.pos) && !hechaNino('dianas') ? misionPor('dianas') :
+    enEstadio(ninoE.pos) && !hechaNino('atletismo') ? misionPor('atletismo') :
     enSafari(ninoE.pos) && !hechaNino('safari') ? misionPor('safari') :
     enCastillo(ninoE.pos) && !hechaNino('castillo') ? misionPor('castillo') :
     enFeria(ninoE.pos) && !hechaNino('feria') ? misionPor('feria') :
@@ -3680,6 +3740,15 @@
       ritmo: false,
       volumen: 0.11,
     },
+    // En el estadio: marchosa y animada, con redoble
+    atletismo: {
+      corchea: 60 / 138 / 2,
+      melodia: [72, 72, 76, 79, 79, 76, 79, 84, 83, 79, 76, 79, 81, 79, 77, 76,
+        74, 74, 77, 81, 81, 77, 81, 86, 84, 81, 77, 79, 76, 74, 72, -1],
+      bajo: [48, 55, 53, 55, 50, 55, 48, 55],
+      ritmo: true,
+      volumen: 0.15,
+    },
     // En la casa: tranquila, más lenta, sin percusión
     casa: {
       corchea: 60 / 84 / 2,
@@ -3834,6 +3903,7 @@
   // Hacia dónde va Drako solo cuando juegas con Manuel
   function objetivoPerroIA() {
     const E = ninoE;
+    if (atl.activa && atl.perroSpot) return { p: atl.perroSpot, parar: 0.8 };
     // Si uno está dentro de casa y el otro fuera, Drako espera
     if (estaDentro(E.pos) !== estaDentro(estado.pos)) return { p: estado.pos, parar: 1 };
     if (balon.estado === 'perro') return { p: E.pos, parar: 1.0 };
@@ -4204,7 +4274,7 @@
     const E = ninoE;
     const quien = jugador === 'nino' ? E.pos : estado.pos;
     const enCasa = fueraDe(quien.x, -quien.z, CASA) < 4 || estaDentro(quien);
-    if (!estado.descansando && E.modo !== 'descansar') musica.proximo = enElEspacio ? 'espacio' : enCastillo(quien) ? 'terror' : enCasa ? 'casa' : 'playa';
+    if (!estado.descansando && E.modo !== 'descansar') musica.proximo = enElEspacio ? 'espacio' : enCastillo(quien) ? 'terror' : enEstadio(quien) ? 'atletismo' : enCasa ? 'casa' : 'playa';
     drakoIA.llamado = Math.max(0, drakoIA.llamado - dt);
     if (E.modo === 'descansar') {
       if (reloj.elapsedTime > casa.bocadillo) {
@@ -4549,7 +4619,7 @@
   const puntosAccion = [];
   // ---------- Entradas automáticas: basta con pasar por la puerta ----------
   // Para no volver a entrar nada más salir, una puerta solo se activa después de haberse alejado de ella.
-  const TEXTOS_AUTO = ['Ir al circuito', 'Ir a los números', 'Ir a la feria', 'Arroyo mágico', 'Ir al safari', 'Castillo del terror', 'Viaje al espacio',
+  const TEXTOS_AUTO = ['Ir al circuito', 'Ir a los números', 'Ir a la feria', 'Arroyo mágico', 'Ir al safari', 'Castillo del terror', 'Estadio de atletismo', 'Viaje al espacio',
     'Volver a la playa', 'A la playa'];
   let puertasAuto = null;
   function prepararPuertasAuto() {
@@ -13638,6 +13708,2044 @@
   }
   const ARCOIRIS_WEB = ['#ff5a7a', '#ffa63d', '#ffe04a', '#6fdc6a', '#4ab8ff', '#9b7bff'];
 
+  // =====================================================================
+  // ---------- El estadio de atletismo ----------
+  // =====================================================================
+  // Las siete pruebas (100 m, 400 m, jabalina, peso, altura, longitud y pértiga) con Carlos y otros cuatro niños.
+  // El utillaje viene de Atletismo.py (atletismo.glb); la pista, el césped, las gradas, el público y todo el
+  // juego se hacen aquí. Coordenadas locales: x al este, z al sur; se corre en sentido contrario a las agujas
+  // del reloj (mirando al norte): por la recta sur hacia el este.
+  const ESTADIO = new V3(1150, 0, -700);
+  const PISTA = { H: 30, R0: 20, ancho: 1.25, N: 6 };         // recta de 60 m, curvas de radio 20 y 6 calles
+  const PUERTA_ESTADIO = new V3(84, 0, -91);                   // la verja de las dunas, al nordeste (entre la casa y el parque de bolas)
+  const enEstadio = (p) => !enElEspacio && p.x > 900 && p.z < -500;
+  const EL = (x, z, y = 0) => new V3(ESTADIO.x + x, y, ESTADIO.z + z);
+  const radioCalle = (i) => PISTA.R0 + PISTA.ancho * (i + 0.5);
+  const largoPista = (R) => 4 * PISTA.H + 2 * Math.PI * R;
+  // Punto de una calle de radio R a una distancia s del principio de la recta sur, con el sentido de la marcha
+  function puntoPista(R, s) {
+    const H = PISTA.H, L = largoPista(R);
+    s = ((s % L) + L) % L;
+    if (s < 2 * H) return { x: -H + s, z: R, tx: 1, tz: 0 };
+    s -= 2 * H;
+    if (s < Math.PI * R) { const f = s / R; return { x: H + R * Math.sin(f), z: R * Math.cos(f), tx: Math.cos(f), tz: -Math.sin(f) }; }
+    s -= Math.PI * R;
+    if (s < 2 * H) return { x: H - s, z: -R, tx: -1, tz: 0 };
+    s -= 2 * H;
+    const f = s / R;
+    return { x: -H - R * Math.sin(f), z: -R * Math.cos(f), tx: -Math.cos(f), tz: Math.sin(f) };
+  }
+  // 400 m: todos corren la misma distancia (una vuelta de la calle de dentro) y acaban en la meta; las calles de fuera salen
+  // más adelante, por la curva, y la distancia es la de la calle 1
+  const salida400 = (i) => 2 * PISTA.H + 2 * Math.PI * PISTA.ancho * i;
+  const meta400 = (i) => 2 * PISTA.H + largoPista(radioCalle(i));
+  // Distancia de un punto local a la «columna» del óvalo (el segmento que une los centros de las dos curvas)
+  const distOvalo = (x, z) => Math.hypot(Math.max(Math.abs(x) - PISTA.H, 0), z);
+  // Muestras de un óvalo de radio R (las mismas divisiones para todos los radios, para poder unir dos óvalos con una cinta)
+  const NR_OVALO = 30, NA_OVALO = 24;
+  function puntosOvalo(R) {
+    const H = PISTA.H, pts = [];
+    for (let k = 0; k < NR_OVALO; k++) pts.push({ x: -H + 2 * H * k / NR_OVALO, z: R });
+    for (let k = 0; k < NA_OVALO; k++) { const f = Math.PI * k / NA_OVALO; pts.push({ x: H + R * Math.sin(f), z: R * Math.cos(f) }); }
+    for (let k = 0; k < NR_OVALO; k++) pts.push({ x: H - 2 * H * k / NR_OVALO, z: -R });
+    for (let k = 0; k < NA_OVALO; k++) { const f = Math.PI * k / NA_OVALO; pts.push({ x: -H - R * Math.sin(f), z: -R * Math.cos(f) }); }
+    pts.push(pts[0]);
+    return pts;
+  }
+  // Una cinta entre dos óvalos (R1 a la altura y1 y R2 a la y2): suelo de la pista, líneas, escalones de las gradas, muros...
+  // opts: color (hex o función (i, v) -> hex), hueco (deja libre la entrada de la recta sur), uv (metros por vuelta de textura)
+  function cinta(R1, y1, R2, y2, opts = {}) {
+    const A = puntosOvalo(R1), B = puntosOvalo(R2);
+    const pos = [], col = [], uv = [], idx = [];
+    const c = new THREE.Color();
+    let largo = 0;
+    for (let i = 0; i < A.length; i++) {
+      if (i) largo += Math.hypot(A[i].x - A[i - 1].x, A[i].z - A[i - 1].z);
+      const k = opts.uv || 8;
+      pos.push(A[i].x, y1, A[i].z, B[i].x, y2, B[i].z);
+      uv.push(largo / k, 0, largo / k, 1);
+      for (let v = 0; v < 2; v++) {
+        const h = typeof opts.color === 'function' ? opts.color(i, v, largo) : opts.color || '#ffffff';
+        c.set(h).convertSRGBToLinear();
+        col.push(c.r, c.g, c.b);
+      }
+    }
+    for (let i = 0; i < A.length - 1; i++) {
+      if (opts.hueco && i >= 12 && i <= 23) continue;   // entrada por la recta sur (x entre −6 y 6)
+      const a = i * 2;
+      if (opts.invertir) idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); else idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+    g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+    g.setIndex(idx);
+    g.computeVertexNormals();
+    const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, map: opts.map || null, roughness: opts.rug ?? 0.9, side: opts.doble ? THREE.DoubleSide : THREE.FrontSide }));
+    m.receiveShadow = true;
+    m.castShadow = !!opts.sombra;
+    return m;
+  }
+  // Los nombres, colores y marcas de quienes compiten (Manuel, Carlos y los cuatro niños del circuito)
+  const ATLETAS = [
+    { id: 'manuel', nombre: 'Manuel', color: '#4a90e2', pant: '#ffffff' },
+    { id: 'carlos', nombre: 'Carlos', color: '#e8463a', pant: '#2f4f7a' },
+    { id: 'lucia', nombre: 'Lucía', color: '#ff4f8b', pant: '#3a3f55' },
+    { id: 'hugo', nombre: 'Hugo', color: '#29b35a', pant: '#f2f2f2' },
+    { id: 'martina', nombre: 'Martina', color: '#ffb400', pant: '#3b4a7a' },
+    { id: 'leo', nombre: 'Leo', color: '#7a5af8', pant: '#e8e8e8' },
+  ];
+  const PRUEBAS = [
+    { id: '100', nombre: '100 metros', corto: '100 m', emoji: '🏃', tipo: 'carrera', grupo: 'Carrera', unidad: 's', menorMejor: true,
+      voz: 'Los cien metros. Pulsa muy rápido el botón para correr más. ¡A ganar!' },
+    { id: '400', nombre: '400 metros', corto: '400 m', emoji: '🏁', tipo: 'carrera', grupo: 'Carrera', unidad: 's', menorMejor: true,
+      voz: 'Los cuatrocientos metros, una vuelta entera a la pista. Pulsa el botón sin parar y guarda fuerzas para el final.' },
+    { id: 'jabalina', nombre: 'Lanzamiento de jabalina', corto: 'Jabalina', emoji: '🎯', tipo: 'lanzamiento', grupo: 'Lanza', unidad: 'm',
+      voz: 'La jabalina. Primero pulsa para fijar la fuerza y luego pulsa para elegir el ángulo.' },
+    { id: 'peso', nombre: 'Lanzamiento de peso', corto: 'Peso', emoji: '⚫', tipo: 'lanzamiento', grupo: 'Lanza', unidad: 'm',
+      voz: 'El lanzamiento de peso. Pulsa para fijar la fuerza y otra vez para elegir el ángulo.' },
+    { id: 'altura', nombre: 'Salto de altura', corto: 'Altura', emoji: '🦘', tipo: 'salto', grupo: 'Salta', unidad: 'm',
+      voz: 'El salto de altura. Pulsa para coger carrerilla y vuelve a pulsar justo antes de la barra para saltar.' },
+    { id: 'longitud', nombre: 'Salto de longitud', corto: 'Longitud', emoji: '🏖️', tipo: 'salto', grupo: 'Salta', unidad: 'm',
+      voz: 'El salto de longitud. Pulsa muy rápido para correr y, cuando llegues a la tabla blanca, salta.' },
+    { id: 'pertiga', nombre: 'Salto con pértiga', corto: 'Pértiga', emoji: '🏑', tipo: 'salto', grupo: 'Salta', unidad: 'm',
+      voz: 'La pértiga. Corre pulsando muy rápido y clava la pértiga justo antes de la barra.' },
+  ];
+  const prueba_ = (id) => PRUEBAS.find((p) => p.id === id);
+  // Dónde están las pruebas en el campo (x, z locales; heading φ es hacia donde se corre o se lanza: 0 = sur, π/2 = este)
+  const SITIO_JAB = { x: -30, z: -9, fi: Math.PI / 2 };          // la línea de nulo de la jabalina (el pasillo de carrera llega hasta ahí)
+  const SITIO_PESO = { x: -30, z: 10, fi: Math.PI / 2 };         // centro del círculo de lanzamiento
+  const SITIO_ALTURA = { x: 36.6, z: 0, fi: Math.PI / 2 };       // la barra, perpendicular al sentido de la carrerilla
+  const SITIO_LONG = { x: 13.6, z: 12, fi: Math.PI / 2 };        // la tabla de batida
+  const SITIO_PERT = { x: 21.2, z: -12, fi: Math.PI / 2 };       // la caja donde se clava la pértiga
+  const PODIO_POS = { x: 22, z: 15.2 };
+
+  const atl = {
+    listo: false, grupo: new THREE.Group(), P: {}, atletas: [], activa: false, ev: null, medallas: {}, marcas: {}, hechas: new Set(),
+    hud: null, publico: null, excitacion: 0, banderas: [], mastiles: [], podio: null, marcador: null, pantalla: null, cvPantalla: null,
+    luces: [], jabalinas: [], tPantalla: 0, listaPantalla: null, banderines: [], reposoNinos: [], proyectiles: [], uT: { value: 0 }, uExc: { value: 0 }, sitios: {},
+  };
+  try {
+    const g = JSON.parse(localStorage.getItem('playa-del-perro-atletismo') || '{}');
+    atl.medallas = g.m || {};
+    atl.marcas = g.r || {};
+    atl.hechas = new Set(g.h || []);
+  } catch (e) { /* sin guardar */ }
+  function guardarAtletismo() {
+    try { localStorage.setItem('playa-del-perro-atletismo', JSON.stringify({ m: atl.medallas, r: atl.marcas, h: [...atl.hechas] })); } catch (e) { /* sin guardar */ }
+  }
+
+  function construirAtletismo(gA, gCarlos, gAmigos) {
+    if (!gA) return;
+    const G = atl.grupo;
+    G.visible = false;
+    scene.add(G);
+    gA.scene.children.forEach((o) => { atl.P[o.name] = o; });
+    const copia = (n) => {
+      const o = atl.P[n].clone(true);
+      o.traverse((m) => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } });
+      return o;
+    };
+    atl.copiar = copia;
+    const poner = (n, x, z, fi = 0, es = 1, y = 0) => { const o = copia(n); o.position.copy(EL(x, z, y)); o.rotation.y = fi; o.scale.setScalar(es); G.add(o); return o; };
+    const az = (() => { let s = 77; return () => ((s = (s * 16807) % 2147483647) / 2147483647); })();
+    const { H, R0, ancho, N } = PISTA;
+    const RO = R0 + ancho * N;                                  // borde exterior de la pista
+    const mat = (c, r = 0.85) => new THREE.MeshStandardMaterial({ color: c, roughness: r });
+
+    // ---------- Suelo: hierba por fuera, césped segado por dentro y pista roja ----------
+    const texHierba = lienzo(256, 256, (c, w, h) => {
+      c.fillStyle = '#ffffff'; c.fillRect(0, 0, w, h);
+      for (let k = 0; k < 2200; k++) {
+        const v = Math.random();
+        c.fillStyle = v < 0.5 ? `rgba(70,130,60,${0.08 + Math.random() * 0.25})` : `rgba(210,240,150,${0.06 + Math.random() * 0.2})`;
+        c.beginPath(); c.ellipse(Math.random() * w, Math.random() * h, 1 + Math.random() * 6, 0.6 + Math.random() * 2.4, Math.random() * 3, 0, 7); c.fill();
+      }
+    });
+    texHierba.repeat.set(60, 60);
+    const suelo0 = new THREE.Mesh(new THREE.CircleGeometry(900, 48), new THREE.MeshStandardMaterial({ color: '#58a844', roughness: 1, map: texHierba }));
+    suelo0.rotation.x = -Math.PI / 2;
+    suelo0.position.copy(EL(0, 0, 0));
+    suelo0.receiveShadow = true;
+    G.add(suelo0);
+    // césped del centro, con franjas de segado
+    const texSegado = lienzo(128, 128, (c, w, h) => {
+      c.fillStyle = '#62bd45'; c.fillRect(0, 0, w / 2, h);
+      c.fillStyle = '#54ab3b'; c.fillRect(w / 2, 0, w / 2, h);
+      for (let k = 0; k < 500; k++) { c.fillStyle = `rgba(255,255,255,${Math.random() * 0.07})`; c.fillRect(Math.random() * w, Math.random() * h, 2, 3); }
+    });
+    // el césped es un abanico de triángulos desde el centro
+    const ptsC = puntosOvalo(R0);
+    const gc = new THREE.BufferGeometry();
+    const vp = [0, 0.02, 0], vu = [0, 0];
+    ptsC.forEach((p) => { vp.push(p.x, 0.02, p.z); vu.push(p.x / 6, p.z / 6); });
+    const ic = [];
+    for (let i = 1; i < ptsC.length; i++) ic.push(0, i + 1, i);
+    gc.setAttribute('position', new THREE.Float32BufferAttribute(vp, 3));
+    gc.setAttribute('uv', new THREE.Float32BufferAttribute(vu, 2));
+    gc.setIndex(ic);
+    gc.computeVertexNormals();
+    const cesped = new THREE.Mesh(gc, new THREE.MeshStandardMaterial({ map: texSegado, roughness: 1 }));
+    cesped.position.copy(EL(0, 0));
+    cesped.receiveShadow = true;
+    G.add(cesped);
+    // la pista: rojiza, con un poco de grano
+    const texPista = lienzo(128, 128, (c, w, h) => {
+      c.fillStyle = '#ffffff'; c.fillRect(0, 0, w, h);
+      for (let k = 0; k < 900; k++) { c.fillStyle = Math.random() < 0.5 ? 'rgba(120,40,30,0.12)' : 'rgba(255,200,170,0.12)'; c.fillRect(Math.random() * w, Math.random() * h, 2, 2); }
+    });
+    const pista = cinta(R0, 0.035, RO, 0.035, { color: (i, v, l) => (Math.floor(l / 40) % 2 ? '#c4553d' : '#cc5a41'), map: texPista, uv: 6, rug: 0.95 });
+    pista.position.copy(EL(0, 0));
+    G.add(pista);
+    // franjas del borde interior (acera blanca) y líneas de las calles
+    const acera = cinta(R0 - 0.35, 0.05, R0, 0.05, { color: '#f2f0e8' });
+    acera.position.copy(EL(0, 0));
+    G.add(acera);
+    for (let k = 0; k <= N; k++) {
+      const R = R0 + ancho * k;
+      const l = cinta(R - 0.035, 0.05, R + 0.035, 0.05, { color: '#ffffff' });
+      l.position.copy(EL(0, 0));
+      G.add(l);
+    }
+    // línea de meta (cuadros) y de salida de los 100 m, rectas, y las salidas escalonadas de los 400 m
+    const lineaTransversal = (x, z, ancho2, largo, fi, color, y = 0.052) => {
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(ancho2, largo), new THREE.MeshStandardMaterial({ color, roughness: 0.9 }));
+      m.rotation.set(-Math.PI / 2, 0, fi);
+      m.position.copy(EL(x, z, y));
+      m.receiveShadow = true;
+      G.add(m);
+      return m;
+    };
+    lineaTransversal(H, R0 + ancho * N / 2, 0.12, ancho * N, 0, '#ffffff');                    // meta: x = +30
+    const cuadros = lienzo(64, 64, (c, w, h) => { for (let i = 0; i < 8; i++) for (let j = 0; j < 8; j++) { c.fillStyle = (i + j) % 2 ? '#111' : '#fff'; c.fillRect(i * 8, j * 8, 8, 8); } });
+    const mCuadros = new THREE.Mesh(new THREE.PlaneGeometry(0.5, ancho * N), new THREE.MeshBasicMaterial({ map: cuadros }));
+    mCuadros.rotation.x = -Math.PI / 2;
+    mCuadros.position.copy(EL(H + 0.4, R0 + ancho * N / 2, 0.055));
+    G.add(mCuadros);
+    lineaTransversal(-H, R0 + ancho * N / 2, 0.12, ancho * N, 0, '#ffffff');                   // salida de los 100 m
+    for (let i = 0; i < N; i++) {                                                               // salida escalonada de los 400 m
+      const R = radioCalle(i), p = puntoPista(R, salida400(i));
+      lineaTransversal(p.x, p.z, 0.12, ancho, Math.atan2(-p.tz, p.tx), '#ffffff', 0.053);
+    }
+    // los números de las calles, pintados al principio de la recta
+    for (let i = 0; i < N; i++) {
+      const lc = lienzo(64, 64, (c, w, h) => { c.fillStyle = 'rgba(255,255,255,0)'; c.clearRect(0, 0, w, h); c.fillStyle = '#ffffff'; c.font = '800 52px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(i + 1), 32, 36); });
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.9), new THREE.MeshBasicMaterial({ map: lc, transparent: true, depthWrite: false }));
+      m.rotation.set(-Math.PI / 2, 0, -Math.PI / 2);
+      m.position.copy(EL(-H + 2.2, radioCalle(i), 0.056));
+      G.add(m);
+    }
+    // tacos de salida de los 100 m
+    for (let i = 0; i < N; i++) poner('Taco', -H - 0.05, radioCalle(i), Math.PI / 2, 1.2, 0.04);
+
+    // ---------- Gradas con público alrededor de la pista ----------
+    const D0 = 31, FILAS = 6, FOND = 0.9, ALTO = 0.55;              // distancia a la «columna» del óvalo, filas, fondo y alto de cada una
+    const ROJO_A = ['#e8463a', '#f4f1e8', '#2a6edb', '#f4f1e8'];
+    for (let k = 0; k < FILAS; k++) {
+      const d = D0 + k * FOND, y = ALTO * (k + 1);
+      const asiento = cinta(d, y, d + FOND, y, { color: (i, v, l) => ROJO_A[Math.floor(l / 5) % 4], hueco: true, uv: 8 });
+      asiento.position.copy(EL(0, 0));
+      G.add(asiento);
+      const contra = cinta(d, y - ALTO, d, y, { color: '#c9c4ba', hueco: true, doble: true, uv: 8 });
+      contra.position.copy(EL(0, 0));
+      contra.material.side = THREE.DoubleSide;
+      G.add(contra);
+    }
+    const dFin = D0 + FILAS * FOND, yFin = ALTO * FILAS;
+    const muro = cinta(dFin, 0, dFin, yFin + 1.0, { color: (i, v) => (v ? '#2a6edb' : '#d8d3c8'), hueco: true, doble: true, uv: 8 });
+    muro.position.copy(EL(0, 0));
+    G.add(muro);
+    // el pretil de la primera fila y las vallas publicitarias del borde de la pista
+    const texPublicidad = lienzo(512, 96, (c, w, h) => {
+      const bloques = [['#e8463a', '¡VAMOS!'], ['#2a6edb', 'ATLETISMO'], ['#ffb400', '¡CORRE!'], ['#29b35a', '¡ÁNIMO!'], ['#7a5af8', 'CAMPEONES'], ['#ff4f8b', '¡SALTA!']];
+      bloques.forEach(([col, t], i) => {
+        c.fillStyle = col; c.fillRect(i * w / 6, 0, w / 6, h);
+        c.fillStyle = '#ffffff'; c.font = '800 26px "Baloo 2", sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+        c.fillText(t, i * w / 6 + w / 12, h / 2);
+        c.strokeStyle = 'rgba(255,255,255,0.8)'; c.lineWidth = 4; c.strokeRect(i * w / 6 + 3, 3, w / 6 - 6, h - 6);
+      });
+    });
+    texPublicidad.wrapS = THREE.RepeatWrapping;
+    const valla = cinta(RO + 1.1, 0, RO + 1.1, 1.1, { color: '#ffffff', map: texPublicidad, hueco: true, doble: true, uv: -24 });
+    valla.position.copy(EL(0, 0));
+    G.add(valla);
+
+    // ---------- Público: miles de espectadores sentados que saltan cuando algo sale bien ----------
+    const cuerpoG = new THREE.CylinderGeometry(0.2, 0.25, 0.6, 8);
+    cuerpoG.translate(0, 0.3, 0);
+    const cabezaG = new THREE.SphereGeometry(0.17, 10, 8);
+    cabezaG.translate(0, 0.84, 0);
+    const brazoG = new THREE.CylinderGeometry(0.045, 0.045, 0.42, 6);
+    brazoG.translate(0, 0.21, 0);
+    const posiciones = [];
+    for (let k = 0; k < FILAS; k++) {
+      const R = D0 + k * FOND + FOND * 0.45, L = largoPista(R), y = ALTO * (k + 1);
+      for (let s = az() * 0.5; s < L; s += 0.72) {
+        const p = puntoPista(R, s);
+        if (p.z > 0 && Math.abs(p.x) < 6.5 && Math.abs(p.z) < 80) continue;      // la entrada
+        if (az() < 0.28) continue;                                                // sitios libres
+        posiciones.push([p.x, y, p.z, az() * 6.3]);
+      }
+    }
+    const NPub = posiciones.length;
+    const mPub = new THREE.MeshStandardMaterial({ roughness: 0.85 });
+    const faseA = new Float32Array(NPub);
+    posiciones.forEach((p, i) => { faseA[i] = p[3]; });
+    const conSalto = (m) => {
+      m.geometry.setAttribute('fase', new THREE.InstancedBufferAttribute(faseA, 1));
+      m.material.onBeforeCompile = (sh) => {
+        sh.uniforms.uT = atl.uT = atl.uT || { value: 0 };
+        sh.uniforms.uExc = atl.uExc = atl.uExc || { value: 0 };
+        sh.vertexShader = sh.vertexShader
+          .replace('#include <common>', '#include <common>\nattribute float fase; uniform float uT; uniform float uExc;')
+          .replace('#include <begin_vertex>', `#include <begin_vertex>
+            float bote = abs(sin(uT * 8.0 + fase * 3.0)) * 0.3 * uExc + sin(uT * 1.2 + fase) * 0.012;
+            transformed.y += bote;`);
+      };
+    };
+    const iCuerpo = new THREE.InstancedMesh(cuerpoG, mPub, NPub), iCabeza = new THREE.InstancedMesh(cabezaG, mPub.clone(), NPub);
+    const camisas = ['#e8463a', '#2a6edb', '#ffd21f', '#29b35a', '#ff4f8b', '#ffffff', '#7a5af8', '#ff9f43', '#2aa7b8'];
+    const pieles = ['#f2cdb0', '#e2b08a', '#c68a62', '#8a5a3c', '#f6d8c0'];
+    const mm = new THREE.Matrix4(), qq = new THREE.Quaternion(), cc = new THREE.Color();
+    posiciones.forEach((p, i) => {
+      const es = 0.85 + az() * 0.25;
+      mm.compose(EL(p[0], p[2], p[1]), qq.setFromAxisAngle(new V3(0, 1, 0), az() * 6.3), new V3(es, es, es));
+      iCuerpo.setMatrixAt(i, mm);
+      iCabeza.setMatrixAt(i, mm);
+      iCuerpo.setColorAt(i, cc.set(camisas[Math.floor(az() * camisas.length)]));
+      iCabeza.setColorAt(i, cc.set(pieles[Math.floor(az() * pieles.length)]));
+    });
+    conSalto(iCuerpo); conSalto(iCabeza);
+    iCuerpo.frustumCulled = iCabeza.frustumCulled = false;
+    iCuerpo.castShadow = false;
+    G.add(iCuerpo, iCabeza);
+    atl.publico = { iCuerpo, iCabeza, n: NPub };
+
+    // ---------- Focos, marcador, mástiles con banderas y árboles ----------
+    [[-48, -44], [48, -44], [-48, 44], [48, 44]].forEach(([x, z]) => {
+      const f = poner('Foco', x, z, Math.atan2(-x, -z), 1.1);
+      f.position.y = 0;
+      colisiones.push({ x: ESTADIO.x + x, z: ESTADIO.z + z, r: 0.6 });
+    });
+    const marc = poner('Marcador', 0, -(D0 + FILAS * FOND) + 0.5, 0, 1.4, ALTO * FILAS);
+    atl.marcador = marc;
+    // la pantalla del marcador es un lienzo que se redibuja con las marcas
+    const panOrig = marc.getObjectByName('Marcador_Pantalla');
+    if (panOrig) panOrig.visible = false;
+    atl.cvPantalla = document.createElement('canvas');
+    atl.cvPantalla.width = 512; atl.cvPantalla.height = 222;
+    atl.texPantalla = new THREE.CanvasTexture(atl.cvPantalla);
+    atl.texPantalla.encoding = THREE.sRGBEncoding;
+    const pan = new THREE.Mesh(new THREE.PlaneGeometry(6.0, 2.6), new THREE.MeshBasicMaterial({ map: atl.texPantalla, toneMapped: false }));
+    pan.position.set(0, 3.9, 0.17);   // un poco por delante del marco (el frente del marcador mira a +Z)
+    marc.add(pan);
+    atl.pantalla = pan;
+    pintarMarcadorAtl('¡BIENVENIDOS!', ['Estadio de atletismo', 'Siete pruebas', 'Carlos te espera']);
+    // banderas ondeando en mástiles junto a la entrada y en las esquinas
+    const coloresBandera = [['#e8463a', '#ffffff'], ['#2a6edb', '#ffd21f'], ['#29b35a', '#ffffff'], ['#ffb400', '#7a5af8']];
+    [[-9, 41], [9, 41], [-9, -41], [9, -41], [-58, 0], [58, 0]].forEach(([x, z], k) => {
+      const m = poner('Mastil', x, z, 0, 1.0);
+      colisiones.push({ x: ESTADIO.x + x, z: ESTADIO.z + z, r: 0.35 });
+      const [c1, c2] = coloresBandera[k % 4];
+      const tb = lienzo(128, 80, (c, w, h) => { c.fillStyle = c1; c.fillRect(0, 0, w, h); c.fillStyle = c2; c.fillRect(0, h * 0.35, w, h * 0.3); c.fillStyle = c2; c.beginPath(); c.arc(w * 0.28, h / 2, h * 0.28, 0, 7); c.fill(); });
+      tb.wrapS = tb.wrapT = THREE.ClampToEdgeWrapping;
+      const gb = new THREE.PlaneGeometry(2.4, 1.5, 14, 4);
+      gb.translate(1.2, 0, 0);
+      const ban = new THREE.Mesh(gb, new THREE.MeshStandardMaterial({ map: tb, side: THREE.DoubleSide, roughness: 0.8 }));
+      ban.position.copy(EL(x, z, 7.2));
+      ban.rotation.y = az() * 6.3;
+      G.add(ban);
+      atl.banderas.push({ m: ban, f: az() * 6, base: gb.attributes.position.array.slice() });
+    });
+    // árboles y setos en la explanada de la entrada y fuera de las gradas
+    const copasCol = ['#4fa64a', '#6fc35a', '#8fd36a', '#3f8f45'];
+    const arbol = (x, z, e = 1, choca = true) => {
+      const t = new THREE.Mesh(new THREE.CylinderGeometry(0.22 * e, 0.38 * e, 3.2 * e, 7), mat('#7a5436'));
+      t.position.copy(EL(x, z, 1.6 * e)); t.castShadow = true; G.add(t);
+      for (let j = 0; j < 6; j++) {
+        const c = new THREE.Mesh(new THREE.IcosahedronGeometry((1.5 + az() * 0.9) * e, 1), new THREE.MeshStandardMaterial({ color: copasCol[j % 4], roughness: 0.85, flatShading: true }));
+        c.position.copy(EL(x + (az() - 0.5) * 2.4 * e, z + (az() - 0.5) * 2.4 * e, (3.6 + az() * 1.6) * e)); c.castShadow = true; G.add(c);
+      }
+      if (choca) colisiones.push({ x: ESTADIO.x + x, z: ESTADIO.z + z, r: 0.45 });
+    };
+    for (let k = 0; k < 14; k++) { const a = k / 14 * Math.PI * 2; arbol(Math.cos(a) * 120 + (az() - 0.5) * 20, Math.sin(a) * 100 + (az() - 0.5) * 20, 1.4 + az() * 0.8, false); }
+    [[-24, 48], [24, 48], [-24, 64], [24, 64], [-14, 56], [14, 56]].forEach(([x, z]) => arbol(x, z, 1.0 + az() * 0.2));
+    // lomas lejanas que cierran el horizonte
+    for (let k = 0; k < 26; k++) {
+      const a = k / 26 * Math.PI * 2, r = 330 + az() * 90;
+      const lo = new THREE.Mesh(new THREE.SphereGeometry(60 + az() * 70, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: ['#5fae4a', '#6fbf55', '#4f9c40'][k % 3], roughness: 1 }));
+      lo.position.copy(EL(Math.cos(a) * r, Math.sin(a) * r, 0));
+      lo.scale.y = 0.35;
+      G.add(lo);
+    }
+    // la explanada de la entrada (losetas) con bancos, neveras y flores
+    const plaza = new THREE.Mesh(new THREE.PlaneGeometry(64, 36), new THREE.MeshStandardMaterial({ color: '#d9d4c7', roughness: 0.95 }));
+    plaza.rotation.x = -Math.PI / 2;
+    plaza.position.copy(EL(0, 56, 0.03));
+    plaza.receiveShadow = true;
+    G.add(plaza);
+    const pasillo = new THREE.Mesh(new THREE.PlaneGeometry(8, 20), new THREE.MeshStandardMaterial({ color: '#cfc9bb', roughness: 0.95 }));
+    pasillo.rotation.x = -Math.PI / 2;
+    pasillo.position.copy(EL(0, 32, 0.035));
+    G.add(pasillo);
+    [[-14, 52], [14, 52], [-14, 60], [14, 60]].forEach(([x, z], k) => { poner('Banco', x, z, k < 2 ? 0 : Math.PI, 1.3); colisiones.push({ x: ESTADIO.x + x, z: ESTADIO.z + z, r: 1.3 }); });
+    poner('Nevera', 17, 47, -0.5, 1.3);
+    // arco de la entrada con el cartel
+    [-5.8, 5.8].forEach((dx) => {
+      const p = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.5, 6, 14), mat('#ffb400', 0.6));
+      p.position.copy(EL(dx, 39.5, 3)); p.castShadow = true; G.add(p);
+      colisiones.push({ x: ESTADIO.x + dx, z: ESTADIO.z + 39.5, r: 0.55 });
+    });
+    const cartelE = cartel('ESTADIO DE ATLETISMO', 11, 1.5);
+    cartelE.position.copy(EL(0, 39.5, 6.1));
+    G.add(cartelE);
+    // la verja de vuelta a la playa, al fondo de la explanada
+    [-2.4, 2.4].forEach((dx) => {
+      const p = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.34, 4, 12), mat('#2a6edb', 0.6));
+      p.position.copy(EL(dx, 72, 2)); p.castShadow = true; G.add(p);
+      colisiones.push({ x: ESTADIO.x + dx, z: ESTADIO.z + 72, r: 0.4 });
+    });
+    const cartelV = cartel('A LA PLAYA', 4.4, 0.8);
+    cartelV.position.copy(EL(0, 72, 4.4));
+    G.add(cartelV);
+    puntosAccion.push({ pos: EL(0, 70.6, 0.02), radio: 2.4, alto: 3, texto: 'A la playa', hacer: volverDelEstadio, visible: () => enEstadio(ninoE.pos) && ninoE.modo === 'libre' });
+
+    // ---------- Las estaciones de las pruebas ----------
+    const sitio = (S, dx = 0, dz = 0) => { const c = Math.cos(S.fi), s = Math.sin(S.fi); return EL(S.x + dx * c + dz * s, S.z - dx * s + dz * c); };
+    atl.sitios = {};
+    const estacion = (id, x, z, texto) => {
+      const P = prueba_(id);
+      const cart = cartel(texto || P.corto, 2.6, 0.7);
+      const pos = EL(x, z);
+      const suelo1 = new THREE.Mesh(new THREE.RingGeometry(0.9, 1.15, 32), new THREE.MeshBasicMaterial({ color: '#ffd42a', transparent: true, opacity: 0.85, side: THREE.DoubleSide }));
+      suelo1.rotation.x = -Math.PI / 2;
+      suelo1.position.set(pos.x, 0.07, pos.z);
+      G.add(suelo1);
+      const poste = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.2, 6), mat('#4a525c'));
+      poste.position.set(pos.x, 1.1, pos.z + 1.1);
+      G.add(poste);
+      cart.position.set(pos.x, 2.5, pos.z + 1.1);
+      cart.rotation.y = Math.PI;
+      G.add(cart);
+      const cart2 = cartel(texto || P.corto, 2.6, 0.7);
+      cart2.position.set(pos.x, 2.5, pos.z + 1.12);
+      G.add(cart2);
+      atl.sitios[id] = pos;
+      puntosAccion.push({ pos: new V3(pos.x, 0.02, pos.z), radio: 1.9, alto: 3, texto: `${P.emoji} ${P.corto}`, hacer: () => atlEmpezar(id), visible: () => enEstadio(ninoE.pos) && ninoE.modo === 'libre' && !atl.activa });
+      return pos;
+    };
+    estacion('100', -H - 3.2, radioCalle(2) + 0.2, '100 METROS');
+    estacion('400', H - 4, R0 - 2.2, '400 METROS');
+    // jabalina: pasillo de carrera, línea de nulo (x = O.x) y sector con marcas cada 5 m
+    {
+      const O = SITIO_JAB;
+      const pasi = new THREE.Mesh(new THREE.PlaneGeometry(13, 1.6), new THREE.MeshStandardMaterial({ color: '#c4553d', roughness: 0.95 }));
+      pasi.rotation.x = -Math.PI / 2;
+      pasi.position.copy(EL(O.x - 6.5, O.z, 0.04));
+      G.add(pasi);
+      lineaTransversal(O.x, O.z, 0.14, 4.2, 0, '#ffffff', 0.06);
+      const marca = (d, ancho2, z0, texto, tam) => {
+        lineaTransversal(O.x + d, O.z, 0.1, ancho2, 0, '#e8e8e8', 0.058);
+        const lc = lienzo(96, 48, (c, w, h) => { c.fillStyle = '#ffffff'; c.font = '800 34px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(texto, w / 2, h / 2); });
+        const t = new THREE.Mesh(new THREE.PlaneGeometry(tam * 2, tam), new THREE.MeshBasicMaterial({ map: lc, transparent: true, depthWrite: false }));
+        t.rotation.set(-Math.PI / 2, 0, -Math.PI / 2);
+        t.position.copy(EL(O.x + d, z0, 0.06));
+        G.add(t);
+      };
+      for (let d = 5; d <= 35; d += 5) marca(d, 2 * (2 + d * 0.28), O.z + 2.3 + d * 0.28, d + ' m', 0.9);
+      for (const lado of [-1, 1]) {   // líneas del sector (unos 31°)
+        const m = new THREE.Mesh(new THREE.PlaneGeometry(0.1, 38), new THREE.MeshStandardMaterial({ color: '#ffffff' }));
+        m.rotation.set(-Math.PI / 2, 0, Math.PI / 2 - lado * 0.28);
+        m.position.copy(EL(O.x + 17.5, O.z + lado * 5.0, 0.058));
+        G.add(m);
+      }
+      const rack = poner('Jabalina', O.x - 12.5, O.z - 2.2, 0, 1.0, 0.45);
+      rack.rotation.set(0, -Math.PI / 2, 0);
+      estacion('jabalina', O.x - 10.5, O.z + 2.6, 'JABALINA');
+    }
+    // peso: círculo de cemento con tope (x = O.x + 1.1), sector y marcas cada 4 m
+    {
+      const O = SITIO_PESO;
+      const circ = new THREE.Mesh(new THREE.CircleGeometry(1.1, 28), mat('#c9c4ba', 0.9));
+      circ.rotation.x = -Math.PI / 2;
+      circ.position.copy(EL(O.x, O.z, 0.045));
+      G.add(circ);
+      const aro = new THREE.Mesh(new THREE.RingGeometry(1.1, 1.22, 28), mat('#ffffff'));
+      aro.rotation.x = -Math.PI / 2;
+      aro.position.copy(EL(O.x, O.z, 0.05));
+      G.add(aro);
+      const tope = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.1, 1.6), mat('#e8322a', 0.7));
+      tope.position.copy(EL(O.x + 1.2, O.z, 0.08));
+      G.add(tope);
+      for (let d = 4; d <= 16; d += 4) {
+        lineaTransversal(O.x + 1.2 + d, O.z, 0.1, 2 * (1 + d * 0.3), 0, '#e8e8e8', 0.058);
+        const lc = lienzo(96, 48, (c, w, h) => { c.fillStyle = '#ffffff'; c.font = '800 34px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(d + ' m', w / 2, h / 2); });
+        const t = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.75), new THREE.MeshBasicMaterial({ map: lc, transparent: true, depthWrite: false }));
+        t.rotation.set(-Math.PI / 2, 0, -Math.PI / 2);
+        t.position.copy(EL(O.x + 1.2 + d, O.z + 1.4 + d * 0.3, 0.06));
+        G.add(t);
+      }
+      for (const lado of [-1, 1]) {
+        const m = new THREE.Mesh(new THREE.PlaneGeometry(0.1, 19), new THREE.MeshStandardMaterial({ color: '#ffffff' }));
+        m.rotation.set(-Math.PI / 2, 0, Math.PI / 2 - lado * 0.31);
+        m.position.copy(EL(O.x + 10.5, O.z + lado * 3.2, 0.058));
+        G.add(m);
+      }
+      poner('Peso', O.x - 2.4, O.z + 1.6, 0, 1.2, 0.14);
+      estacion('peso', O.x - 3.2, O.z - 2.6, 'PESO');
+    }
+    // altura: carrerilla en curva, postes, barra y colchoneta
+    {
+      const O = SITIO_ALTURA;
+      poner('PostesAltura', O.x, O.z, O.fi, 1.0);
+      poner('ColchonetaAltura', O.x, O.z, -O.fi, 1.0);   // la colchoneta se extiende hacia +x, detrás de la barra
+      atl.barraAltura = poner('Barra', O.x, O.z, O.fi, 1.0, 0.9);
+      atl.soportesAltura = [-2, 2].map((l) => poner('Soporte', O.x, O.z + l, O.fi, 1.0, 0.88));
+      const cajas_ = [{ x0: ESTADIO.x + O.x - 0.3, x1: ESTADIO.x + O.x + 3.4, z0: ESTADIO.z + O.z - 2.7, z1: ESTADIO.z + O.z + 2.7, activa: true }];
+      cajas.push(...cajas_);
+      estacion('altura', O.x - 9, O.z + 6, 'ALTURA');
+    }
+    // longitud: pasillo, tabla de batida y arenero
+    {
+      const O = SITIO_LONG;
+      const pasi = new THREE.Mesh(new THREE.PlaneGeometry(22, 1.5), new THREE.MeshStandardMaterial({ color: '#c4553d', roughness: 0.95 }));
+      pasi.rotation.x = -Math.PI / 2;
+      pasi.position.copy(EL(O.x - 10.5, O.z, 0.04));
+      G.add(pasi);
+      const tabla = new THREE.Mesh(new THREE.PlaneGeometry(0.28, 1.5), new THREE.MeshStandardMaterial({ color: '#ffffff' }));
+      tabla.rotation.x = -Math.PI / 2;
+      tabla.position.copy(EL(O.x, O.z, 0.055));
+      G.add(tabla);
+      const arena = new THREE.Mesh(new THREE.BoxGeometry(8.5, 0.22, 3.2), mat('#ecd9a6', 1));
+      arena.position.copy(EL(O.x + 4.6, O.z, 0.03));
+      arena.receiveShadow = true;
+      G.add(arena);
+      const marco = new THREE.Mesh(new THREE.BoxGeometry(8.9, 0.1, 3.6), mat('#f4f1e8', 0.8));
+      marco.position.copy(EL(O.x + 4.6, O.z, 0.0));
+      G.add(marco);
+      for (let d = 1; d <= 8; d++) {
+        const t = new THREE.Mesh(new THREE.PlaneGeometry(0.06, 3.0), new THREE.MeshBasicMaterial({ color: d % 2 ? '#8a7a50' : '#c9b57a' }));
+        t.rotation.x = -Math.PI / 2;
+        t.position.copy(EL(O.x + d, O.z, 0.145));
+        G.add(t);
+      }
+      estacion('longitud', O.x - 14, O.z - 2.6, 'LONGITUD');
+    }
+    // pértiga: pasillo, caja, postes con la barra y colchoneta grande
+    {
+      const O = SITIO_PERT;
+      const pasi = new THREE.Mesh(new THREE.PlaneGeometry(26, 1.5), new THREE.MeshStandardMaterial({ color: '#c4553d', roughness: 0.95 }));
+      pasi.rotation.x = -Math.PI / 2;
+      pasi.position.copy(EL(O.x - 13.5, O.z, 0.04));
+      G.add(pasi);
+      poner('CajaPertiga', O.x, O.z, -O.fi, 1.0, 0.04);   // la zanja se abre hacia quien llega corriendo (−x)
+      poner('PostesPertiga', O.x + 0.7, O.z, O.fi, 1.0);
+      poner('ColchonetaPertiga', O.x, O.z, -O.fi, 1.0);
+      atl.barraPertiga = poner('Barra', O.x + 0.7, O.z, O.fi, 1.0, 2.0);
+      atl.barraPertiga.scale.x = 1.12;
+      atl.soportesPertiga = [-2.3, 2.3].map((l) => poner('Soporte', O.x + 0.7, O.z + l, O.fi, 1.0, 1.98));
+      cajas.push({ x0: ESTADIO.x + O.x + 0.5, x1: ESTADIO.x + O.x + 6.2, z0: ESTADIO.z + O.z - 3.1, z1: ESTADIO.z + O.z + 3.1, activa: true });
+      estacion('pertiga', O.x - 7.5, O.z - 2.6, 'PÉRTIGA');
+    }
+    // el podio, junto a la meta, mirando a las gradas principales
+    atl.podio = poner('Podio', PODIO_POS.x, PODIO_POS.z, 0, 1.6);
+    cajas.push({ x0: ESTADIO.x + PODIO_POS.x - 2.6, x1: ESTADIO.x + PODIO_POS.x + 2.6, z0: ESTADIO.z + PODIO_POS.z - 1.0, z1: ESTADIO.z + PODIO_POS.z + 1.0, activa: true });
+    const copa = poner('Trofeo', PODIO_POS.x + 4.4, PODIO_POS.z, 0, 1.4, 0.0);
+    atl.copa = copa;
+    // conos y vallas de adorno en el césped
+    [[-14, -3], [-14, 3], [-9, 1], [6, 2], [8, -3], [2, -6]].forEach(([x, z], k) => { poner('Cono', x, z, 0, 1.4); });
+    [[-24, 0], [-22.5, 0], [-21, 0]].forEach(([x, z]) => poner('Valla', x, z, Math.PI / 2, 1.3));
+    [[-12, 17.6], [-14.5, 17.6]].forEach(([x, z]) => { poner('Banco', x, z, Math.PI, 1.3); colisiones.push({ x: ESTADIO.x + x, z: ESTADIO.z + z, r: 1.2 }); });
+    poner('Mochila', -13, 18.6, 0.5, 1.5); poner('Botella', -11.4, 18.8, 0, 1.5);
+
+    // ---------- La entrada desde la playa (la verja de las dunas) ----------
+    const yP = suelo(PUERTA_ESTADIO.x, PUERTA_ESTADIO.z);
+    const entrada = new THREE.Group();
+    [-2.6, 2.6].forEach((dx) => {
+      const col = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.46, 4.2, 14), mat('#ffb400', 0.6));
+      col.position.set(dx, 2.1, 0);
+      col.castShadow = true;
+      entrada.add(col);
+      const bola = new THREE.Mesh(new THREE.SphereGeometry(0.5, 14, 10), mat('#ffffff', 0.5));
+      bola.position.set(dx, 4.5, 0);
+      entrada.add(bola);
+      colisiones.push({ x: PUERTA_ESTADIO.x + dx, z: PUERTA_ESTADIO.z, r: 0.5 });
+    });
+    const cinta1 = new THREE.Mesh(new THREE.BoxGeometry(5.8, 0.5, 0.2), mat('#2a6edb', 0.6));
+    cinta1.position.set(0, 4.1, 0);
+    entrada.add(cinta1);
+    [-1.7, 0, 1.7].forEach((dx, i) => {   // banderines
+      const b = new THREE.Mesh(new THREE.ConeGeometry(0.35, 0.8, 3), mat(['#e8463a', '#ffd21f', '#29b35a'][i], 0.7));
+      b.position.set(dx, 3.55, 0); b.rotation.z = Math.PI; entrada.add(b);
+    });
+    entrada.position.set(PUERTA_ESTADIO.x, yP, PUERTA_ESTADIO.z);
+    scene.add(entrada);
+    const letrero = cartel('ESTADIO DE ATLETISMO', 5.2, 0.8);
+    letrero.position.set(PUERTA_ESTADIO.x, yP + 5.4, PUERTA_ESTADIO.z + 0.3);
+    scene.add(letrero);
+    const medallaPuerta = copia('Trofeo');
+    medallaPuerta.position.set(PUERTA_ESTADIO.x, yP + 4.35, PUERTA_ESTADIO.z);
+    medallaPuerta.scale.setScalar(0.9);
+    scene.add(medallaPuerta);
+    atl.trofeoPuerta = medallaPuerta;
+    puntosAccion.push({ pos: new V3(PUERTA_ESTADIO.x, yP, PUERTA_ESTADIO.z), radio: 2.2, alto: 3, texto: 'Estadio de atletismo', hacer: irAlEstadio });
+
+    construirAtletas(gCarlos, gAmigos);
+    atl.listo = true;
+  }
+
+  // ---------- Los atletas: Manuel, Carlos (el mismo de la historia) y los cuatro niños del circuito ----------
+  const IDLE_SPOTS = { carlos: [-6, 15.5], lucia: [-14, 15.8], hugo: [-18, 14.2], martina: [-9.5, 17.2], leo: [-21, 16.6] };
+  const ANIM_MANUEL = { correr: 'run', correr_pertiga: 'run', andar: 'walk', reposo: 'idle', agachado: 'pickup', saltar: 'skill', lanzar: 'shoot',
+    celebrar: 'skill', cansado: 'idle', saludar: 'idle', hablar: 'idle' };
+  function construirAtletas(gCarlos, gAmigos) {
+    const nombres = ['lucia', 'hugo', 'martina', 'leo'];
+    atl.atletas = ATLETAS.map((d, k) => {
+      const a = { ...d, k, esManuel: d.id === 'manuel', p: null, calle: 0, marcaEv: null };
+      if (a.esManuel) return a;
+      if (d.id === 'carlos') {
+        a.p = historia.acomp.carlos;
+        atl.carlos = a.p;
+        if (!a.p) return null;
+        a.p.nombre = 'Carlos';
+        return a;
+      }
+      const g = gAmigos[nombres.indexOf(d.id)];
+      if (!g) return null;
+      const grupo = clonarPersona(g.scene, [d.color, d.pant]);
+      grupo.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.frustumCulled = false; if (/Casco/.test(o.name)) o.visible = false; } });
+      const mixer = new THREE.AnimationMixer(grupo);
+      const acciones = {};
+      g.animations.forEach((c) => { acciones[c.name] = mixer.clipAction(c); });
+      let cabeza = null, raiz = null, mano = null;
+      grupo.traverse((o) => { if (o.isBone && o.name === 'cabeza') cabeza = o; if (o.isBone && o.name === 'raiz') raiz = o; if (o.isBone && o.name === 'mano_R') mano = o; });
+      grupo.updateMatrixWorld(true);
+      const p = { grupo, mixer, acciones, actual: null, cabeza: cabeza || grupo, altoGlobo: 0.5, clave: d.id, nombre: d.nombre, globo: crearGlobo(), rumbo: 0, mano,
+        cadera: raiz ? raiz.getWorldPosition(new V3()).y : 0.6 };
+      grupo.userData.siempre = true;
+      grupo.visible = false;
+      scene.add(grupo);
+      animarPadre(p, 'reposo');
+      a.p = p;
+      return a;
+    }).filter(Boolean);
+  }
+  const atlDe = (id) => atl.atletas.find((a) => a.id === id);
+  const MANUEL = () => atl.atletas[0];
+  const _atV = new V3(), _eu = new THREE.Euler(), _v2 = new V3();
+  // Los pies de un atleta en un sitio (Manuel va por su «atracción» fija; los demás, por su grupo)
+  function atlPies(a, x, y, z, rumbo, rx = 0, rz = 0) {
+    if (a.esManuel) {
+      const at = ninoE.atr;
+      if (at) { at.pos.set(x, y, z); at.ry = rumbo; at.rx = rx; at.rz = rz; }
+      ninoE.pos.set(x, y, z);
+      ninoE.rumbo = rumbo;
+    } else {
+      a.p.grupo.position.set(x, y, z);
+      a.p.grupo.rotation.set(rx, rumbo, rz, 'YXZ');
+      a.p.rumbo = rumbo;
+    }
+  }
+  // Lo mismo, pero dando la posición de la cadera: gira alrededor de ella (volteretas, pértiga)
+  function atlCadera(a, cx, cy, cz, rumbo, rx, rz) {
+    _eu.set(rx, rumbo, rz, 'YXZ');
+    _atV.set(0, a.esManuel ? alturaCadera() : a.p.cadera, 0).applyEuler(_eu);
+    atlPies(a, cx - _atV.x, cy - _atV.y, cz - _atV.z, rumbo, rx, rz);
+  }
+  function atlAnimar(a, nombre, ts = 1, congelar = null) {
+    if (a.esManuel) {
+      const n = ANIM_MANUEL[nombre] || 'idle';
+      const act = animarNino(n, congelar !== null, 0.15);
+      if (!act) return;
+      act.paused = false;
+      act.timeScale = ts;
+      if (congelar !== null) { act.time = congelar; act.paused = true; }
+    } else {
+      if (a.p.acciones[nombre] && a.p.actual !== a.p.acciones[nombre]) animarPadre(a.p, nombre);
+      else if (!a.p.acciones[nombre] && a.p.acciones.reposo && a.p.actual !== a.p.acciones.reposo) animarPadre(a.p, 'reposo');
+      if (a.p.actual) {
+        a.p.actual.paused = false;
+        a.p.actual.timeScale = ts;
+        if (congelar !== null) a.p.actual.time = congelar * a.p.actual.getClip().duration;
+        if (congelar !== null) a.p.actual.paused = true;
+      }
+    }
+  }
+  // «congelar» en segundos para Manuel y como fracción para los demás: pasamos siempre la fracción y aquí la convertimos
+  function atlPose(a, nombre, fraccion) {
+    if (a.esManuel) {
+      const n = ANIM_MANUEL[nombre] || 'idle';
+      const act = nino.acciones[n];
+      atlAnimar(a, nombre, 1, act ? fraccion * act.getClip().duration : 0);
+    } else atlAnimar(a, nombre, 1, fraccion);
+  }
+  const alturaPies = (a) => (a.esManuel ? ninoE.pos.y : a.p.grupo.position.y);
+  const posAtleta = (a) => (a.esManuel ? ninoE.pos : a.p.grupo.position);
+  // La mano derecha de un atleta en el mundo (para llevar la jabalina, el peso o la pértiga)
+  function atlMano(a, out) {
+    const h = a.esManuel ? nino.huesos.RightHand : a.p.mano;
+    if (h) { h.getWorldPosition(out); return out; }
+    return out.copy(posAtleta(a)).add(_v2.set(0, 1.0, 0));
+  }
+  function atlDecir(a, texto, s = 2.4) {
+    if (a.esManuel) ninoDice(texto, s); else diga(a.p, texto, s);
+  }
+  // Quieto en su sitio de calentamiento, mirando a Manuel
+  function colocarEnReposo() {
+    atl.atletas.forEach((a) => {
+      if (a.esManuel) return;
+      const sp = IDLE_SPOTS[a.id];
+      const p = EL(sp[0], sp[1]);
+      a.p.grupo.position.set(p.x, 0.03, p.z);
+      a.p.grupo.rotation.set(0, Math.PI, 0);
+      a.p.rumbo = Math.PI;
+      a.p.grupo.visible = true;
+      a.p.hablaHasta = 0;
+      animarPadre(a.p, 'reposo');
+      if (a.p.actual) { a.p.actual.paused = false; a.p.actual.timeScale = 1; }
+    });
+  }
+
+  // ---------- Entrar y salir (de día) ----------
+  function irAlEstadio() {
+    if (!atl.listo) return;
+    fundido(() => {
+      if (ninoE.modo === 'atraccion') terminarAtraccion();
+      if (balon.estado === 'mano') { balon.estado = 'libre'; balon.pos.set(PUERTA_ESTADIO.x + 2, suelo(PUERTA_ESTADIO.x + 2, PUERTA_ESTADIO.z + 3) + 0.5, PUERTA_ESTADIO.z + 3); balon.vel.set(0, 0, 0); }
+      ninoE.modo = 'libre';
+      const p = EL(0, 67);
+      ninoE.pos.set(p.x, 0.02, p.z);
+      ninoE.rumbo = Math.PI;
+      ninoE.vy = 0;
+      estado.pos.set(p.x + 1.5, 0.02, p.z + 1);
+      estado.descansando = false;
+      cam.yaw = 0;
+      cam.pitch = 0.28;
+      cam.dist = 8;
+      cam.objetivo.copy(ninoE.pos);
+      if (numeros.carrito && numeros.tieneCarrito) colocarCarritoDetras();
+      ocultarParaEstadio(true);
+      colocarEnReposo();
+      setTimeout(pintarTarea, 50);
+      setTimeout(() => { sonidoPublico(2.4); atl.excitacion = 1; avisar('¡El estadio de atletismo!', 2400); }, 400);
+      setTimeout(() => { const c = atlDe('carlos'); if (c && !historia.activa) { diga(c.p, '¡Manuel! ¡Corre, que empezamos!', 3); } ninoDice('¡Cuánta gente!', 2); }, 1500);
+    });
+  }
+  function volverDelEstadio() {
+    if (atl.activa) return;
+    fundido(() => {
+      ocultarParaEstadio(false);
+      ninoE.modo = 'libre';
+      ninoE.pos.set(PUERTA_ESTADIO.x, 0, PUERTA_ESTADIO.z + 3);
+      ninoE.pos.y = suelo(ninoE.pos.x, ninoE.pos.z);
+      ninoE.rumbo = 0;
+      estado.pos.set(PUERTA_ESTADIO.x + 1.5, 0, PUERTA_ESTADIO.z + 3.5);
+      estado.pos.y = suelo(estado.pos.x, estado.pos.z);
+      cam.yaw = Math.PI;
+      cam.pitch = 0.36;
+      cam.dist = 6.5;
+      cam.objetivo.copy(ninoE.pos);
+      if (numeros.carrito && numeros.tieneCarrito) colocarCarritoDetras();
+    });
+  }
+  function ocultarParaEstadio(dentro) {
+    atl.grupo.visible = dentro;
+    agua.visible = !dentro;
+    atl.atletas.forEach((a) => {
+      if (a.esManuel) return;
+      const carlosEnHistoria = a.id === 'carlos' && historia.activa && capitulo().con.includes('carlos');
+      a.p.grupo.visible = dentro || carlosEnHistoria;
+    });
+    if (!dentro) {
+      (atl.ocultos || []).forEach((o) => { o.visible = true; });
+      atl.ocultos = null;
+      return;
+    }
+    if (atl.ocultos) return;
+    const quedan = new Set([atl.grupo, nino.grupo, perro, agua, numeros.carrito && numeros.carrito.g]);
+    const c3 = new THREE.Box3();
+    atl.ocultos = [];
+    scene.children.forEach((o) => {
+      if (!o.visible || o.userData.siempre || quedan.has(o) || o.isLight || o.isCamera || o.isPoints) return;
+      c3.setFromObject(o);
+      if (!c3.isEmpty() && c3.max.x - c3.min.x < 900) { o.visible = false; atl.ocultos.push(o); }
+    });
+  }
+  // Para la historia: la siguiente prueba de la lista que Manuel aún no ha hecho en esta misión
+  function sitioAtl(ids, evento) {
+    const m = historia.mision;
+    const hechas = m && m.vistos ? m.vistos : new Set();
+    const id = ids.find((q) => !hechas.has(`${evento}:${q}`)) || ids[0];
+    return atl.sitios[id];
+  }
+  // Manuel y Drako no salen del estadio, de la explanada ni del pasillo que las une
+  function limitarEstadio(pos) {
+    const x = pos.x - ESTADIO.x, z = pos.z - ESTADIO.z;
+    const dOvalo = distOvalo(x, z);
+    if (dOvalo <= 28.3 || (Math.abs(x) <= 3.8 && z > 0 && z <= 41) || (z >= 40 && z <= 72 && Math.abs(x) <= 31)) return;
+    // lo llevamos al sitio permitido más cercano
+    const cx = clamp(x, -PISTA.H, PISTA.H), dx = x - cx, d = Math.hypot(dx, z) || 1;
+    const c1 = [cx + dx / d * 28.2, z / d * 28.2];
+    const c2 = [clamp(x, -3.7, 3.7), clamp(z, 0, 41)];
+    const c3 = [clamp(x, -30.8, 30.8), clamp(z, 40.2, 71.8)];
+    let mejor = c1, dm = Math.hypot(x - c1[0], z - c1[1]);
+    for (const c of [c2, c3]) { const dd = Math.hypot(x - c[0], z - c[1]); if (dd < dm) { dm = dd; mejor = c; } }
+    pos.x = ESTADIO.x + mejor[0];
+    pos.z = ESTADIO.z + mejor[1];
+  }
+
+  // ---------- La pantalla del marcador (un lienzo que se redibuja) ----------
+  function pintarMarcadorAtl(titulo, lineas) {
+    const cv = atl.cvPantalla;
+    if (!cv) return;
+    const c = cv.getContext('2d');
+    c.fillStyle = '#0b1220'; c.fillRect(0, 0, cv.width, cv.height);
+    c.strokeStyle = '#ffd21f'; c.lineWidth = 5; c.strokeRect(6, 6, cv.width - 12, cv.height - 12);
+    c.fillStyle = '#ffd21f'; c.font = '800 36px "Baloo 2", sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText(titulo, cv.width / 2, 36);
+    c.textAlign = 'left';
+    lineas.slice(0, 6).forEach((l, i) => {
+      const texto = typeof l === 'string' ? l : l.t;
+      c.fillStyle = typeof l === 'string' ? '#ffffff' : l.c || '#ffffff';
+      c.font = '700 27px "Baloo 2", sans-serif';
+      c.fillText(texto, 26, 78 + i * 28);
+    });
+    atl.texPantalla.needsUpdate = true;
+  }
+  function sonidoDisparo() {
+    try {
+      const ctx = audioCtx(), t = ctx.currentTime;
+      const b = ctx.createBuffer(1, ctx.sampleRate * 0.35, ctx.sampleRate), d = b.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 3);
+      const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+      s.buffer = b; f.type = 'lowpass'; f.frequency.value = 2400;
+      g.gain.setValueAtTime(0.5, t);
+      s.connect(f).connect(g).connect(ctx.destination); s.start(t);
+    } catch (e) { /* sin sonido */ }
+  }
+  // El público: un murmullo de ruido que sube y baja, y aplausos
+  function sonidoPublico(dur = 2.4, vol = 0.18) {
+    try {
+      const ctx = audioCtx(), t = ctx.currentTime;
+      const b = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate), d = b.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+      s.buffer = b; f.type = 'bandpass'; f.frequency.value = 1500; f.Q.value = 0.6;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol, t + dur * 0.25);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      s.connect(f).connect(g).connect(ctx.destination); s.start(t);
+    } catch (e) { /* sin sonido */ }
+  }
+  function sonidoPito() { notas([[1760, 0, 0.12], [1760, 0.16, 0.22]], 'square', 0.04); }
+
+  // =====================================================================
+  // ---------- Las pruebas: el panel, el botón único y el reparto de medallas ----------
+  // =====================================================================
+  // Todo se juega con un solo botón (el de acción, «Saltar», Espacio, B o «Seguir» en la historia): pulsar rápido para
+  // correr, y pulsar justo a tiempo para saltar, clavar la pértiga o lanzar. Las pruebas de Manuel y de sus rivales
+  // se calculan aquí; solo Carlos hace sus intentos a la vista, los demás aparecen en el marcador y con un banderín.
+  const gauss = () => (Math.random() + Math.random() + Math.random() - 1.5) * 0.8;   // casi normal, entre −1,2 y 1,2
+  const fmt = (P, v) => (v == null || !isFinite(v) ? 'sin marca' : `${v.toFixed(2).replace('.', ',')} ${P.unidad}`);
+  const $ = (id) => document.getElementById(id);
+  let hudA = null;
+  function prepararHudAtl() {
+    if (hudA) return hudA;
+    hudA = { raiz: $('atl-hud'), titulo: $('atl-titulo'), info: $('atl-info'), medidor: $('atl-medidor'), etiqueta: $('atl-med-etiqueta'),
+      verde: $('atl-verde'), marca: $('atl-marca'), lista: $('atl-lista-carrera'), res: $('atl-resultado'), medalla: $('atl-medalla'),
+      resTitulo: $('atl-res-titulo'), resLista: $('atl-res-lista'), resMarca: $('atl-res-marca'), ok: $('atl-ok'), grande: $('atl-grande') };
+    hudA.ok.addEventListener('click', (e) => { e.stopPropagation(); atlCerrar(); });
+    return hudA;
+  }
+  function hudMedidor(visible, etiqueta, d, h) {
+    const H = prepararHudAtl();
+    H.medidor.hidden = !visible;
+    if (!visible) return;
+    H.etiqueta.textContent = etiqueta;
+    H.verde.style.left = `${d * 100}%`;
+    H.verde.style.width = `${(h - d) * 100}%`;
+  }
+  const hudMarca = (f) => { hudA.marca.style.left = `${clamp(f, 0, 1) * 100}%`; };
+  function hudTexto(titulo, info) {
+    const H = prepararHudAtl();
+    if (titulo != null) H.titulo.textContent = titulo;
+    if (info != null) H.info.textContent = info;
+  }
+  function hudClasificacion(items) {
+    const H = prepararHudAtl();
+    H.lista.hidden = !items;
+    if (!items) return;
+    H.lista.innerHTML = items.map((it, i) => `<span class="${it.yo ? 'yo' : ''}"><i style="background:${it.color}"></i>${i + 1}. ${it.nombre}${it.extra ? ' · ' + it.extra : ''}</span>`).join('');
+  }
+
+  // La acción única: lo que vale ahora el botón
+  function atlAccion() {
+    const e = atl.ev;
+    return { texto: e && e.boton ? e.boton : '…', hacer: atlPulsar };
+  }
+  function atlPulsar() {
+    const e = atl.ev;
+    if (!atl.activa || !e) return;
+    if (e.fase === 'resultado') { atlCerrar(); return; }
+    e.pulsaciones = (e.pulsaciones || 0) + 1;
+    e.taps = (e.taps || 0) + 1;
+    e.pulsada = true;
+  }
+
+  function atlEmpezar(id) {
+    if (atl.activa || !atl.listo || ninoE.modo !== 'libre' || fundidoEl.classList.contains('activo')) return;
+    const P = prueba_(id);
+    prepararHudAtl();
+    atl.activa = true;
+    atl.entrada = ninoE.pos.clone();
+    atl.perroSpot = EL(PODIO_POS.x - 7, PODIO_POS.z + 3.2);
+    atl.ev = { id, P, fase: 'fundido', t: 0, boton: '…', taps: 0, pulsada: false, cam: { p: new V3(), m: new V3(), k: 3 }, clasif: null, listos: false };
+    document.body.classList.add('en-atl');
+    fundido(() => {
+      const e = atl.ev;
+      empezarAtraccion({ tipo: 'atletismo', pos: ninoE.pos.clone(), ry: ninoE.rumbo, sentado: false, fijo: true, anim: 'idle', actualizar: () => {},
+        accion: atlAccion, salida: atl.entrada.clone() });
+      hudTexto(`${P.emoji} ${P.nombre}`, '');
+      hudA.raiz.hidden = false;
+      hudMedidor(false);
+      hudClasificacion(null);
+      atl.excitacion = 0.25;
+      decirEnVoz('narrador', P.voz);
+      ({ carrera: iniciarCarrera, lanzamiento: iniciarLanzamiento, salto: iniciarSalto })[P.tipo](e);
+    });
+  }
+  function atlFin(clasif) {
+    const e = atl.ev;
+    if (!e || e.fase === 'resultado') return;
+    e.fase = 'resultado';
+    e.t = 0;
+    e.clasif = clasif;
+    e.boton = '✔ Seguir';
+    hudMedidor(false);
+    hudClasificacion(null);
+    const P = e.P, H = prepararHudAtl();
+    const yo = clasif.findIndex((c) => c.a.esManuel);
+    const puesto = yo + 1;
+    const medalla = ['🥇', '🥈', '🥉'][yo] || '🏅';
+    // récord y medalla de Manuel
+    const mejor = atl.medallas[P.id];
+    if (puesto <= 3 && (mejor === undefined || puesto < mejor)) atl.medallas[P.id] = puesto;
+    const mio = clasif[yo].valor;
+    const rec = atl.marcas[P.id];
+    const nuevoRecord = isFinite(mio) && (rec === undefined || (P.menorMejor ? mio < rec : mio > rec));
+    if (nuevoRecord) atl.marcas[P.id] = mio;
+    const primera = !atl.hechas.has(P.id);
+    atl.hechas.add(P.id);
+    guardarAtletismo();
+    H.medalla.textContent = medalla;
+    H.resTitulo.textContent = puesto === 1 ? '¡Has ganado!' : puesto <= 3 ? `¡Puesto ${puesto}!` : `Has quedado ${puesto}º`;
+    H.resMarca.textContent = `${P.emoji} ${P.nombre} · ${fmt(P, mio)}${nuevoRecord && !primera ? ' · ¡Récord tuyo!' : ''}`;
+    H.resLista.innerHTML = clasif.map((c, i) => `<li class="${c.a.esManuel ? 'yo' : ''}"><i style="background:${c.a.color}"></i><span>${['🥇', '🥈', '🥉'][i] || (i + 1) + '.'}</span><b>${c.a.nombre}</b><em>${c.texto}</em></li>`).join('');
+    H.res.hidden = false;
+    pintarMarcadorAtl(P.corto.toUpperCase(), clasif.map((c, i) => ({ t: `${i + 1} ${c.a.nombre.toUpperCase()}  ${c.texto}`, c: c.a.esManuel ? '#ffd21f' : '#ffffff' })));
+    sonidoPublico(3.4, 0.22);
+    atl.excitacion = 1;
+    if (puesto <= 3) { sonPremio(); decirEnVoz('narrador', puesto === 1 ? `¡Has ganado! Medalla de oro en ${P.nombre}.` : `¡Muy bien! Has quedado en puesto ${puesto}.`); }
+    else decirEnVoz('narrador', `Has quedado en puesto ${puesto}. ¡Otra vez será!`);
+    // la historia cuenta cada prueba una vez, y la tarea del niño cuenta cada prueba distinta
+    historiaEvento('atl:' + P.id);
+    historiaEvento('atl' + P.grupo + ':' + P.id);
+    historiaEvento('atlCualquiera:' + P.id);
+    if (!atl.sesion) atl.sesion = new Set();
+    if (!atl.sesion.has(P.id)) { atl.sesion.add(P.id); sumarNino('atletismo'); }
+    e.puesto = puesto;
+    iniciarCeremonia(e, clasif);
+  }
+  // Cierra el panel y devuelve a Manuel al campo
+  function atlCerrar() {
+    const e = atl.ev;
+    if (!atl.activa || !e || e.fase !== 'resultado' || e.cerrando) return;
+    e.cerrando = true;
+    hudA.res.hidden = true;
+    fundido(() => {
+      const estacion = atl.sitios[e.id] || atl.entrada;
+      if (ninoE.atr) ninoE.atr.salida = new V3(estacion.x + 1.0, 0.02, estacion.z + 1.2);
+      terminarAtraccion();
+      ninoE.pos.set(estacion.x + 1.0, 0.02, estacion.z + 1.2);
+      ninoE.rumbo = Math.PI;
+      ninoE.vy = 0;
+      limpiarEvento(e);
+      atl.activa = false;
+      atl.ev = null;
+      document.body.classList.remove('en-atl');
+      hudA.raiz.hidden = true;
+      cam.objetivo.copy(ninoE.pos);
+      cam.yaw = 0;
+      cam.pitch = 0.3;
+      cam.dist = 8;
+      colocarEnReposo();
+      pintarTarea();
+      pintarMarcadorAtl('¡BIENVENIDOS!', ['Estadio de atletismo', `Pruebas hechas: ${atl.hechas.size} de 7`, `Medallas: ${Object.keys(atl.medallas).length}`]);
+      atl.excitacion = 0;
+    });
+  }
+  function limpiarEvento(e) {
+    atl.proyectiles.forEach((p) => { p.visible = false; });
+    atl.banderines.forEach((b) => { b.visible = false; });
+    if (atl.pertigaObj) atl.pertigaObj.visible = false;
+    if (atl.pertigaCurva) atl.pertigaCurva.visible = false;
+    if (atl.confeti) atl.confeti.visible = false;
+    if (atl.medallaObj) atl.medallaObj.visible = false;
+    if (atl.barraAltura) { atl.barraAltura.rotation.set(0, SITIO_ALTURA.fi, 0); atl.barraAltura.position.copy(EL(SITIO_ALTURA.x, SITIO_ALTURA.z, 0.9)); atl.soportesAltura.forEach((s) => { s.position.y = ESTADIO.y + 0.88; }); }
+    if (atl.barraPertiga) { atl.barraPertiga.rotation.set(0, SITIO_PERT.fi, 0); atl.barraPertiga.position.copy(EL(SITIO_PERT.x + 0.7, SITIO_PERT.z, 2.0)); atl.soportesPertiga.forEach((s) => { s.position.y = 1.98; }); }
+    atl.atletas.forEach((a) => { if (!a.esManuel) { a.p.grupo.rotation.set(0, a.p.rumbo || 0, 0); a.p.grupo.position.y = 0.03; } });
+  }
+
+  // ---------- Banderines que marcan dónde ha caído cada cosa ----------
+  function banderin(color, x, z, y = 0.03) {
+    let b = atl.banderines.find((q) => !q.visible);
+    if (!b) {
+      b = new THREE.Group();
+      const palo = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 1.1, 6), new THREE.MeshStandardMaterial({ color: '#f4f1e8' }));
+      palo.position.y = 0.55;
+      const tela = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.5, 3), new THREE.MeshStandardMaterial({ color: '#ffffff', side: THREE.DoubleSide }));
+      tela.rotation.z = -Math.PI / 2;
+      tela.position.set(0.22, 0.95, 0);
+      b.add(palo, tela);
+      b.userData.tela = tela;
+      atl.grupo.add(b);
+      atl.banderines.push(b);
+    }
+    b.userData.tela.material.color.set(color);
+    b.position.set(x, y, z);
+    b.rotation.y = 0;
+    b.visible = true;
+    return b;
+  }
+  const llenarProyectiles = () => {
+    if (atl.proyectiles.length) return;
+    ['Jabalina', 'Peso'].forEach((n) => { const o = atl.copiar(n); o.visible = false; atl.grupo.add(o); atl.proyectiles.push(o); o.userData.nombre = n; });
+  };
+
+  // =====================================================================
+  // Carreras: 100 m y 400 m
+  // =====================================================================
+  function iniciarCarrera(e) {
+    const es400 = e.id === '400';
+    const calles = { manuel: 2, carlos: 3, lucia: 1, hugo: 4, martina: 0, leo: 5 };
+    const top100 = { carlos: 6.5, lucia: 5.85, hugo: 6.1, martina: 5.65, leo: 6.25 };
+    const top400 = { carlos: 5.75, lucia: 5.25, hugo: 5.45, martina: 5.05, leo: 5.55 };
+    e.corr = atl.atletas.map((a) => {
+      const calle = calles[a.id], R = radioCalle(calle);
+      const s0 = es400 ? salida400(calle) : 0, s1 = es400 ? meta400(calle) : 2 * PISTA.H;
+      return { a, calle, R, s0, s1, s: s0, v: 0, vtop: a.esManuel ? 0 : (es400 ? top400 : top100)[a.id] * (0.97 + Math.random() * 0.06), fin: false, tFin: 0, pasos: 0 };
+    });
+    e.dist = e.corr[0].s1 - e.corr[0].s0;
+    e.tCarrera = 0;
+    e.fase = 'intro';
+    e.t = 0;
+    e.boton = '…';
+    e.corr.forEach((r) => {
+      const p = puntoPista(r.R, r.s0);
+      if (!r.a.esManuel) { r.a.p.grupo.visible = true; }
+      atlPies(r.a, ESTADIO.x + p.x, 0.03, ESTADIO.z + p.z, Math.atan2(p.tx, p.tz));
+      atlPose(r.a, 'agachado', 0.3);
+    });
+    if (es400) {   // en los 400 m los tacos y las líneas ya están a lo largo de la curva: las ponemos en pie y listas
+      e.corr.forEach((r) => atlPose(r.a, 'agachado', 0.3));
+    }
+    estado.pos.copy(atl.perroSpot);
+    camaraCarrera(e, 0, true);
+    hudTexto(`${e.P.emoji} ${e.P.nombre}`, es400 ? 'Una vuelta entera a la pista' : 'Corre hasta la meta');
+    hudClasificacion(e.corr.map((r) => ({ nombre: r.a.nombre, color: r.a.color, yo: r.a.esManuel })));
+  }
+  // La cámara va detrás de Manuel, un poco por encima, mirando hacia donde corre
+  function camaraCarrera(e, dt, ya) {
+    const m = e.corr[0];
+    const p = puntoPista(m.R, m.s + (e.fase === 'intro' || e.fase === 'marcas' || e.fase === 'listos' ? -0.0 : 0));
+    const ant = puntoPista(m.R, m.s - 9), des = puntoPista(m.R, m.s + 7);
+    const c = e.cam;
+    c.p.set(ESTADIO.x + ant.x, 3.6, ESTADIO.z + ant.z);
+    c.m.set(ESTADIO.x + des.x, 1.2, ESTADIO.z + des.z);
+    if (e.fase === 'intro') {   // al principio, un plano lateral que recorre las seis calles
+      const k = clamp(e.t / 2.6, 0, 1);
+      const ps = puntoPista(m.R, m.s0 - 6 + (e.id === '100' ? 0 : 0));
+      c.p.set(ESTADIO.x + ps.x - ps.tz * (-9 + k * 6) , 2.6 + k, ESTADIO.z + ps.z + ps.tx * (-9 + k * 6));
+      c.m.set(ESTADIO.x + p.x + p.tx * 3, 1.0, ESTADIO.z + p.z + p.tz * 3);
+    }
+    c.k = e.fase === 'corriendo' || e.fase === 'meta' ? 5 : 3;
+    if (ya) { camera.position.copy(c.p); camera.lookAt(c.m); }
+  }
+  function actualizarCarrera(e, dt) {
+    const es400 = e.id === '400';
+    const man = e.corr[0];
+    e.t += dt;
+    if (e.fase === 'intro') {
+      if (e.t > 2.8) { e.fase = 'marcas'; e.t = 0; gritoGrande('¡En sus marcas!'); sonidoPito(); }
+    } else if (e.fase === 'marcas') {
+      if (e.t > 2.4) { e.fase = 'listos'; e.t = 0; e.espera = 1.0 + Math.random() * 1.0; gritoGrande('¡Listos!'); e.corr.forEach((r) => atlPose(r.a, 'agachado', 0.7)); }
+    } else if (e.fase === 'listos') {
+      if (e.t > 1.0 + e.espera) {
+        e.fase = 'corriendo'; e.t = 0; e.tCarrera = 0; e.taps = 0;
+        sonidoDisparo(); gritoGrande('¡YA!');
+        e.boton = '¡CORRE!';
+        e.corr.forEach((r) => atlAnimar(r.a, 'correr', 1.2));
+        atl.excitacion = 0.7;
+        hudMedidor(true, 'Velocidad', 0.55, 0.95);
+      }
+    } else if (e.fase === 'corriendo' || e.fase === 'meta') {
+      e.tCarrera += dt;
+      // Manuel: cada pulsación le da un empujón; si no pulsa, va frenando hasta un trote
+      const dPul = es400 ? 0.43 : 0.68, lamb = es400 ? 0.22 : 0.32, vmax = es400 ? 6.9 : 7.7, trote = es400 ? 2.8 : 3.1;
+      const n = e.taps;
+      e.taps = 0;
+      if (!man.fin) {
+        man.v += n * dPul - lamb * man.v * dt;
+        if (man.v < trote) man.v += (trote - man.v) * 1.1 * dt;
+        man.v = clamp(man.v, 0, vmax);
+        e.vMedida = damp(e.vMedida || 0, man.v / vmax, 8, dt);
+        hudMarca(e.vMedida);
+      }
+      e.corr.forEach((r, i) => {
+        if (!r.a.esManuel && !r.fin) {
+          const prog = (r.s - r.s0) / e.dist, rel = (man.s - man.s0 - (r.s - r.s0)) / e.dist;
+          let vt = r.vtop * (es400 ? 0.8 + 0.2 * (1 - Math.exp(-e.tCarrera / 2.5)) * (prog > 0.82 ? 1.07 : 1) : 1 - Math.exp(-e.tCarrera / 1.1));
+          vt *= 1 + clamp(rel * 0.9, -0.13, 0.05);                                    // los rivales no se despegan demasiado: si Manuel va atrás, aflojan un poco
+          vt *= 1 + Math.sin(e.tCarrera * 1.3 + i * 2) * 0.012;
+          r.v += (vt - r.v) * Math.min(1, 2.4 * dt);
+        }
+        if (r.fin) r.v *= Math.exp(-1.7 * dt);
+        const sAnt = r.s;
+        r.s += r.v * dt;
+        if (!r.fin && r.s >= r.s1) {
+          r.fin = true;
+          r.tFin = e.tCarrera - (r.s - r.s1) / Math.max(r.v, 0.1) ;
+          if (r.a.esManuel) { e.boton = '…'; hudMedidor(false); e.tManuelFin = e.tCarrera; sonidoPublico(2.0, 0.2); atl.excitacion = 1; }
+          else if (r.a.id === 'carlos' && !e.carlosGrito) { e.carlosGrito = true; diga(r.a.p, '¡Meta!', 1.6); }
+        }
+        const p = puntoPista(r.R, r.s);
+        const mv = r.fin ? r.v : Math.max(r.v, 0.1);
+        atlPies(r.a, ESTADIO.x + p.x, 0.03, ESTADIO.z + p.z, Math.atan2(p.tx, p.tz));
+        if (mv > 2.6) atlAnimar(r.a, 'correr', r.a.esManuel ? clamp(mv / 4.3, 0.6, 2) : clamp(mv / 3.7, 0.7, 2.1));
+        else if (mv > 0.6) atlAnimar(r.a, 'andar', clamp(mv / 1.6, 0.7, 1.6));
+        else atlAnimar(r.a, r.a.esManuel ? 'reposo' : 'cansado', 1);
+      });
+      // clasificación en directo
+      e.tLista = (e.tLista || 0) - dt;
+      if (e.tLista <= 0) {
+        e.tLista = 0.2;
+        const orden = e.corr.slice().sort((a, b) => (b.fin - a.fin) || (a.fin && b.fin ? a.tFin - b.tFin : (b.s - b.s0) - (a.s - a.s0)));
+        const metros = Math.min(100, Math.max(0, (man.s - man.s0) / e.dist * (es400 ? 400 : 100)));
+        hudClasificacion(orden.map((r) => ({ nombre: r.a.nombre, color: r.a.color, yo: r.a.esManuel, extra: r.fin ? fmt(e.P, r.tFin) : '' })));
+        hudTexto(null, `${Math.round(metros)} m · ${e.tCarrera.toFixed(1).replace('.', ',')} s`);
+      }
+      if (man.fin && e.fase === 'corriendo') { e.fase = 'meta'; e.t = 0; }
+      const todos = e.corr.every((r) => r.fin);
+      if ((e.fase === 'meta' && (todos || e.t > 3.5)) || e.t > 120) {
+        // los que no han llegado van por detrás: tiempo estimado
+        const clasif = e.corr.map((r) => {
+          const valor = r.fin ? r.tFin : e.tCarrera + (r.s1 - r.s) / Math.max(r.vtop || 5.5, 4);
+          return { a: r.a, valor, texto: fmt(e.P, valor) };
+        }).sort((a, b) => a.valor - b.valor);
+        atlFin(clasif);
+      }
+    }
+    camaraCarrera(e, dt, false);
+  }
+
+  // =====================================================================
+  // Lanzamientos: jabalina y peso (fuerza y ángulo, dos intentos)
+  // =====================================================================
+  function iniciarLanzamiento(e) {
+    llenarProyectiles();
+    const jab = e.id === 'jabalina';
+    const O = jab ? SITIO_JAB : SITIO_PESO;
+    e.jab = jab;
+    e.x0 = jab ? O.x : O.x + 1.2;             // desde aquí se mide
+    e.zT = O.z;
+    e.xT = jab ? O.x - 0.8 : O.x;              // dónde está el lanzador
+    e.rmax = jab ? 36 : 12.5;
+    e.ronda = 1;
+    e.rondas = 2;
+    e.mios = [];
+    const medias = jab ? { carlos: 27.5, lucia: 22, hugo: 24.5, martina: 19.5, leo: 23 } : { carlos: 9.6, lucia: 7.4, hugo: 8.3, martina: 6.4, leo: 7.8 };
+    const sd = jab ? 2.4 : 0.85;
+    e.res = {};
+    atl.atletas.forEach((a) => { if (!a.esManuel) e.res[a.id] = [Math.max(2, medias[a.id] + gauss() * sd * 1.2), Math.max(2, medias[a.id] + gauss() * sd * 1.2)]; });
+    e.fase = 'intro';
+    e.t = 0;
+    e.boton = '…';
+    e.pot = 0; e.dirP = 1; e.velP = 1.15;
+    e.ang = 0; e.dirA = 1; e.velA = 1.45;
+    // cada uno en su sitio: Manuel en el círculo (o al final del pasillo), Carlos esperando detrás y los demás mirando
+    const M = MANUEL();
+    atlPies(M, ESTADIO.x + e.xT, 0.03, ESTADIO.z + e.zT, Math.PI / 2);
+    atlAnimar(M, 'reposo');
+    atl.atletas.forEach((a, i) => {
+      if (a.esManuel) return;
+      a.p.grupo.visible = true;
+      const k = i - 1;
+      const bx = e.xT - 3.4 - k * 1.1, bz = e.zT + 3.4 + (k % 2) * 0.5;
+      atlPies(a, ESTADIO.x + (a.id === 'carlos' ? e.xT - 2.4 : bx), 0.03, ESTADIO.z + (a.id === 'carlos' ? e.zT + 2.2 : bz), Math.PI / 2);
+      atlAnimar(a, 'reposo');
+    });
+    estado.pos.copy(atl.perroSpot);
+    hudTexto(`${e.P.emoji} ${e.P.nombre}`, `Intento 1 de ${e.rondas}`);
+    pintarMarcadorAtl(e.P.corto.toUpperCase(), ['Intento 1', 'Carlos  --', 'Manuel  --']);
+    // la jabalina o el peso, en la mano
+    e.proy = atl.proyectiles.find((o) => o.userData.nombre === (jab ? 'Jabalina' : 'Peso'));
+    e.proy.visible = true;
+    e.proy.scale.setScalar(jab ? 1.25 : 1.3);
+  }
+  const g_ = 9.8;
+  // Velocidad para que lo lanzado caiga a una distancia x desde una altura h con el ángulo a (bisección)
+  function velocidadParaAlcance(x, h, a) {
+    let lo = 2, hi = 80;
+    const alcance = (v) => { const vy = v * Math.sin(a), t = (vy + Math.sqrt(vy * vy + 2 * g_ * h)) / g_; return v * Math.cos(a) * t; };
+    for (let k = 0; k < 40; k++) { const m = (lo + hi) / 2; if (alcance(m) < x) lo = m; else hi = m; }
+    return (lo + hi) / 2;
+  }
+  // Lanza: quien, alcance desde la línea (m) y ángulo (rad); devuelve el objeto de vuelo
+  function lanzarObjeto(e, a, R, ang) {
+    const mano = atlMano(a, new V3());
+    const x0 = ESTADIO.x + e.x0 + R, dx = x0 - mano.x;
+    const h = Math.max(1.0, mano.y - 0.03);
+    const v = velocidadParaAlcance(Math.max(dx, 1), h, ang);
+    const vy = v * Math.sin(ang), T = (vy + Math.sqrt(vy * vy + 2 * g_ * h)) / g_;
+    const lat = e.jab ? (Math.random() - 0.5) * R * 0.16 : (Math.random() - 0.5) * R * 0.12;
+    return { a, p0: mano.clone(), vx: v * Math.cos(ang), vy, vz: lat / T, T, t: 0, R, xFin: x0, zFin: mano.z + lat, h0: h, ang };
+  }
+  function posVuelo(f, t, out) {
+    return out.set(f.p0.x + f.vx * t, f.p0.y + f.vy * t - 0.5 * g_ * t * t, f.p0.z + f.vz * t);
+  }
+  function actualizarLanzamiento(e, dt) {
+    const M = MANUEL(), carlos = atlDe('carlos');
+    e.t += dt;
+    const man = M;
+    const cam_ = e.cam;
+    const ultima = e.ronda >= e.rondas;
+    const posM = posAtleta(M);
+    const colocaCamTras = (k) => { cam_.p.set(ESTADIO.x + e.xT - 5.5, 2.5, ESTADIO.z + e.zT + 3.4); cam_.m.set(ESTADIO.x + e.x0 + 7, 1.4, ESTADIO.z + e.zT); cam_.k = k; };
+    // el objeto, en la mano mientras no vuela
+    const sujetar = (a) => {
+      if (e.vuelo) return;
+      const m = atlMano(a, _atV);
+      e.proy.position.copy(m);
+      e.proy.rotation.set(e.jab ? 0.2 : 0, e.jab ? Math.PI / 2 : 0, 0);
+      if (e.jab) { e.proy.rotation.order = 'YXZ'; e.proy.rotation.y = Math.PI / 2; e.proy.rotation.x = -0.1; }
+    };
+    if (e.fase === 'intro') {
+      colocaCamTras(2);
+      if (e.t > 2.6) { e.fase = 'fuerza'; e.t = 0; e.pot = 0; e.dirP = 1; e.boton = '¡FUERZA!'; hudMedidor(true, 'Fuerza', 0.78, 0.94); gritoGrande(`Intento ${e.ronda}`); }
+      sujetar(M);
+    } else if (e.fase === 'fuerza') {
+      colocaCamTras(3);
+      e.pot += e.dirP * e.velP * dt;
+      if (e.pot >= 1) { e.pot = 1; e.dirP = -1; } else if (e.pot <= 0) { e.pot = 0; e.dirP = 1; }
+      hudMarca(e.pot);
+      sujetar(M);
+      if (e.pulsada) {
+        e.pulsada = false; e.taps = 0;
+        e.potFija = e.pot;
+        e.fase = 'angulo'; e.t = 0; e.ang = 0; e.dirA = 1; e.boton = '¡ÁNGULO!';
+        hudMedidor(true, 'Ángulo', (32 - 15) / 55, (44 - 15) / 55);
+        notas([[660, 0, 0.1]], 'triangle', 0.06);
+      }
+    } else if (e.fase === 'angulo') {
+      colocaCamTras(3);
+      e.ang += e.dirA * e.velA * dt;
+      if (e.ang >= 1) { e.ang = 1; e.dirA = -1; } else if (e.ang <= 0) { e.ang = 0; e.dirA = 1; }
+      hudMarca(e.ang);
+      sujetar(M);
+      if (e.pulsada) {
+        e.pulsada = false; e.taps = 0;
+        const grados = 15 + e.ang * 55, v = e.potFija;
+        const pf = v < 0.9 ? 0.3 + 0.7 * (v / 0.9) : 1 - (v - 0.9) * 4;
+        const af = clamp(1 - 0.9 * Math.pow((grados - 38) / 32, 2), 0.12, 1);
+        e.R = Math.max(1.2, e.rmax * pf * af * (0.97 + Math.random() * 0.06));
+        e.angRad = grados * Math.PI / 180;
+        e.fase = 'lanza'; e.t = 0; e.boton = '…';
+        hudMedidor(false);
+        atlAnimar(M, 'lanzar', 1.8);
+        if (!M.esManuel) { /* nunca */ }
+      }
+    } else if (e.fase === 'lanza') {
+      colocaCamTras(4);
+      sujetar(M);
+      if (e.t > 0.5) {
+        e.vuelo = lanzarObjeto(e, M, e.R, e.angRad);
+        e.fase = 'vuelo'; e.t = 0;
+        notas([[500, 0, 0.12], [320, 0.06, 0.18]], 'sine', 0.06);
+      }
+    } else if (e.fase === 'vuelo') {
+      const f = e.vuelo;
+      f.t = Math.min(f.T, f.t + dt);
+      posVuelo(f, f.t, e.proy.position);
+      if (e.jab) {   // la jabalina sigue su trayectoria con la punta hacia delante
+        posVuelo(f, Math.min(f.T, f.t + 0.05), _atV);
+        e.proy.lookAt(_atV);
+      } else e.proy.rotation.x += dt * 8;
+      cam_.p.set(e.proy.position.x - 7, Math.max(2.4, e.proy.position.y + 1.6), e.proy.position.z + 5);
+      cam_.m.set(e.proy.position.x + 3, Math.max(1, e.proy.position.y - 0.5), e.proy.position.z);
+      cam_.k = 4;
+      if (f.t >= f.T) {
+        e.proy.position.y = 0.05;
+        if (e.jab) { e.proy.rotation.set(-Math.PI / 2 + 0.55, 0, 0); e.proy.rotation.order = 'YXZ'; e.proy.rotation.y = Math.PI / 2; e.proy.position.y = 0.3; }
+        const b = banderin(M.color, f.xFin, f.zFin);
+        b.scale.setScalar(1.3);
+        salpicarPolvo(f.xFin, f.zFin);
+        e.mios.push(e.R);
+        e.fase = 'medida'; e.t = 0;
+        const mejor = Math.max(...e.mios);
+        hudTexto(null, `Intento ${e.ronda} de ${e.rondas} · ${fmt(e.P, e.R)} · Mejor ${fmt(e.P, mejor)}`);
+        pintarMarcadorAtl(e.P.corto.toUpperCase(), [`Intento ${e.ronda}`, { t: `Manuel  ${fmt(e.P, e.R)}`, c: '#ffd21f' }, 'Carlos  ...']);
+        ninoDice(`¡${e.R.toFixed(1).replace('.', ',')} metros!`, 2.2);
+        decirEnVoz('narrador', `${e.R.toFixed(1).replace('.', ' coma ')} metros`);
+        sonAcierto();
+        atl.excitacion = 0.8;
+        atlAnimar(M, 'saltar', 1, 0.5);
+      }
+    } else if (e.fase === 'medida') {
+      cam_.p.set(e.vuelo.xFin - 6, 3.0, e.vuelo.zFin + 5.5);
+      cam_.m.set(e.vuelo.xFin, 0.8, e.vuelo.zFin);
+      cam_.k = 2.5;
+      if (e.t > 2.4) {
+        e.fase = 'carlos'; e.t = 0;
+        // Carlos va al círculo y lanza
+        atlPies(carlos, ESTADIO.x + e.xT, 0.03, ESTADIO.z + e.zT - 0.0, Math.PI / 2);
+        atlPies(M, ESTADIO.x + e.xT - 3.0, 0.03, ESTADIO.z + e.zT + 2.2, Math.PI / 2);
+        atlAnimar(M, 'reposo');
+        atlAnimar(carlos, 'reposo');
+        e.vuelo = null;
+        e.carlosRes = e.res.carlos[e.ronda - 1];
+        diga(carlos.p, '¡Ahora yo!', 1.6);
+      }
+    } else if (e.fase === 'carlos') {
+      cam_.p.set(ESTADIO.x + e.xT - 5.5, 2.5, ESTADIO.z + e.zT + 3.4);
+      cam_.m.set(ESTADIO.x + e.x0 + 7, 1.4, ESTADIO.z + e.zT);
+      cam_.k = 3;
+      sujetar(carlos);
+      if (e.t > 1.4 && !e.carlosLanzo) { e.carlosLanzo = true; atlAnimar(carlos, 'lanzar', 1.6); }
+      if (e.t > 1.9 && !e.vuelo && e.carlosLanzo) {
+        e.vuelo = lanzarObjeto(e, carlos, e.carlosRes, (36 + Math.random() * 8) * Math.PI / 180);
+      }
+      if (e.vuelo) {
+        const f = e.vuelo;
+        f.t = Math.min(f.T, f.t + dt);
+        posVuelo(f, f.t, e.proy.position);
+        if (e.jab) { posVuelo(f, Math.min(f.T, f.t + 0.05), _atV); e.proy.lookAt(_atV); } else e.proy.rotation.x += dt * 8;
+        cam_.p.set(e.proy.position.x - 7, Math.max(2.4, e.proy.position.y + 1.6), e.proy.position.z + 5);
+        cam_.m.set(e.proy.position.x + 3, Math.max(1, e.proy.position.y - 0.5), e.proy.position.z);
+        if (f.t >= f.T) {
+          if (e.jab) { e.proy.rotation.set(-Math.PI / 2 + 0.55, 0, 0); e.proy.rotation.order = 'YXZ'; e.proy.rotation.y = Math.PI / 2; e.proy.position.y = 0.3; } else e.proy.position.y = 0.05;
+          banderin(carlos.color, f.xFin, f.zFin);
+          salpicarPolvo(f.xFin, f.zFin);
+          diga(carlos.p, `${e.carlosRes.toFixed(1).replace('.', ',')}`, 2);
+          pintarMarcadorAtl(e.P.corto.toUpperCase(), [`Intento ${e.ronda}`, { t: `Manuel  ${fmt(e.P, e.R)}`, c: '#ffd21f' }, `Carlos  ${fmt(e.P, e.carlosRes)}`]);
+          e.fase = 'otros'; e.t = 0; e.vuelo = null; e.carlosLanzo = false;
+          atlAnimar(carlos, 'celebrar');
+        }
+      }
+    } else if (e.fase === 'otros') {
+      // los demás tiran «fuera de cámara»: caen sus banderines uno a uno
+      const otros = atl.atletas.filter((a) => !a.esManuel && a.id !== 'carlos');
+      const k = Math.floor(e.t / 0.55);
+      otros.forEach((a, i) => {
+        if (k > i && !a['b' + e.ronda + e.id]) {
+          a['b' + e.ronda + e.id] = true;
+          const r = e.res[a.id][e.ronda - 1];
+          const lat = (Math.random() - 0.5) * r * 0.14;
+          banderin(a.color, ESTADIO.x + e.x0 + r, ESTADIO.z + e.zT + lat);
+          notas([[800 + i * 90, 0, 0.08]], 'triangle', 0.04);
+        }
+      });
+      cam_.p.set(ESTADIO.x + e.x0 + 14, 9, ESTADIO.z + e.zT + 12);
+      cam_.m.set(ESTADIO.x + e.x0 + 14, 0, ESTADIO.z + e.zT);
+      cam_.k = 2.2;
+      if (e.t > 0.55 * otros.length + 1.4) {
+        otros.forEach((a) => { delete a['b' + e.ronda + e.id]; });
+        if (e.ronda < e.rondas) {
+          e.ronda++; e.fase = 'intro'; e.t = 0; e.boton = '…';
+          e.velP += 0.2; e.velA += 0.2;
+          atlPies(M, ESTADIO.x + e.xT, 0.03, ESTADIO.z + e.zT, Math.PI / 2);
+          atlAnimar(M, 'reposo');
+          atlPies(carlos, ESTADIO.x + e.xT - 2.4, 0.03, ESTADIO.z + e.zT + 2.2, Math.PI / 2);
+          atlAnimar(carlos, 'reposo');
+          e.proy.visible = true;
+          hudTexto(null, `Intento ${e.ronda} de ${e.rondas}`);
+        } else {
+          const clasif = atl.atletas.map((a) => {
+            const lista = a.esManuel ? e.mios : e.res[a.id];
+            const valor = Math.max(...lista);
+            return { a, valor, texto: fmt(e.P, valor) };
+          }).sort((x, y) => y.valor - x.valor);
+          atlFin(clasif);
+        }
+      }
+    }
+  }
+  function salpicarPolvo(x, z) { salpicar(new V3(x, 0.1, z), 10); }
+
+  // =====================================================================
+  // Saltos: longitud, altura y pértiga
+  // =====================================================================
+  const ALTURAS_SALTO = [0.9, 1.05, 1.2, 1.35, 1.5];
+  const ALTURAS_PERT = [1.8, 2.2, 2.6, 3.0, 3.4];
+  function iniciarSalto(e) {
+    e.fase = 'intro'; e.t = 0; e.boton = '…';
+    e.mios = []; e.ronda = 1;
+    e.st = null;
+    estado.pos.copy(atl.perroSpot);
+    const otros = atl.atletas.filter((a) => !a.esManuel);
+    if (e.id === 'longitud') iniciarLongitud(e, otros);
+    else if (e.id === 'altura') iniciarAltura(e, otros);
+    else iniciarPertiga(e, otros);
+    atl.atletas.forEach((a) => { if (!a.esManuel) a.p.grupo.visible = true; });
+  }
+  const unirA = (e, a, x, z, fi = Math.PI / 2) => { atlPies(a, ESTADIO.x + x, 0.03, ESTADIO.z + z, fi); atlAnimar(a, 'reposo'); };
+  // Los que miran, en fila junto a la zona de saltos
+  function publicoDeSalto(e, x0, z0, dx = 1.2, dz = 0, fi = Math.PI / 2) {
+    atl.atletas.forEach((a, i) => { if (!a.esManuel && a.id !== 'carlos') unirA(e, a, x0 + dx * (i - 2), z0 + dz * (i - 2), fi); });
+  }
+  const camLado = (e, x, y, z, mx, my, mz, k = 3) => { e.cam.p.set(ESTADIO.x + x, y, ESTADIO.z + z); e.cam.m.set(ESTADIO.x + mx, my, ESTADIO.z + mz); e.cam.k = k; };
+
+  // ---------- Salto de longitud ----------
+  function iniciarLongitud(e, otros) {
+    const O = SITIO_LONG;
+    e.xB = O.x; e.zL = O.z; e.xIni = O.x - 19; e.rondas = 2;
+    const medias = { carlos: 3.4, lucia: 2.9, hugo: 2.7, martina: 2.45, leo: 3.0 };
+    e.res = {};
+    otros.forEach((a) => { e.res[a.id] = [Math.max(1.2, medias[a.id] + gauss() * 0.3), Math.max(1.2, medias[a.id] + gauss() * 0.3)]; });
+    unirA(e, MANUEL(), e.xIni, e.zL);
+    unirA(e, atlDe('carlos'), e.xIni - 1.8, e.zL + 1.6);
+    publicoDeSalto(e, e.xIni - 3, e.zL + 3.4);
+    e.st = intentoLong(e, MANUEL(), false);
+    hudTexto(`${e.P.emoji} ${e.P.nombre}`, `Intento 1 de ${e.rondas}`);
+    pintarMarcadorAtl('LONGITUD', ['Intento 1', 'Carlos  --', 'Manuel  --']);
+    camLado(e, e.xIni + 5, 2.2, e.zL + 10, e.xIni + 6, 1.0, e.zL, 2);
+  }
+  function intentoLong(e, a, auto, objetivo) {
+    const st = { a, auto, fase: auto ? 'carrera' : 'espera', v: 0, x: e.xIni, t: 0, res: 0, remAuto: 0.2 + Math.random() * 0.5 };
+    if (auto) { st.vObj = clamp((objetivo + st.remAuto - 0.55) / 0.52, 4.2, 8); }
+    return st;
+  }
+  function actualizarIntentoLong(e, st, dt) {
+    const a = st.a, z = e.zL;
+    st.t += dt;
+    if (st.fase === 'espera') {
+      e.boton = '¡CORRE!';
+      atlAnimar(a, 'reposo');
+      if (e.pulsada) { e.pulsada = false; e.taps = 0; st.fase = 'carrera'; st.t = 0; atlAnimar(a, 'correr', 1); }
+      camLado(e, e.xIni + 5, 2.2, z + 10, e.xIni + 6, 1.0, z, 2);
+      return 'sigue';
+    }
+    if (st.fase === 'carrera') {
+      const rem = e.xB - st.x;
+      if (st.auto) st.v += (st.vObj - st.v) * Math.min(1, 1.5 * dt);
+      else {
+        const n = e.taps; e.taps = 0;
+        if (rem > 2.0) { st.v += n * 0.55; e.pulsada = false; }   // lejos de la tabla, cada pulsación es un paso más rápido
+        st.v += -0.32 * st.v * dt;
+        if (st.v < 2.9) st.v += (2.9 - st.v) * 1.1 * dt;
+        st.v = clamp(st.v, 0, 7.6);
+        e.boton = rem <= 2.0 ? '¡SALTA!' : '¡CORRE!';
+        if (rem < 9) { hudMedidor(true, 'La tabla blanca', 1 - 2.0 / 9, 1); hudMarca(1 - rem / 9); } else { hudMedidor(true, 'Velocidad', 0.55, 0.95); hudMarca(st.v / 7.6); }
+      }
+      st.x += st.v * dt;
+      atlPies(a, ESTADIO.x + st.x, 0.03, ESTADIO.z + z, Math.PI / 2);
+      atlAnimar(a, 'correr', clamp(st.v / (a.esManuel ? 4.3 : 3.7), 0.6, 2));
+      const rem2 = e.xB - st.x;
+      const salta = st.auto ? rem2 <= st.remAuto : (rem2 <= 2.0 && e.pulsada) || rem2 <= -0.05;
+      if (salta) {
+        const flojo = !st.auto && !e.pulsada;
+        e.pulsada = false; e.taps = 0;
+        const F = (0.55 + 0.52 * st.v) * (flojo ? 0.78 : 1);
+        const rem3 = Math.max(rem2, 0);
+        st.res = st.auto ? Math.max(0.5, F - rem3) : Math.max(0.35, F - rem3);
+        st.vuelo = { x0: st.x, F, Tf: clamp(0.38 + 0.045 * st.v, 0.5, 0.78), apex: 0.45 + 0.07 * F };
+        st.fase = 'vuelo'; st.t = 0;
+        atlAnimar(a, 'saltar', 1);
+        hudMedidor(false); e.boton = '…';
+        if (!st.auto) notas([[520, 0, 0.1], [780, 0.07, 0.14]], 'triangle', 0.06);
+      }
+      camLado(e, st.x + 2.5, 2.2, z + 9.5, st.x + 3, 1.0, z, 4);
+    } else if (st.fase === 'vuelo') {
+      const V = st.vuelo, u = Math.min(1, st.t / V.Tf);
+      atlPies(a, ESTADIO.x + V.x0 + V.F * u, 0.03 + 4 * V.apex * u * (1 - u) + 0.12 * u, ESTADIO.z + z, Math.PI / 2, 0.15 * Math.sin(u * Math.PI));
+      camLado(e, V.x0 + V.F * u + 2, 2.0, z + 8, V.x0 + V.F * u + 2.5, 0.9, z, 4);
+      if (u >= 1) {
+        st.fase = 'caida'; st.t = 0;
+        const xl = e.xB + st.res;
+        banderin(a.color, ESTADIO.x + xl, ESTADIO.z + z, 0.15);
+        salpicarPolvo(ESTADIO.x + xl, ESTADIO.z + z);
+        atlAnimar(a, 'cansado');
+        if (a.esManuel) { ninoDice(`¡${st.res.toFixed(2).replace('.', ',')} metros!`, 2.4); decirEnVoz('narrador', `${st.res.toFixed(2).replace('.', ' coma ')} metros`); sonAcierto(); atl.excitacion = 0.8; }
+        else diga(a.p, `${st.res.toFixed(2).replace('.', ',')}`, 2.2);
+      }
+    } else if (st.fase === 'caida') {
+      const V = st.vuelo;
+      atlPies(a, ESTADIO.x + V.x0 + V.F, 0.15, ESTADIO.z + z, Math.PI / 2);
+      camLado(e, e.xB + st.res - 2, 2.2, z + 7.5, e.xB + st.res + 0.5, 0.6, z, 3);
+      if (st.t > 2.0) return 'fin';
+    }
+    return 'sigue';
+  }
+
+  // ---------- Salto de altura ----------
+  function iniciarAltura(e, otros) {
+    const O = SITIO_ALTURA;
+    e.niveles = ALTURAS_SALTO;
+    e.nivel = 0; e.intento = 1;
+    e.bar = O; e.barraObj = atl.barraAltura; e.soportes = atl.soportesAltura;
+    e.d = new V3(1, 0, 0);
+    e.T = new V3(O.x - 1.35, 0, O.z);
+    e.P1 = new V3(O.x - 4.35, 0, O.z);
+    e.P0 = new V3(O.x - 9.2, 0, O.z + 4.8);
+    e.maxIdx = { carlos: [1, 2, 2, 3][Math.floor(Math.random() * 4)], lucia: Math.random() < 0.5 ? 0 : 1, hugo: Math.random() < 0.5 ? 0 : 1, martina: Math.random() < 0.5 ? -1 : 0, leo: [0, 1, 1, 2][Math.floor(Math.random() * 4)] };
+    e.fallos = { manuel: 0, carlos: 0, lucia: 0, hugo: 0, martina: 0, leo: 0 };
+    e.vivos = { manuel: true, carlos: true, lucia: true, hugo: true, martina: true, leo: true };
+    e.mejorIdx = { manuel: -1, carlos: -1, lucia: -1, hugo: -1, martina: -1, leo: -1 };
+    ponerBarra(e, e.niveles[0]);
+    const pe = (a, x, z) => unirA(e, a, O.x + x, O.z + z, -Math.PI / 2 * 0 + Math.PI);
+    const man = MANUEL();
+    atlPies(man, ESTADIO.x + e.P0.x, 0.03, ESTADIO.z + e.P0.z, Math.PI / 2);
+    atlAnimar(man, 'reposo');
+    unirA(e, atlDe('carlos'), O.x - 9.5, O.z + 6.5);
+    atl.atletas.forEach((a, i) => { if (!a.esManuel && a.id !== 'carlos') unirA(e, a, O.x - 7 - (i - 2) * 1.1, O.z + 8.6, Math.PI * 1.1); });
+    e.st = intentoAltura(e, man, false);
+    hudTexto(`${e.P.emoji} ${e.P.nombre}`, `Barra a ${fmtM(e.niveles[0])} · Intento 1 de 2`);
+    pintarMarcadorAlturas(e);
+    camAltura(e, 0);
+  }
+  const fmtM = (v) => `${v.toFixed(2).replace('.', ',')} m`;
+  function ponerBarra(e, h) {
+    if (!e.barraObj) return;
+    e.barraObj.rotation.set(0, e.bar.fi, 0);
+    e.barraObj.position.set(ESTADIO.x + e.bar.x + (e.id === 'pertiga' ? 0 : 0), h, ESTADIO.z + e.bar.z);
+    e.barraObj.visible = true;
+    e.soportes.forEach((s) => { s.position.y = h - 0.02; });
+    e.caeBarra = null;
+  }
+  function camAltura(e, dt) {
+    const O = e.bar;
+    const st = e.st;
+    if (e.id === 'altura') {
+      let cx = O.x - 3, cz = O.z + 8.5, mx = O.x - 1.5, mz = O.z;
+      if (st && st.fase === 'carrera') { cx = O.x - 4; mx = O.x - 2; }
+      camLado(e, cx, 2.3, cz, mx, 1.2, mz, 2.6);
+    } else {
+      let ax = O.x - 2, az = O.z - 11;
+      if (st && st.fase === 'carrera') { const x = st.x; ax = x + 3.5; camLado(e, ax, 2.4, az, x + 5, 1.3, O.z, 4); return; }
+      camLado(e, ax + 1.5, 3.0, az, O.x + 1.5, 2.4, O.z, 2.5);
+    }
+  }
+  function pintarMarcadorAlturas(e) {
+    const nivel = e.niveles[Math.min(e.nivel, e.niveles.length - 1)];
+    const lineas = atl.atletas.map((a) => {
+      const i = e.mejorIdx[a.id], vivo = e.vivos[a.id];
+      const t = i >= 0 ? fmtM(e.niveles[i]) : '--';
+      return { t: `${a.nombre.toUpperCase().padEnd(8)} ${t}${vivo ? '' : '  X'}`, c: a.esManuel ? '#ffd21f' : vivo ? '#ffffff' : '#7a8594' };
+    });
+    pintarMarcadorAtl(`BARRA ${fmtM(nivel)}`, lineas);
+  }
+  function intentoAltura(e, a, auto, ok) {
+    return { a, auto, ok, fase: auto ? 'carrera' : 'espera', t: 0, u: 0, q: 0, T: 2.5 };
+  }
+  const bezier2 = (p0, p1, p2, u, out) => out.set((1 - u) * (1 - u) * p0.x + 2 * (1 - u) * u * p1.x + u * u * p2.x, 0, (1 - u) * (1 - u) * p0.z + 2 * (1 - u) * u * p1.z + u * u * p2.z);
+  const _b1 = new V3(), _b2 = new V3();
+  function actualizarIntentoAltura(e, st, dt) {
+    const a = st.a, O = e.bar, nivelH = e.niveles[e.nivel];
+    st.t += dt;
+    const hw = 0.22 - 0.012 * e.nivel, uIdeal = 0.93;
+    if (st.fase === 'espera') {
+      e.boton = '¡CARRERILLA!';
+      atlAnimar(a, 'reposo');
+      if (e.pulsada) { e.pulsada = false; e.taps = 0; st.fase = 'carrera'; st.t = 0; atlAnimar(a, 'correr', 1); }
+      return 'sigue';
+    }
+    if (st.fase === 'carrera') {
+      st.u = Math.min(1, st.t / st.T);
+      bezier2(e.P0, e.P1, e.T, st.u, _b1);
+      bezier2(e.P0, e.P1, e.T, Math.min(1, st.u + 0.03), _b2);
+      const rumbo = Math.atan2(_b2.x - _b1.x, _b2.z - _b1.z);
+      atlPies(a, ESTADIO.x + _b1.x, 0.03, ESTADIO.z + _b1.z, st.u >= 0.999 ? Math.PI / 2 : rumbo);
+      atlAnimar(a, 'correr', a.esManuel ? 0.95 : 1.1);
+      if (!st.auto) {
+        e.boton = st.u > 0.45 ? '¡SALTA!' : '…';
+        hudMedidor(true, 'Despegue', uIdeal - hw * 0.35, uIdeal + hw * 0.35);
+        hudMarca(st.u);
+        if (e.pulsada) {
+          e.pulsada = false; e.taps = 0;
+          if (st.u > 0.45) { st.q = Math.max(0, 1 - Math.abs(st.u - uIdeal) / hw); saltoAltura(e, st); }
+        } else if (st.u >= 1) { st.q = 0.08; saltoAltura(e, st); }
+      } else if (st.u >= 0.93) saltoAltura(e, st);
+      camAltura(e, dt);
+    } else if (st.fase === 'vuelo') {
+      const V = st.vuelo, u = Math.min(1, st.t / V.Tf), s = V.S * u;
+      // altura de la cadera: parábola por tres puntos (despegue, sobre la barra, colchoneta)
+      const s1 = V.sBarra, y0 = 0.8, y1 = V.A, y2 = 1.0;
+      const y = y0 * (s - s1) * (s - V.S) / ((0 - s1) * (0 - V.S)) + y1 * (s - 0) * (s - V.S) / ((s1 - 0) * (s1 - V.S)) + y2 * (s - 0) * (s - s1) / ((V.S - 0) * (V.S - s1));
+      const rx = -Math.min(Math.PI / 2, (s / s1) * (Math.PI / 2)) * 1.0;
+      atlCadera(a, ESTADIO.x + e.T.x + s, y, ESTADIO.z + e.T.z, Math.PI / 2, rx, 0);
+      if (!st.rozada && s >= s1 && !st.ok) { st.rozada = true; e.caeBarra = { t: 0, vy: 0, ang: 0 }; sonFallo(); }
+      if (st.ok && !st.dicho && s >= s1) { st.dicho = true; sonAcierto(); }
+      camLado(e, O.x - 2, 2.4, O.z + 8.2, O.x + 0.8, 1.3, O.z, 3.5);
+      if (u >= 1) { st.fase = 'caida'; st.t = 0; atlAnimar(a, 'cansado'); }
+    } else if (st.fase === 'caida') {
+      atlCadera(a, ESTADIO.x + e.T.x + 2.95, 0.95, ESTADIO.z + e.T.z, Math.PI / 2, -Math.PI / 2, 0);
+      camLado(e, O.x - 2, 2.4, O.z + 8.2, O.x + 0.8, 1.0, O.z, 3);
+      if (st.t > 1.7) return 'fin';
+    }
+    return 'sigue';
+  }
+  function saltoAltura(e, st) {
+    const A = st.auto ? (st.ok ? e.niveles[e.nivel] + 0.06 + Math.random() * 0.08 : e.niveles[e.nivel] - 0.1 - Math.random() * 0.1) : 0.55 + 1.15 * st.q + gauss() * 0.02;
+    st.ok = A >= e.niveles[e.nivel] + 0.03;
+    st.vuelo = { A, sBarra: 1.35, S: 2.95, Tf: 1.25 };
+    st.fase = 'vuelo'; st.t = 0;
+    atlAnimar(st.a, 'saltar', 1);
+    hudMedidor(false); e.boton = '…';
+    if (!st.auto) notas([[520, 0, 0.1], [780, 0.07, 0.14]], 'triangle', 0.06);
+  }
+
+  // ---------- Salto con pértiga ----------
+  function iniciarPertiga(e, otros) {
+    const O = SITIO_PERT;
+    e.niveles = ALTURAS_PERT;
+    e.nivel = 0; e.intento = 1;
+    e.bar = { x: O.x + 0.7, z: O.z, fi: O.fi }; e.box = O; e.barraObj = atl.barraPertiga; e.soportes = atl.soportesPertiga;
+    e.xIni = O.x - 22;
+    e.maxIdx = { carlos: [1, 2, 2, 3][Math.floor(Math.random() * 4)], lucia: Math.random() < 0.5 ? 0 : 1, hugo: Math.random() < 0.5 ? 0 : 1, martina: Math.random() < 0.5 ? -1 : 0, leo: [0, 1, 1, 2][Math.floor(Math.random() * 4)] };
+    e.fallos = { manuel: 0, carlos: 0, lucia: 0, hugo: 0, martina: 0, leo: 0 };
+    e.vivos = { manuel: true, carlos: true, lucia: true, hugo: true, martina: true, leo: true };
+    e.mejorIdx = { manuel: -1, carlos: -1, lucia: -1, hugo: -1, martina: -1, leo: -1 };
+    ponerBarra(e, e.niveles[0]);
+    if (!atl.pertigaObj) { atl.pertigaObj = atl.copiar('Pertiga'); atl.grupo.add(atl.pertigaObj); }
+    atl.pertigaObj.visible = true;
+    const man = MANUEL();
+    atlPies(man, ESTADIO.x + e.xIni, 0.03, ESTADIO.z + O.z, Math.PI / 2);
+    atlAnimar(man, 'reposo');
+    unirA(e, atlDe('carlos'), e.xIni - 1.8, O.z + 1.8);
+    atl.atletas.forEach((a, i) => { if (!a.esManuel && a.id !== 'carlos') unirA(e, a, e.xIni - 3.5 - (i - 2) * 1.1, O.z + 3.6); });
+    e.st = intentoPertiga(e, man, false);
+    hudTexto(`${e.P.emoji} ${e.P.nombre}`, `Barra a ${fmtM(e.niveles[0])} · Intento 1 de 2`);
+    pintarMarcadorAlturas(e);
+    camAltura(e, 0);
+  }
+  function intentoPertiga(e, a, auto, ok) {
+    const st = { a, auto, ok, fase: auto ? 'carrera' : 'espera', t: 0, v: 0, x: e.xIni, remAuto: 0.5 + Math.random() * 0.3 };
+    st.vObj = 6.4 + Math.random() * 0.8;
+    return st;
+  }
+  const curvaPertiga = (ptos) => new THREE.CatmullRomCurve3(ptos);
+  function dibujarPertiga(e, base, mano, curva) {
+    if (!atl.pertigaCurva) {
+      atl.pertigaCurva = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshStandardMaterial({ color: '#ff9a1f', roughness: 0.5 }));
+      atl.pertigaCurva.frustumCulled = false;
+      atl.grupo.add(atl.pertigaCurva);
+    }
+    const dir = new V3().subVectors(mano, base);
+    const ctrl = base.clone().lerp(mano, 0.5).add(new V3(-curva, 0.0, 0)).add(new V3(0, curva * 0.15, 0));
+    const c = new THREE.QuadraticBezierCurve3(base, ctrl, mano);
+    atl.pertigaCurva.geometry.dispose();
+    atl.pertigaCurva.geometry = new THREE.TubeGeometry(c, 14, 0.03, 6);
+    atl.pertigaCurva.visible = true;
+  }
+  function actualizarIntentoPertiga(e, st, dt) {
+    const a = st.a, O = e.box, z = O.z;
+    st.t += dt;
+    const sujetaPertiga = () => {
+      const m = atlMano(a, _atV);
+      atl.pertigaObj.position.copy(m);
+      atl.pertigaObj.rotation.set(0.12, Math.PI / 2, 0, 'YXZ');
+      atl.pertigaObj.visible = true;
+      atl.pertigaCurva && (atl.pertigaCurva.visible = false);
+    };
+    if (st.fase === 'espera') {
+      e.boton = '¡CORRE!';
+      atlAnimar(a, 'reposo');
+      sujetaPertiga();
+      if (e.pulsada) { e.pulsada = false; e.taps = 0; st.fase = 'carrera'; st.t = 0; atlAnimar(a, a.esManuel ? 'correr' : 'correr_pertiga', 1); }
+      camAltura(e, dt);
+      return 'sigue';
+    }
+    if (st.fase === 'carrera') {
+      const rem = O.x - st.x;
+      if (st.auto) st.v += (st.vObj - st.v) * Math.min(1, 1.5 * dt);
+      else {
+        const n = e.taps; e.taps = 0;
+        if (rem > 2.2) { st.v += n * 0.55; e.pulsada = false; }
+        st.v += -0.32 * st.v * dt;
+        if (st.v < 2.9) st.v += (2.9 - st.v) * 1.1 * dt;
+        st.v = clamp(st.v, 0, 7.4);
+        e.boton = rem <= 2.2 ? '¡CLAVA!' : '¡CORRE!';
+        if (rem < 8) { hudMedidor(true, 'La caja', 0.72, 0.95); hudMarca(1 - rem / 8 * 1.0); } else { hudMedidor(true, 'Velocidad', 0.55, 0.95); hudMarca(st.v / 7.4); }
+      }
+      st.x += st.v * dt;
+      atlPies(a, ESTADIO.x + st.x, 0.03, ESTADIO.z + z, Math.PI / 2);
+      atlAnimar(a, a.esManuel ? 'correr' : 'correr_pertiga', clamp(st.v / (a.esManuel ? 4.3 : 3.7), 0.6, 2));
+      sujetaPertiga();
+      const rem2 = O.x - st.x;
+      const clava = st.auto ? rem2 <= st.remAuto : (rem2 <= 2.2 && e.pulsada) || rem2 <= -0.2;
+      if (clava) {
+        const tarde = !st.auto && !e.pulsada;
+        e.pulsada = false; e.taps = 0;
+        const q1 = tarde ? 0.35 : clamp(1 - Math.abs(Math.max(rem2, 0) - 0.7) / 2.2, 0.15, 1);
+        const H = e.niveles[e.nivel];
+        const A = st.auto ? (st.ok ? H + 0.07 + Math.random() * 0.1 : H - 0.12 - Math.random() * 0.15) : 0.8 + 0.4 * st.v * (0.4 + 0.6 * q1) + gauss() * 0.03;
+        st.ok = A >= H + 0.05;
+        st.vuelo = { A, Tv: 2.0 };
+        st.fase = 'vuelo'; st.t = 0;
+        atlAnimar(a, 'saltar', 1);
+        hudMedidor(false); e.boton = '…';
+        if (!st.auto) notas([[320, 0, 0.12], [480, 0.08, 0.18]], 'sawtooth', 0.05);
+      }
+      camAltura(e, dt);
+    } else if (st.fase === 'vuelo') {
+      const V = st.vuelo, t = st.t, Tv = V.Tv;
+      // la cadera pasa por tres puntos: clavado de la pértiga, sobre la barra y colchoneta (interpolación de Lagrange en el tiempo)
+      const t1 = 1.05, t2 = Tv;
+      const P0 = [-0.45, 1.0], P1 = [0.7, V.A], P2 = [3.6, 1.45];
+      const lag = (k) => P0[k] * (t - t1) * (t - t2) / ((0 - t1) * (0 - t2)) + P1[k] * (t - 0) * (t - t2) / ((t1 - 0) * (t1 - t2)) + P2[k] * (t - 0) * (t - t1) / ((t2 - 0) * (t2 - t1));
+      const xf = lag(0), y = Math.max(lag(1), 1.0);
+      const rx = -(0.35 + 2.0 * smoothstep(0.1, 1.15, t) - 0.5 * smoothstep(1.2, 1.9, t));
+      atlCadera(a, ESTADIO.x + O.x + xf, y, ESTADIO.z + z, Math.PI / 2, rx, 0);
+      // la pértiga: se dobla mientras sube y se suelta después
+      const B = new V3(ESTADIO.x + O.x, 0.1, ESTADIO.z + z);
+      atl.pertigaObj.visible = false;
+      if (t < 1.2) {
+        const mano = new V3(ESTADIO.x + O.x + xf + 0.25, y + 0.2, ESTADIO.z + z);
+        dibujarPertiga(e, B, mano, 0.95 * Math.sin(Math.PI * clamp(t / 1.2, 0, 1)));
+        st.angSuelta = Math.atan2(mano.x - B.x, mano.y - B.y);
+        st.lSuelta = B.distanceTo(mano);
+      } else {
+        const k = smoothstep(0, 1, (t - 1.2) / 0.9);
+        const ang = st.angSuelta + (-1.45 - st.angSuelta) * k, L = st.lSuelta + (4.0 - st.lSuelta) * k;
+        const mano = new V3(B.x + Math.sin(ang) * L, Math.max(0.12, B.y + Math.cos(ang) * L), B.z);
+        dibujarPertiga(e, B, mano, 0);
+      }
+      if (!st.rozada && t >= t1 && !st.ok) { st.rozada = true; e.caeBarra = { t: 0, vy: 0, ang: 0 }; sonFallo(); }
+      if (st.ok && !st.dicho && t >= t1) { st.dicho = true; sonAcierto(); }
+      camLado(e, O.x + 0.5, 3.2, z - 11, O.x + 1.0, 2.6, z, 4);
+      if (t >= Tv) { st.fase = 'caida'; st.t = 0; atlAnimar(a, 'cansado'); }
+    } else if (st.fase === 'caida') {
+      atlCadera(a, ESTADIO.x + O.x + 3.6, 1.35, ESTADIO.z + z, Math.PI / 2, -Math.PI / 2, 0);
+      const B = new V3(ESTADIO.x + O.x, 0.12, ESTADIO.z + z);
+      dibujarPertiga(e, B, new V3(B.x - 4.0, 0.12, B.z), 0);
+      camLado(e, O.x + 0.5, 3.2, z - 11, O.x + 2, 1.6, z, 3);
+      if (st.t > 1.7) return 'fin';
+    }
+    return 'sigue';
+  }
+
+  // ---------- Reparto de rondas de los saltos ----------
+  function actualizarSalto(e, dt) {
+    const man = MANUEL(), carlos = atlDe('carlos');
+    e.t += dt;
+    if (e.caeBarra) {   // la barra se cae con el golpe
+      const c = e.caeBarra;
+      c.t += dt; c.vy -= 9.8 * dt;
+      e.barraObj.position.y = Math.max(e.id === 'altura' ? 0.65 : 0.9, e.barraObj.position.y + c.vy * dt);
+      c.ang += dt * 3;
+      e.barraObj.rotation.x = Math.min(c.ang, 1.2) * 0.4;
+      e.barraObj.rotation.z = Math.min(c.ang, 1.4);
+    }
+    if (e.fase === 'intro') {
+      if (e.id === 'longitud') camLado(e, e.xIni + 5, 2.2, e.zL + 10, e.xIni + 6, 1.0, e.zL, 2); else camAltura(e, dt);
+      if (e.t > 3.0) { e.fase = 'intento'; e.t = 0; }
+      return;
+    }
+    // Longitud: dos rondas, cada una con Manuel, Carlos y el marcador de los demás
+    if (e.id === 'longitud') {
+      if (e.fase === 'intento') {
+        const r = actualizarIntentoLong(e, e.st, dt);
+        if (r === 'fin') {
+          e.mios.push(e.st.res);
+          hudTexto(null, `Intento ${e.ronda} de ${e.rondas} · ${fmt(e.P, e.st.res)} · Mejor ${fmt(e.P, Math.max(...e.mios))}`);
+          pintarMarcadorAtl('LONGITUD', [`Intento ${e.ronda}`, { t: `Manuel  ${fmt(e.P, e.st.res)}`, c: '#ffd21f' }, 'Carlos  ...']);
+          unirA(e, man, e.xIni - 1.2, e.zL + 3.0);
+          e.carlosRes = e.res.carlos[e.ronda - 1];
+          unirA(e, carlos, e.xIni, e.zL);
+          e.st = intentoLong(e, carlos, true, e.carlosRes);
+          atlAnimar(carlos, 'correr', 1.2);
+          e.fase = 'carlos'; e.t = 0;
+          diga(carlos.p, '¡Ahora yo!', 1.6);
+        }
+      } else if (e.fase === 'carlos') {
+        const r = actualizarIntentoLong(e, e.st, dt);
+        if (r === 'fin') {
+          pintarMarcadorAtl('LONGITUD', [`Intento ${e.ronda}`, { t: `Manuel  ${fmt(e.P, e.mios[e.ronda - 1])}`, c: '#ffd21f' }, `Carlos  ${fmt(e.P, e.st.res)}`]);
+          e.res.carlos[e.ronda - 1] = e.st.res;
+          e.fase = 'otros'; e.t = 0;
+          atlAnimar(carlos, 'celebrar');
+        }
+      } else if (e.fase === 'otros') {
+        const otros = atl.atletas.filter((a) => !a.esManuel && a.id !== 'carlos');
+        otros.forEach((a, i) => {
+          if (e.t > 0.5 * (i + 1) && !a['bl' + e.ronda]) {
+            a['bl' + e.ronda] = true;
+            banderin(a.color, ESTADIO.x + e.xB + e.res[a.id][e.ronda - 1], ESTADIO.z + e.zL + (i - 1.5) * 0.6, 0.15);
+            notas([[800 + i * 90, 0, 0.08]], 'triangle', 0.04);
+          }
+        });
+        camLado(e, e.xB + 4, 7, e.zL + 9, e.xB + 4, 0, e.zL, 2);
+        if (e.t > 0.5 * otros.length + 1.6) {
+          otros.forEach((a) => { delete a['bl' + e.ronda]; });
+          if (e.ronda < e.rondas) {
+            e.ronda++; e.fase = 'intro'; e.t = 0; e.boton = '…';
+            unirA(e, man, e.xIni, e.zL); unirA(e, carlos, e.xIni - 1.8, e.zL + 1.6);
+            e.st = intentoLong(e, man, false);
+            hudTexto(null, `Intento ${e.ronda} de ${e.rondas}`);
+          } else {
+            const clasif = atl.atletas.map((a) => { const lista = a.esManuel ? e.mios : e.res[a.id]; const valor = Math.max(...lista); return { a, valor, texto: fmt(e.P, valor) }; }).sort((x, y) => y.valor - x.valor);
+            atlFin(clasif);
+          }
+        }
+      }
+      return;
+    }
+    // Altura y pértiga: la barra va subiendo y cada uno cae cuando no pasa
+    const esAltura = e.id === 'altura';
+    const actualizaIntento = esAltura ? actualizarIntentoAltura : actualizarIntentoPertiga;
+    if (e.fase === 'intento') {
+      const r = actualizaIntento(e, e.st, dt);
+      if (r === 'fin') {
+        const ok = e.st.ok;
+        if (ok) { e.mejorIdx.manuel = e.nivel; } else e.fallos.manuel++;
+        hudTexto(null, `Barra a ${fmtM(e.niveles[e.nivel])} · ${ok ? '¡Superada!' : '¡Fallo!'}`);
+        ninoDice(ok ? '¡Lo he pasado!' : '¡Uy, la barra!', 1.8);
+        if (ok) { atl.excitacion = 0.9; sonidoPublico(1.8, 0.2); }
+        e.manuelOk = ok;
+        e.fase = 'resuelto'; e.t = 0;
+        e.boton = '…';
+        // quita a Manuel del medio
+        if (esAltura) unirA(e, man, e.bar.x + 1.2, e.bar.z + 3.2, Math.PI); else unirA(e, man, e.box.x - 4, e.box.z + 3.4, Math.PI / 2);
+        if (!esAltura) atl.pertigaCurva && (atl.pertigaCurva.visible = false);
+      }
+    } else if (e.fase === 'resuelto') {
+      camAltura(e, dt);
+      if (e.t > 1.4) {
+        const terminaManuel = e.manuelOk || e.intento >= 2;
+        if (!e.manuelOk && e.intento < 2) {
+          // segundo intento en la misma altura
+          e.intento++;
+          ponerBarra(e, e.niveles[e.nivel]);
+          atlPies(man, ESTADIO.x + (esAltura ? e.P0.x : e.xIni), 0.03, ESTADIO.z + (esAltura ? e.P0.z : e.box.z), Math.PI / 2);
+          atlAnimar(man, 'reposo');
+          e.st = esAltura ? intentoAltura(e, man, false) : intentoPertiga(e, man, false);
+          hudTexto(null, `Barra a ${fmtM(e.niveles[e.nivel])} · Intento ${e.intento} de 2`);
+          e.fase = 'intento'; e.t = 0;
+        } else if (terminaManuel) {
+          if (!e.manuelOk) e.vivos.manuel = false;
+          // turno de Carlos en esta altura (si sigue en juego)
+          e.fase = 'carlos'; e.t = 0; e.carlosEmpezado = false;
+        }
+      }
+    } else if (e.fase === 'carlos') {
+      if (!e.carlosEmpezado) {
+        e.carlosEmpezado = true;
+        if (e.vivos.carlos) {
+          ponerBarra(e, e.niveles[e.nivel]);
+          const ok = e.nivel <= e.maxIdx.carlos && (Math.random() > 0.2 || e.intentoCarlos);
+          e.st = esAltura ? intentoAltura(e, carlos, true, ok) : intentoPertiga(e, carlos, true, ok);
+          if (esAltura) { atlPies(carlos, ESTADIO.x + e.P0.x, 0.03, ESTADIO.z + e.P0.z, Math.PI / 2); } else atlPies(carlos, ESTADIO.x + e.xIni, 0.03, ESTADIO.z + e.box.z, Math.PI / 2);
+          atlAnimar(carlos, 'correr', 1);
+          diga(carlos.p, '¡Me toca!', 1.4);
+        } else { e.st = null; }
+      }
+      if (e.st) {
+        const r = actualizaIntento(e, e.st, dt);
+        if (r === 'fin') {
+          if (e.st.ok) e.mejorIdx.carlos = e.nivel; else { e.fallos.carlos++; e.vivos.carlos = false; }
+          diga(carlos.p, e.st.ok ? '¡Bien!' : '¡Vaya!', 1.6);
+          e.st = null;
+          unirA(e, carlos, esAltura ? e.bar.x - 9.5 : e.box.x - 4.5, esAltura ? e.bar.z + 6.5 : e.box.z + 2.2);
+          if (!esAltura) atl.pertigaCurva && (atl.pertigaCurva.visible = false);
+          e.t = 0;
+        }
+      } else if (e.t > 0.9) {
+        // los demás, en silencio
+        atl.atletas.forEach((a) => {
+          if (a.esManuel || a.id === 'carlos' || !e.vivos[a.id]) return;
+          if (e.nivel <= e.maxIdx[a.id]) e.mejorIdx[a.id] = e.nivel; else { e.vivos[a.id] = false; }
+        });
+        pintarMarcadorAlturas(e);
+        const hayAlguien = Object.values(e.vivos).some((v) => v);
+        e.nivel++;
+        if (e.nivel >= e.niveles.length || !e.vivos.manuel || (!hayAlguien)) {
+          // fin: ordenamos por la mejor altura y, si empatan, por los fallos
+          const fin = atl.atletas.map((a) => {
+            const ult = e.niveles.length - 1;
+            const idx = a.esManuel ? e.mejorIdx.manuel : e.vivos[a.id] ? Math.min(e.maxIdx[a.id], ult) : e.mejorIdx[a.id];
+            const valor = idx >= 0 ? e.niveles[idx] : 0;
+            return { a, valor, texto: idx >= 0 ? fmtM(e.niveles[idx]) : 'sin marca', f: e.fallos[a.id] || 0 };
+          }).sort((x, y) => (y.valor - x.valor) || (x.f - y.f) || (x.a.esManuel ? -1 : y.a.esManuel ? 1 : 0));
+          atlFin(fin);
+        } else {
+          ponerBarra(e, e.niveles[e.nivel]);
+          e.intento = 1;
+          e.intentoCarlos = false;
+          const siguiente = e.niveles[e.nivel];
+          if (esAltura) atlPies(man, ESTADIO.x + e.P0.x, 0.03, ESTADIO.z + e.P0.z, Math.PI / 2); else atlPies(man, ESTADIO.x + e.xIni, 0.03, ESTADIO.z + e.box.z, Math.PI / 2);
+          atlAnimar(man, 'reposo');
+          e.st = esAltura ? intentoAltura(e, man, false) : intentoPertiga(e, man, false);
+          hudTexto(null, `Barra a ${fmtM(siguiente)} · Intento 1 de 2`);
+          pintarMarcadorAlturas(e);
+          avisar(`La barra sube a ${fmtM(siguiente)}`, 1800);
+          e.fase = 'intento'; e.t = 0;
+        }
+      }
+    }
+  }
+
+  // =====================================================================
+  // El podio, el confeti y el bucle de cada fotograma
+  // =====================================================================
+  const ESCALONES = [{ dx: 0, h: 1.02 }, { dx: -1.6, h: 0.74 }, { dx: 1.6, h: 0.54 }];   // 1.º en medio, 2.º a su izquierda, 3.º a su derecha
+  function iniciarCeremonia(e, clasif) {
+    const yo = clasif.findIndex((c) => c.a.esManuel);
+    e.cer = { t: 0, yo, podio: yo < 3 };
+    // los demás que no suben, mirando desde el césped
+    let k = 0;
+    clasif.forEach((c, i) => {
+      const a = c.a;
+      if (i < 3 && yo < 3) {
+        const E = ESCALONES[i];
+        atlPies(a, ESTADIO.x + PODIO_POS.x + E.dx, E.h + 0.03, ESTADIO.z + PODIO_POS.z, 0);
+        if (i === 0) atlAnimar(a, 'celebrar', 1); else atlAnimar(a, a.esManuel ? 'saltar' : 'saludar', 1, a.esManuel ? 0.5 : null);
+        if (a.esManuel) atlAnimar(a, 'celebrar', 1);
+      } else {
+        atlPies(a, ESTADIO.x + PODIO_POS.x - 5.4 + k * 1.3, 0.03, ESTADIO.z + PODIO_POS.z + 3.6 - (k % 2) * 0.8, Math.PI);
+        if (a.esManuel) atlAnimar(a, 'cansado'); else atlAnimar(a, 'celebrar', 1);
+        k++;
+      }
+    });
+    if (yo >= 3) { atlPies(MANUEL(), ESTADIO.x + PODIO_POS.x + 4.2, 0.03, ESTADIO.z + PODIO_POS.z + 3.4, Math.PI); atlAnimar(MANUEL(), 'reposo'); }
+    // el confeti y la medalla que gira sobre el podio
+    if (!atl.confeti) {
+      const N = 220, pos = new Float32Array(N * 3), col = new Float32Array(N * 3);
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+      atl.confeti = new THREE.Points(g, new THREE.PointsMaterial({ size: 0.28, vertexColors: true, transparent: true, depthWrite: false }));
+      atl.confeti.frustumCulled = false;
+      atl.confeti.userData.siempre = true;
+      atl.confetiDatos = [];
+      const cc = new THREE.Color();
+      for (let i = 0; i < N; i++) {
+        cc.set(['#e8463a', '#ffd21f', '#2a6edb', '#29b35a', '#ff4f8b', '#ffffff'][i % 6]);
+        col.set([cc.r, cc.g, cc.b], i * 3);
+        atl.confetiDatos.push({ p: new V3(), v: new V3(), t: 9 });
+      }
+      atl.grupo.add(atl.confeti);
+    }
+    atl.confeti.visible = true;
+    atl.confetiDatos.forEach((d) => {
+      d.p.set(ESTADIO.x + PODIO_POS.x + (Math.random() - 0.5) * 7, 7 + Math.random() * 2, ESTADIO.z + PODIO_POS.z + (Math.random() - 0.5) * 4);
+      d.v.set((Math.random() - 0.5) * 2, -1.2 - Math.random() * 1.5, (Math.random() - 0.5) * 2);
+      d.t = Math.random() * 0.8;
+    });
+    e.cer.confeti = yo < 3;
+    atl.confeti.visible = yo < 3;
+    if (yo < 3) {
+      const nombre = ['MedallaOro', 'MedallaPlata', 'MedallaBronce'][yo];
+      if (atl.medallaObj && atl.medallaObj.userData.nombre !== nombre) { atl.grupo.remove(atl.medallaObj); atl.medallaObj = null; }
+      if (!atl.medallaObj) { atl.medallaObj = atl.copiar(nombre); atl.medallaObj.userData.nombre = nombre; atl.grupo.add(atl.medallaObj); }
+      atl.medallaObj.visible = true;
+      atl.medallaObj.scale.setScalar(3.0);
+      atl.medallaObj.position.set(ESTADIO.x + PODIO_POS.x + ESCALONES[yo].dx, ESCALONES[yo].h + 2.9, ESTADIO.z + PODIO_POS.z - 0.6);
+    }
+  }
+  function actualizarCeremonia(e, dt) {
+    const c = e.cer;
+    if (!c) return;
+    c.t += dt;
+    const t = reloj.elapsedTime;
+    // cámara de frente al podio, o con Manuel si no ha subido
+    if (c.podio) camLado(e, PODIO_POS.x + Math.sin(t * 0.25) * 1.5, 2.6, PODIO_POS.z + 10, PODIO_POS.x, 1.4, PODIO_POS.z, 2.4);
+    else { const p = posAtleta(MANUEL()); camLado(e, p.x - ESTADIO.x - 3, 2.2, p.z - ESTADIO.z + 5, p.x - ESTADIO.x, 1.0, p.z - ESTADIO.z, 2.4); }
+    if (atl.confeti && atl.confeti.visible) {
+      const pa = atl.confeti.geometry.attributes.position;
+      atl.confetiDatos.forEach((d, i) => {
+        d.t += dt;
+        if (d.t > 0) { d.p.addScaledVector(d.v, dt); d.v.x += Math.sin(t * 3 + i) * dt; if (d.p.y < 0.1) { d.p.y = 8 + Math.random() * 2; d.v.y = -1 - Math.random() * 1.5; } }
+        pa.setXYZ(i, d.p.x, d.p.y, d.p.z);
+      });
+      pa.needsUpdate = true;
+    }
+    if (atl.medallaObj && atl.medallaObj.visible) { atl.medallaObj.rotation.y += dt * 2; atl.medallaObj.position.y += Math.sin(t * 3) * dt * 0.25; }
+    // los demás animan solos
+  }
+
+  // ---------- Cada fotograma ----------
+  const FRASES_ATL = { carlos: ['¡Eh, Manuel!', '¡A ver quién gana!', '¡Vamos a competir!'], lucia: ['¡Hola, Manuel!', '¿Competimos?', '¡Qué bien!'], hugo: ['¡Yo corro más!', '¡Mira cómo salto!'], martina: ['¡Mucha suerte!', '¡Qué ganas!'], leo: ['¡Vamos, Manuel!', '¡Yo primero!'] };
+  function actualizarAtletismo(dt) {
+    if (!atl.listo) return;
+    const t = reloj.elapsedTime;
+    if (atl.uT) atl.uT.value = t;
+    const dentro = atl.grupo.visible;
+    if (!dentro) return;
+    atl.excitacion = Math.max(atl.activa && atl.ev && atl.ev.fase !== 'fundido' ? 0.18 : 0.06, atl.excitacion - dt * 0.2);
+    if (atl.uExc) atl.uExc.value = atl.excitacion;
+    // banderas que ondean
+    atl.banderas.forEach((b) => {
+      const pa = b.m.geometry.attributes.position, base = b.base;
+      for (let i = 0; i < pa.count; i++) {
+        const x = base[i * 3], k = x / 2.4;
+        pa.setZ(i, base[i * 3 + 2] + Math.sin(x * 2.2 - t * 5 + b.f) * 0.22 * k);
+        pa.setY(i, base[i * 3 + 1] + Math.sin(x * 1.6 - t * 4 + b.f) * 0.05 * k);
+      }
+      pa.needsUpdate = true;
+    });
+    if (atl.trofeoPuerta) atl.trofeoPuerta.rotation.y += dt * 0.8;
+    if (atl.copa) atl.copa.rotation.y += dt * 0.6;
+    // los atletas
+    const e = atl.ev;
+    atl.atletas.forEach((a) => {
+      if (a.esManuel) return;
+      const carlosDeLaHistoria = a.id === 'carlos' && historia.activa && capitulo().con.includes('carlos') && !atl.activa;
+      if (carlosDeLaHistoria) return;                       // la historia lo mueve
+      a.p.mixer.update(dt);
+      if (!a.p.grupo.visible) return;
+      if (a.p.globo.hasta > t) ponerEnPantalla(a.p.globo.el, a.p.cabeza, (a.p.altoGlobo || 0.5) + 0.15);
+      else if (!a.p.globo.el.hidden) a.p.globo.el.hidden = true;
+      if (!atl.activa) atlReposo(a, dt, t);
+    });
+    if (atl.activa && e && e.fase !== 'fundido') {
+      if (e.fase === 'resultado') actualizarCeremonia(e, dt);
+      else if (!e.boton || e.boton === '…') { e.pulsada = false; e.taps = 0; ({ carrera: actualizarCarrera, lanzamiento: actualizarLanzamiento, salto: actualizarSalto })[e.P.tipo](e, dt); }
+      else ({ carrera: actualizarCarrera, lanzamiento: actualizarLanzamiento, salto: actualizarSalto })[e.P.tipo](e, dt);
+      // el marcador de la pantalla del estadio se avisa solo cuando cambia (ya lo pintan las pruebas)
+      if (e.P.tipo !== 'carrera') e.taps = 0;
+      if (atl.botPaso) atl.botPaso(e, dt);
+    }
+  }
+  // En reposo, mirando a Manuel y saludando cuando se acerca
+  function atlReposo(a, dt, t) {
+    const p = a.p, g = p.grupo, E = ninoE;
+    const d = distXZ(g.position, E.pos);
+    const mira = Math.atan2(E.pos.x - g.position.x, E.pos.z - g.position.z);
+    p.rumbo = angulo(p.rumbo, mira, 1 - Math.exp(-3 * dt));
+    g.rotation.set(0, p.rumbo, 0);
+    if (d < 9 && (!p.proximoSaludo || t > p.proximoSaludo)) {
+      p.proximoSaludo = t + 14 + Math.random() * 8;
+      p.saludaHasta = t + 2.2;
+      const f = FRASES_ATL[a.id] || ['¡Hola!'];
+      diga(p, f[Math.floor(Math.random() * f.length)], 2.4);
+    }
+    animarPadre(p, p.saludaHasta > t && p.acciones.saludar ? 'saludar' : 'reposo');
+    if (p.actual) { p.actual.paused = false; p.actual.timeScale = 1; }
+  }
+  // La cámara: la lleva la prueba (detrás de Manuel, de lado, siguiendo lo que vuela...)
+  const _mira = new V3();
+  function camaraAtletismo(dt) {
+    const e = atl.ev;
+    if (!atl.activa || !e || e.fase === 'fundido' || !enEstadio(ninoE.pos)) return false;
+    const c = e.cam;
+    if (!e.camLista) { camera.position.copy(c.p); _mira.copy(c.m); e.camLista = true; }
+    camera.position.lerp(c.p, 1 - Math.exp(-c.k * dt));
+    _mira.lerp(c.m, 1 - Math.exp(-(c.k + 1.5) * dt));
+    camera.lookAt(_mira);
+    sol.target.position.copy(_mira);
+    sol.position.copy(_mira).addScaledVector(SOL, 60);
+    return true;
+  }
+
 
   // =====================================================================
   // ---------- El safari: manadas de animales que saludan a Manuel ----------
@@ -14448,7 +16556,7 @@
   // Un cementerio de noche y un castillo con cuatro salas, cada una con su prueba. Los monstruos y los objetos
   // vienen de Halloween.py (halloween.glb); el castillo, la luz de luna, los rayos y los sustos se hacen aquí.
   const CASTILLO = new V3(700, 0, -900);
-  const enCastillo = (p) => !enElEspacio && p.x > 500 && p.z < -500;
+  const enCastillo = (p) => !enElEspacio && p.x > 500 && p.x < 900 && p.z < -500;   // más allá (x > 900), el estadio de atletismo
   const PUERTA_CASTILLO = new V3(12, 0, -95);     // verja con calabazas al fondo de las dunas
   const CL = (x, z, y = 0) => new V3(CASTILLO.x + x, y, CASTILLO.z + z);
   const castillo = {
@@ -16592,9 +18700,34 @@
       { tipo: 'mision', texto: 'Choca tres veces en los autos de choque', evento: 'choque', n: 3, sitio: () => FP(28, 27.6) },
       { tipo: 'hablar', lineas: [
         ['carlos', '¡Pum, pum, pum! ¡Qué risa!'],
+        ['carlos', '¡Primo, se me ocurre una cosa! Hoy hay competición de atletismo en el estadio de las dunas. ¡Vamos!']] },
+    ] },
+    { id: 'atletismo', titulo: 'Capítulo 7 · El estadio de atletismo con Carlos', lugar: 'estadio', con: ['carlos'], pasos: [
+      { tipo: 'hablar', lineas: [
+        ['carlos', '¡Manuel! ¡Hoy hay competición de atletismo en el estadio de las dunas!'],
+        ['manuel', '¡Yo quiero competir! ¡Voy a correr muchísimo!'],
+        ['carlos', 'Vienen Lucía, Hugo, Martina y Leo. Son siete pruebas y hay medallas para los tres primeros. ¡A ver quién gana, primo!'],
+        ['narrador', 'Para correr, pulsa el botón muy rápido. Para saltar y lanzar, púlsalo justo a tiempo.']] },
+      { tipo: 'mision', texto: 'Corre los cien metros contra Carlos y los demás', evento: 'atl:100', sitio: () => atl.sitios['100'], radio: 1.9 },
+      { tipo: 'hablar', lineas: [
+        ['carlos', '¡Qué carrera! Ahora toca lanzar: la jabalina y el peso.'],
+        ['manuel', 'Mi brazo es muy fuerte. ¡Mira!']] },
+      { tipo: 'mision', texto: 'Lanza la jabalina y el peso', evento: 'atlLanza', n: 2, sitio: () => sitioAtl(['jabalina', 'peso'], 'atlLanza'), radio: 1.9 },
+      { tipo: 'hablar', lineas: [
+        ['carlos', 'Ahora los saltos. Yo salto muy alto, ¡pero tú saltas más lejos!'],
+        ['carlos', 'Hay tres: altura, longitud y la pértiga. ¿Te atreves con la pértiga?'],
+        ['manuel', '¡Claro que sí!']] },
+      { tipo: 'mision', texto: 'Salta en altura, en longitud y con pértiga', evento: 'atlSalta', n: 3, sitio: () => sitioAtl(['altura', 'longitud', 'pertiga'], 'atlSalta'), radio: 1.9 },
+      { tipo: 'hablar', lineas: [
+        ['carlos', 'Solo falta la última prueba: los cuatrocientos metros, una vuelta entera a la pista.'],
+        ['carlos', 'Es la más larga, así que no te canses al principio.']] },
+      { tipo: 'mision', texto: 'Corre los cuatrocientos metros, una vuelta a la pista', evento: 'atl:400', sitio: () => atl.sitios['400'], radio: 1.9 },
+      { tipo: 'hablar', lineas: [
+        ['manuel', '¡Qué cansado estoy! ¡Pero qué divertido!'],
+        ['carlos', '¡Eres un campeón, primo! Y mira: la gente te aplaude.'],
         ['carlos', 'Me tengo que ir con mis papás. ¡Adiós, primo! Tu mamá te espera en el pueblo de los números.']] },
     ] },
-    { id: 'numeros', titulo: 'Capítulo 7 · Los números con mamá', lugar: 'numeros', con: ['mama'], pasos: [
+    { id: 'numeros', titulo: 'Capítulo 8 · Los números con mamá', lugar: 'numeros', con: ['mama'], pasos: [
       { tipo: 'hablar', lineas: [
         ['mama', 'Bienvenido al pueblo de los números. Aquí viven unos amigos hechos de bloques.'],
         ['mama', '¡Ay! El número siete se ha perdido. ¿Le ayudamos a volver con sus amigos?']] },
@@ -16604,14 +18737,14 @@
       { tipo: 'mision', texto: 'Supera un juego de números con mamá', evento: 'juegoNum', sitio: () => (numeros.puestos[0] ? numeros.puestos[0].sitio : null) },
       { tipo: 'hablar', lineas: [['mama', '¡Qué listo eres! Ahora vamos a tu cuarto: ¡tengo una sorpresa con las pistas de coches!']] },
     ] },
-    { id: 'pistas', titulo: 'Capítulo 8 · Las pistas de coches con mamá', lugar: 'juguetes', con: ['mama'], pasos: [
+    { id: 'pistas', titulo: 'Capítulo 9 · Las pistas de coches con mamá', lugar: 'juguetes', con: ['mama'], pasos: [
       { tipo: 'hablar', lineas: [
         ['mama', 'Mira cuántas pistas. Elige un coche y lánzalo con fuerza, pero no demasiada.'],
         ['manuel', '¡Voy a hacer un rizo!']] },
       { tipo: 'mision', texto: 'Supera una pista de coches', evento: 'pista', sitio: () => (juguetes.estaciones[0] ? juguetes.estaciones[0].sitio : null) },
       { tipo: 'hablar', lineas: [['mama', '¡Bravo! Ahora papá te lleva al arroyo mágico. Ponte cómodo, ¡que hace calor!']] },
     ] },
-    { id: 'arroyo', titulo: 'Capítulo 9 · El arroyo mágico con papá', lugar: 'arroyo', con: ['papa'], pasos: [
+    { id: 'arroyo', titulo: 'Capítulo 10 · El arroyo mágico con papá', lugar: 'arroyo', con: ['papa'], pasos: [
       { tipo: 'hablar', lineas: [
         ['papa', '¡Qué sitio tan bonito! Escucha el agua de la cascada.'],
         ['papa', 'Mira, ahí hay una ranita perdida, junto a la cascada. Vamos a ayudarla.']] },
@@ -16628,7 +18761,7 @@
       { tipo: 'mision', texto: 'Mira saltar dos peces con papá', evento: 'arroyo', n: 2, sitio: () => historia.sitioPuente },
       { tipo: 'hablar', lineas: [['papa', '¡Qué saltos! ¿Te apetece bucear? Vamos al mar a ver el arrecife.']] },
     ] },
-    { id: 'arrecife', titulo: 'Capítulo 10 · El fondo del mar con papá', lugar: 'arrecife', con: ['papa'], pasos: [
+    { id: 'arrecife', titulo: 'Capítulo 11 · El fondo del mar con papá', lugar: 'arrecife', con: ['papa'], pasos: [
       { tipo: 'hablar', lineas: [
         ['papa', '¡Al agua! Mira qué peces de colores.'],
         ['papa', 'Me encantan las tortugas. ¿Me ayudas a encontrarlas?']] },
@@ -16637,7 +18770,7 @@
       { tipo: 'mision', texto: 'Encuentra el cofre del tesoro', cerca: 'tesoro', sitio: () => zonaArrecife('tesoro'), radio: 7 },
       { tipo: 'hablar', lineas: [['manuel', '¡Monedas de oro!'], ['papa', '¡Somos piratas! Ahora vamos con mamá, que nos espera en el safari.']] },
     ] },
-    { id: 'safari', titulo: 'Capítulo 11 · El safari con papá y mamá', lugar: 'safari', con: ['papa', 'mama'], pasos: [
+    { id: 'safari', titulo: 'Capítulo 12 · El safari con papá y mamá', lugar: 'safari', con: ['papa', 'mama'], pasos: [
       { tipo: 'hablar', lineas: [
         ['mama', '¡Bienvenido al safari! Aquí viven muchos animales.'],
         ['papa', 'El guarda dice que hay un lagarto malito junto a la roca de los leones. ¿Le ayudamos?']] },
@@ -16651,7 +18784,7 @@
       { tipo: 'mision', texto: 'Sube al jeep y deja que te saluden tres manadas', evento: 'manada', n: 3, sitio: () => (safari.jeep ? safari.jeep.g.position : null), radio: 3.2 },
       { tipo: 'hablar', lineas: [['mama', '¡Qué día tan bonito! Se está haciendo de noche...'], ['papa', '¡Mira quién viene! Son tus primos Carlos y Miguel.']] },
     ] },
-    { id: 'castillo', titulo: 'Capítulo 12 · El castillo del terror', lugar: 'castillo', con: ['carlos', 'miguel'], pasos: [
+    { id: 'castillo', titulo: 'Capítulo 13 · El castillo del terror', lugar: 'castillo', con: ['carlos', 'miguel'], pasos: [
       { tipo: 'hablar', lineas: [
         ['miguel', '¡Manuel! Hoy es Halloween y en las dunas hay un castillo del terror. ¿Te atreves a entrar?'],
         ['carlos', 'Yo... tengo un poquito de miedo.'],
@@ -16685,7 +18818,7 @@
         ['manuel', '¡Claro! ¡Para ti y para Miguel!'],
         ['miguel', '¡Qué valiente has sido! Vamos a casa, que papá y mamá nos esperan.']] },
     ] },
-    { id: 'estrellas', titulo: 'Capítulo 13 · Viaje a las estrellas', lugar: 'playa', con: ['papa', 'mama'], llegada: () => new V3(PUERTA_ESPACIO.x + 2, 0, PUERTA_ESPACIO.z + 14), pasos: [
+    { id: 'estrellas', titulo: 'Capítulo 14 · Viaje a las estrellas', lugar: 'playa', con: ['papa', 'mama'], llegada: () => new V3(PUERTA_ESPACIO.x + 2, 0, PUERTA_ESPACIO.z + 14), pasos: [
       { tipo: 'hablar', lineas: [
         ['papa', '¡Hola, campeón! Antes de dormir, ¿vamos a ver las estrellas de cerca?'],
         ['mama', 'Papá ha preparado una nave espacial. ¡Drako también viene!'],
@@ -16696,7 +18829,7 @@
       { tipo: 'mision', texto: 'Vuelve a la Tierra en la nave', evento: 'espacioAterrizaje' },
       { tipo: 'hablar', lineas: [['manuel', '¡Ha sido el mejor viaje del mundo!'], ['papa', 'Otro día seguimos explorando el universo.']] },
     ] },
-    { id: 'noche', titulo: 'Capítulo 14 · A dormir', lugar: 'casa', con: [], pasos: [
+    { id: 'noche', titulo: 'Capítulo 15 · A dormir', lugar: 'casa', con: [], pasos: [
       { tipo: 'hablar', lineas: [['mama', '¡Qué calabaza tan bonita! La he puesto en tu cuarto.'], ['papa', '¡Hora de cenar! Hoy has ayudado a mucha gente y a muchos animales.']] },
       { tipo: 'mision', texto: 'Cena con papá y mamá', evento: 'comer', sitio: () => SALA(-4.0, -0.3) },
       { tipo: 'hablar', lineas: [['mama', 'Y ahora, a la cama. Drako también está cansado.']] },
@@ -16718,6 +18851,7 @@
   function zonaDe(p) {
     if (enElEspacio) return 'espacio';
     if (enCastillo(p)) return 'castillo';
+    if (enEstadio(p)) return 'estadio';
     if (p.x > 500) return 'arrecife';
     if (p.x < -500) return 'circuito';
     if (p.z > 300) return 'casa';
@@ -16729,9 +18863,9 @@
     return 'playa';
   }
   const SALIR_DE = { arrecife: () => salirDelAgua(), circuito: () => volverDelCircuito(), casa: () => salirDeCasa(), juguetes: () => volverDeJuguetes(),
-    numeros: () => volverDeNumeros(), feria: () => volverDeFeria(), arroyo: () => volverDelArroyo(), safari: () => volverDelSafari(), castillo: () => volverDelCastillo() };
+    numeros: () => volverDeNumeros(), feria: () => volverDeFeria(), arroyo: () => volverDelArroyo(), safari: () => volverDelSafari(), castillo: () => volverDelCastillo(), estadio: () => volverDelEstadio() };
   const ENTRAR_EN = { arrecife: () => irAlArrecife(), circuito: () => irAlCircuito(), casa: () => entrarEnCasa(), juguetes: () => irAJuguetes(),
-    numeros: () => irANumeros(), feria: () => irAFeria(), arroyo: () => irAlArroyo(), safari: () => irAlSafari(), castillo: () => { if (castillo.fase > 0) reiniciarCastillo(); irAlCastillo(); } };
+    numeros: () => irANumeros(), feria: () => irAFeria(), arroyo: () => irAlArroyo(), safari: () => irAlSafari(), castillo: () => { if (castillo.fase > 0) reiniciarCastillo(); irAlCastillo(); }, estadio: () => irAlEstadio() };
   // Lleva a Manuel a una zona (pasando por la playa si hace falta) y luego llama a listo()
   function viajarA(zona, llegada, listo) {
     historia.ocupado = true;
@@ -16791,13 +18925,15 @@
     }
     try {
       const g = JSON.parse(localStorage.getItem('playa-del-perro-historia') || '{}');
-      if (Number.isInteger(g.cap)) historia.cap = clamp(g.cap, 0, CAPITULOS.length - 1);
+      const porId = CAPITULOS.findIndex((c) => c.id === g.id);
+      if (porId >= 0) historia.cap = porId;                                  // por nombre: así no se pierde el sitio al añadir capítulos
+      else if (Number.isInteger(g.cap)) historia.cap = clamp(g.cap, 0, CAPITULOS.length - 1);
       historia.terminada = !!g.fin;
     } catch (e) { /* sin guardar */ }
     pintarBotonHistoria();
   }
   function guardarHistoria() {
-    try { localStorage.setItem('playa-del-perro-historia', JSON.stringify({ cap: historia.cap, fin: historia.terminada })); } catch (e) { /* sin guardar */ }
+    try { localStorage.setItem('playa-del-perro-historia', JSON.stringify({ cap: historia.cap, id: CAPITULOS[historia.cap] && CAPITULOS[historia.cap].id, fin: historia.terminada })); } catch (e) { /* sin guardar */ }
   }
   const capitulo = () => CAPITULOS[historia.cap];
   const pasoActual = () => (historia.activa ? capitulo().pasos[historia.paso] : null);
@@ -16919,7 +19055,8 @@
     Object.values(historia.acomp).forEach((p) => { if (p && p.grupo.visible && p.acciones.celebrar) { animarPadre(p, 'celebrar'); p.hablaHasta = reloj.elapsedTime + 1.8; } });
     // si estaba en un minijuego con su panel (números, pistas, pesca), se cierra solo un poco después
     const enJuego = !!numeros.juego || !!juguetes.activa || ninoE.modo === 'pescar';
-    setTimeout(() => {
+    const seguir = () => {
+      if (atl.activa) return setTimeout(seguir, 500);   // el estadio: se espera a que se vean los resultados
       try {
         if (numeros.juego) cerrarJuego();
         if (juguetes.activa && !juguetes.lanzamiento) cerrarEstacion();
@@ -16928,7 +19065,8 @@
       historia.paso++;
       historia.mision = null;
       empezarPaso();
-    }, enJuego ? 3800 : 2200);
+    };
+    setTimeout(seguir, enJuego ? 3800 : 2200);
   }
   function siguienteCapitulo() {
     quitarProps();
@@ -16963,11 +19101,13 @@
     if (!listo) return;
     if (!historia.activa) return empezarHistoria();
     if (historia.ocupado) return;
+    if (atl.activa && atl.ev && atl.ev.fase === 'resultado') return atlCerrar();
     const P = pasoActual();
     if (!P) return;
     if (P.tipo === 'hablar') return siguienteLinea();
     const m = historia.mision;
     if (!m || m.hecha) return;
+    if (atl.activa && atl.ev) return atlPulsar();
     if (enElEspacio) return m.P.evento === 'espacioAterrizaje' ? volverALaTierra() : espacioSeguir();
     if (espacio.estado) return;
     const E = ninoE;
@@ -17327,6 +19467,7 @@
     for (const k of lista) {
       const p = historia.acomp[k];
       if (!p || !p.grupo.visible) continue;
+      if (atl.activa && p === atl.carlos) continue;   // en las pruebas, Carlos compite
       p.mixer.update(dt);
       moverAcompanante(p, lado, dt, t);
       lado = -lado;
@@ -17488,6 +19629,7 @@
       const P = pasoActual();
       if (historia.ocupado) t = '…';
       else if (!P || P.tipo === 'hablar') t = 'Seguir ▶';
+      else if (atl.activa && atl.ev) t = atl.ev.fase === 'resultado' ? 'Seguir ▶' : atl.ev.boton && atl.ev.boton !== '…' ? `${atl.ev.boton} ▶` : '…';
       else if (historia.mision && !historia.mision.hecha && enElEspacio) t = historia.mision.P.evento === 'espacioAterrizaje' ? '🏠 A casa ▶' : espacio.estado === 'parada' ? (espacio.foto ? 'Siguiente ▶' : '📷 Foto ▶') : '…';
       else if (historia.mision && !historia.mision.hecha) {
         const E = ninoE;
@@ -17675,6 +19817,33 @@
       irPistas: () => irAJuguetes(),
       irFeria: () => irAFeria(),
       irArroyo: () => irAlArroyo(),
+      irEstadio: () => irAlEstadio(),
+      estadio: () => ({ activa: atl.activa, ev: atl.ev && { id: atl.ev.id, fase: atl.ev.fase, boton: atl.ev.boton, ronda: atl.ev.ronda, nivel: atl.ev.nivel, intento: atl.ev.intento, t: +atl.ev.t.toFixed(2), puesto: atl.ev.puesto,
+        st: atl.ev.st ? atl.ev.st.fase : null, v: atl.ev.corr ? +atl.ev.corr[0].v.toFixed(2) : null, s: atl.ev.corr ? +atl.ev.corr[0].s.toFixed(1) : null }, hechas: [...atl.hechas], medallas: atl.medallas,
+        pos: ninoE.pos.toArray().map((v) => +v.toFixed(1)), zona: zonaDe(ninoE.pos), sesion: atl.sesion ? [...atl.sesion] : [], carlos: atl.carlos ? atl.carlos.grupo.position.toArray().map((v) => +v.toFixed(1)) : null }),
+      atl: (id) => atlEmpezar(id),
+      botAtl: (tasa = 5, retraso = 0, fuerza = 0.86, angulo = 0.42, exactoAltura = 0.93) => {
+        // un jugador que pulsa el botón como lo haría una persona: rápido para correr y a tiempo para saltar o lanzar
+        let acu = 0, esperaSalto = 0, antes = '';
+        atl.botPaso = (e, dt) => {
+          if (e.fase === 'resultado' || e.fase === 'fundido') return;
+          const b = e.boton || '';
+          if (b !== antes) { antes = b; esperaSalto = retraso; }
+          if (b === '¡CORRE!' || b === '¡CARRERILLA!') { acu += tasa * dt; while (acu >= 1) { acu -= 1; atlPulsar(); } }
+          else if (b === '¡FUERZA!') { if (e.pot >= fuerza && e.dirP > 0) atlPulsar(); }
+          else if (b === '¡ÁNGULO!') { if (e.ang >= angulo && e.dirA > 0) atlPulsar(); }
+          else if (b === '¡SALTA!' || b === '¡CLAVA!') {
+            if (e.st && e.st.u !== undefined) { if (e.st.u >= exactoAltura) atlPulsar(); }
+            else if (e.st && e.id === 'longitud') { if (e.xB - e.st.x <= 0.6) atlPulsar(); }
+            else if (e.st && e.id === 'pertiga') { if (e.box.x - e.st.x <= 0.7) atlPulsar(); }
+            else { esperaSalto -= dt; if (esperaSalto <= 0) atlPulsar(); }
+          }
+        };
+      },
+      pulsar: (n = 1) => { for (let i = 0; i < n; i++) atlPulsar(); },
+      cerrarAtl: () => atlCerrar(),
+      camPos: () => ({ p: camera.position.toArray().map((v) => +v.toFixed(1)), m: atl.ev && atl.ev.cam ? atl.ev.cam.m.toArray().map((v) => +v.toFixed(1)) : null, cp: atl.ev && atl.ev.cam ? atl.ev.cam.p.toArray().map((v) => +v.toFixed(1)) : null }),
+      estacion: (id) => { const s = atl.sitios[id]; ninoE.pos.set(s.x, 0.02, s.z); cam.objetivo.copy(ninoE.pos); },
       fantasticos: () => ({ criaturas: fanta.criaturas.map((c) => [c.id, c.estado, c.o.visible, c.o.position.toArray().map((v) => +v.toFixed(1))]), vistas: [...fanta.vistas], aciertos: fanta.aciertos,
         primerPlano: !!primerPlano, arboles: fanta.arboles.map((a) => a.tiro.toArray().map((v) => +v.toFixed(1))), mision: misionNino() && misionNino().id }),
       junto: (id, lat = 4) => { const c = fanta.criaturas.find((q) => q.id === id); const p = c.agua ? orillaArroyo(c.u, lat) : orillaArroyo(c.u, c.lat + (c.lat > 0 ? -lat : lat)); ninoE.pos.set(p.x, p.y + 0.05, p.z); ninoE.rumbo = Math.atan2(c.sitio.x - p.x, c.sitio.z - p.z); cam.objetivo.copy(ninoE.pos); cam.yaw = ninoE.rumbo + Math.PI; },
@@ -17905,6 +20074,7 @@
   const _pp = new V3(), _pm = new V3(), _ejeY = new V3(0, 1, 0);
   function actualizarCamara(dt) {
     if (camaraEspacio(dt)) return;  // despegando o en el espacio
+    if (camaraAtletismo(dt)) return;  // en una prueba del estadio
     const foco = juguetes.foco || (jugador === 'perro' ? estado.pos : ninoE.pos);
     const alto = juguetes.foco ? 0.3 : jugador === 'perro' ? 0.6 : 1.0;
     cam.objetivo.x = damp(cam.objetivo.x, foco.x, 6, dt);
@@ -18019,6 +20189,7 @@
         actualizarGente(dt);
         actualizarCastillo(dt);
         actualizarEspacio(dt);
+        actualizarAtletismo(dt);
         tripulacionLibre(dt);
         comprobarPuertasAuto();
       }

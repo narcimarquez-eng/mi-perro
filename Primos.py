@@ -7,7 +7,8 @@ carlos.glb, miguel.glb y papa_verano.glb, y una vista previa (primos.png).
 - Carlos: primo de la misma edad que Manuel, algo más alto (unos 5 cm), pelo más rubio y gafas.
 - Miguel: primo de 14 años, alto (1,75 m) y con el pelo oscuro.
 - Papá de verano: pantalón corto y polo (para el arroyo, el mar, el safari y el parque acuático).
-Animaciones: reposo, andar, saludar, hablar, celebrar, sentado (en las atracciones) y nadar.
+Animaciones: reposo, andar, saludar, hablar, celebrar, sentado (en las atracciones), nadar y las de atletismo de AnimAtletismo.py
+(correr, correr_pertiga, agachado, lanzar, saltar y cansado).
 """
 import bpy
 import math
@@ -17,6 +18,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import Padres as P  # noqa: E402  (crea la escena vacía y trae crear_persona y las animaciones)
+from AnimAtletismo import ANIMS_ATLETISMO  # noqa: E402
 from mathutils import Vector  # noqa: E402
 
 X, Y, Z, S2 = P.X, P.Y, P.Z, P.S2
@@ -127,7 +129,7 @@ def nadar(t):
 
 
 ANIMS = (("reposo", 4.0, P.reposo), ("andar", 1.1, P.andar), ("saludar", 1.2, P.saludar), ("hablar", 2.0, P.hablar),
-         ("celebrar", 1.0, celebrar), ("sentado", 3.0, sentado), ("nadar", 1.6, nadar))
+         ("celebrar", 1.0, celebrar), ("sentado", 3.0, sentado), ("nadar", 1.6, nadar)) + ANIMS_ATLETISMO
 
 
 def mats(nombre, piel, arriba, pantalon, zapas, pelo, extra=None):
