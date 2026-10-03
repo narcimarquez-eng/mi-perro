@@ -652,8 +652,10 @@
   /* ---------- Viaje por el espacio ---------- */
   body.en-espacio .acciones, body.en-espacio .joystick, body.en-espacio .ayuda { display: none; }
   body.en-espacio .aviso { top: 20%; }
+  body.en-espacio .tarea { display: none; }
   body.en-espacio:not(.en-historia) .seguir { display: none; }
-  body.en-espacio.en-historia .seguir { bottom: calc(250px + env(safe-area-inset-bottom, 0px)); }
+  body.en-espacio.en-historia .seguir { left: auto; right: 16px; transform: none; max-width: calc(100% - 32px); bottom: calc(250px + env(safe-area-inset-bottom, 0px)); }
+  body.en-espacio.en-historia .seguir:active { transform: translateY(4px); }
   body.en-espacio .dialogo { bottom: calc(322px + env(safe-area-inset-bottom, 0px)); }
   .flash { position: fixed; inset: 0; background: #fff; opacity: 0; pointer-events: none; transition: opacity 0.25s; }
   .flash.activo { opacity: 0.9; transition: none; }
@@ -14971,6 +14973,21 @@
     cam.pitch = 0.15;
     cam.dist = 16;
   }
+  // Si la historia salta a otro capítulo con el viaje a medias, se deja la nave en su sitio
+  function cancelarViajeEspacial() {
+    if (!espacio.estado) return;
+    if (enElEspacio) salirDelEspacio();
+    espacio.estado = null;
+    espacio.saltoHecho = false;
+    scene.background = null;
+    cielo.visible = true;
+    const N = espacio.naveP;
+    N.position.copy(espacio.baseNave);
+    N.rotation.set(0, 0, 0, 'YXZ');
+    N.getObjectByName('Nave_Fuego').visible = false;
+    if (ninoE.modo === 'atraccion' && ninoE.atr && ninoE.atr.tipo === 'nave') terminarAtraccion();
+    espacio.tripulacion.forEach((p) => { p.grupo.rotation.set(0, 0, 0); if (!historia.activa) p.grupo.visible = false; });
+  }
   function bajarseDeLaNave() {
     fundido(() => {
       espacio.estado = null;
@@ -15020,7 +15037,7 @@
     const lado = new V3(-haciaSol.z, 0, haciaSol.x);
     const dir = haciaSol.multiplyScalar(0.75).addScaledVector(lado, 0.55).add(new V3(0, id === 'galaxia' ? 1.6 : 0.3, 0)).normalize();
     if (id === 'sol') dir.set(0.3, 0.25, 1).normalize();
-    const dist = id === 'galaxia' ? 850 : id === 'sol' ? 55 : id === 'nebulosa' ? 170 : id === 'agujero' ? 95 : id === 'neutrones' ? 60 : r * 2.4 + 7;
+    const dist = id === 'galaxia' ? 850 : id === 'sol' ? 55 : id === 'nebulosa' ? 170 : id === 'agujero' ? 95 : id === 'neutrones' ? 60 : r < 2.5 ? r * 3 + 3.5 : r * 2.4 + 7;  // a los pequeños, más cerca
     return c.clone().addScaledVector(dir, dist);
   }
   function irAParada(k, directo) {
@@ -15061,7 +15078,7 @@
     espacioTexto.textContent = P.texto;
     btnFoto.disabled = false;
     btnSiguiente.disabled = false;
-    btnSiguiente.textContent = k + 1 < PARADAS.length ? 'Siguiente ▶' : '🏠 A casa';
+    btnSiguiente.hidden = k + 1 >= PARADAS.length;  // en la última parada ya está «A casa»
     const quien = espacio.tripulacion.length ? espacio.tripulacion[k % espacio.tripulacion.length] : null;
     decirEnVoz(quien ? quien.clave : 'narrador', `${P.nombre}. ${P.texto}`);
     if (quien) { diga(quien, P.nombre, 3); if (quien.acciones.hablar) animarPadre(quien, 'hablar'); }
@@ -15160,7 +15177,7 @@
       cielo.visible = k < 0.6;
       if (T > 5) {
         espacio.estado = 'cambio';
-        fundido(() => { scene.background = null; cielo.visible = true; N.position.copy(espacio.baseNave); N.rotation.set(0, 0, 0, 'YXZ'); fu.visible = false; entrarAlEspacio(); });
+        fundido(() => { if (espacio.estado !== 'cambio') return; scene.background = null; cielo.visible = true; N.position.copy(espacio.baseNave); N.rotation.set(0, 0, 0, 'YXZ'); fu.visible = false; entrarAlEspacio(); });
       }
     } else if (espacio.estado === 'aterriza') {
       espacio.t += dt;
@@ -15180,7 +15197,9 @@
     T.nubes.rotation.y += dt * 0.05;
     T.sat.position.set(Math.cos(t * 0.6) * 3.4, 0.6, Math.sin(t * 0.6) * 3.4);
     T.sat.rotation.y = -t * 0.6;
-    espacio.cuerpos.luna.m.position.copy(T.pos).add(new V3(Math.cos(t * 0.08) * 6, 0.5, Math.sin(t * 0.08) * 6));
+    // la Luna gira alrededor de la Tierra, pero se queda quieta mientras vamos a verla
+    if (PARADAS[espacio.parada]?.id !== 'luna') espacio.tLuna = (espacio.tLuna || 0) + dt * 0.08;
+    espacio.cuerpos.luna.m.position.copy(T.pos).add(new V3(Math.cos(espacio.tLuna || 0) * 6, 0.5, Math.sin(espacio.tLuna || 0) * 6));
     espacio.cuerpos.jupiter.lunas.forEach((L) => L.m.position.copy(espacio.cuerpos.jupiter.g.position).add(new V3(Math.cos(t * L.w + L.a) * L.r, 0, Math.sin(t * L.w + L.a) * L.r)));
     espacio.asteroides.rotation.y += dt * 0.004;
     espacio.kuiper.rotation.y += dt * 0.0015;
@@ -15235,7 +15254,9 @@
         setTimeout(() => flashEl.classList.remove('activo'), 250);
         if (espacio.saltoA === 'casa') { espacio.saltoHecho = false; espacio.rayas.visible = false; aterrizar(); return; }
         const k = espacio.saltoA;
+        const relCam = camera.position.clone().sub(E.position);  // la cámara salta con la nave
         E.position.copy(puntoDeVista(k));
+        camera.position.copy(E.position).add(relCam);
         _ve.subVectors(centroParada(k), E.position).normalize();
         E.rotation.set(0, Math.atan2(_ve.x, _ve.z), 0, 'YXZ');
         espacio.parada = k;
@@ -15271,7 +15292,7 @@
       // por detrás y a un lado de la nave: el planeta en grande y la nave en una esquina
       const c = centroParada(espacio.parada), r = radioParada(espacio.parada);
       const lejos = E.position.distanceTo(c);
-      const dir = E.position.clone().sub(c).normalize().applyAxisAngle(new V3(0, 1, 0), 0.32 + Math.sin(espacio.t * 0.12) * 0.12);
+      const dir = E.position.clone().sub(c).normalize().applyAxisAngle(new V3(0, 1, 0), (r < 2.5 ? 0.85 : 0.32) + Math.sin(espacio.t * 0.12) * 0.12);
       deseo = c.clone().addScaledVector(dir, lejos + 8 + lejos * 0.12).add(new V3(0, 3 + lejos * 0.16, 0));
       mira = c.clone().lerp(E.position, 0.15).add(new V3(0, -lejos * 0.16, 0));
       if (r > 200) mira = c.clone().add(new V3(0, -lejos * 0.2, 0));
@@ -15688,6 +15709,7 @@
     historia.mision = null;
     guardarHistoria();
     quitarProps();
+    cancelarViajeEspacial();
     const C = capitulo();
     avisar(C.titulo, 2600);
     decirEnVoz('narrador', C.titulo.replace('·', '.'));
