@@ -1027,6 +1027,7 @@
   // ---------- Render básico ----------
   const canvas = document.getElementById('escena');
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer.localClippingEnabled = true;     // el corte del tejado en el mundo de bloques
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.outputEncoding = THREE.sRGBEncoding;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -16235,7 +16236,7 @@
   const bl = {
     listo: false, grupo: new THREE.Group(), mats: [], mallas: [], piezas: [], figuras: [], cols: null, H: new Int16Array(NSUB * NSUB),
     tipo: 0, tam: 0, cat: 'bloques', figSel: null, escala: 1, historial: [], anim: [], total: 0, nuevos: 0, tipos: new Set(), P: {}, catalogoFig: [], guardar: null,
-    ghost: null, ghostQuitar: null, ghostFig: null, hud: null, nubes: [], ocultos: null, plan: null, casita: [], vaciarPendiente: 0, generarPendiente: 0, elegir: false, sel: null, nivel: null,
+    ghost: null, ghostQuitar: null, ghostFig: null, hud: null, nubes: [], ocultos: null, plan: null, casita: [], vaciarPendiente: 0, generarPendiente: 0, elegir: false, sel: null, nivel: null, corte: new THREE.Plane(new THREE.Vector3(0, -1, 0), 1e6), dentro: false,
   };
 
   // Materiales por tipo (lado, arriba, abajo) con el mismo truco: la textura se coloca según las coordenadas de la pieza,
@@ -16272,6 +16273,7 @@
         if (t.alfa === 'hoja') { m.alphaTest = 0.5; m.side = THREE.DoubleSide; }
         if (t.alfa === 'cristal' || t.alfa === 'agua') { m.transparent = true; m.depthWrite = false; }
         if (t.brilla) { m.emissive = new THREE.Color('#ffd97a'); m.emissiveIntensity = 0.85; m.emissiveMap = tex; }
+        m.clippingPlanes = [bl.corte];                    // para ver por dentro de las casas (se corta el tejado)
         return inyectarTexturaBloque(m);
       };
       const lado = crea(t.lado, 1);
@@ -17394,6 +17396,7 @@
   }
   function volverDelBloques() {
     bl.sel = null; bl.elegir = false; bl.nivel = null; pintarNivel(); pintarPaletaBloques();
+    bl.corte.constant = 1e6;
     fundido(() => {
       ocultarParaBloques(false);
       ninoE.modo = 'libre';
@@ -17473,6 +17476,13 @@
     }
   }
 
+  function bajoTecho() {
+    if (!enBloques(ninoE.pos) || jugador !== 'nino') return false;
+    const ix = Math.floor((ninoE.pos.x - BLOQUES.x + MITAD) * 2), iz = Math.floor((ninoE.pos.z - BLOQUES.z + MITAD) * 2);
+    if (ix < 0 || iz < 0 || ix >= NSUB || iz >= NSUB) return false;
+    const cabeza = (ninoE.pos.y + 1.0) * 2, techo = (ninoE.pos.y + 4.5) * 2;
+    return bl.cols[celda(ix, iz)].some((q) => !esAgua(q) && q.iy >= cabeza && q.iy <= techo);
+  }
   // Si Drako se queda atascado detrás de una construcción (no puede saltar bloques enteros), aparece junto a Manuel
   const rescate = { t: 0, x: 0, z: 0, quieto: 0 };
   function rescatarDrako(dt) {
@@ -17519,6 +17529,13 @@
     }
     bl.nubes.forEach((n) => { n.position.x += n.userData.v * dt; if (n.position.x > 130) n.position.x = -130; });
     rescatarDrako(dt);
+    // Bajo techo: se corta todo lo que queda por encima de la cabeza de Manuel y la cámara mira desde arriba
+    bl.dentro = bajoTecho();
+    bl.corte.constant = bl.dentro ? ninoE.pos.y + 1.9 : 1e6;
+    if (bl.dentro && jugador === 'nino') {
+      cam.pitch = damp(cam.pitch, Math.max(cam.pitch, 0.95), 3, dt);
+      cam.dist = damp(cam.dist, Math.min(cam.dist, 7), 3, dt);
+    }
     // las puertas se abren solas cuando Manuel o Drako se acercan
     for (const f of bl.figuras) {
       if (!f.hoja) continue;
