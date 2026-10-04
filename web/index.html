@@ -875,6 +875,7 @@
     <button type="button" class="bl-boton" id="bl-elegir">👆 Elegir</button>
     <button type="button" class="bl-boton quitar" id="bl-borrar" hidden>❌ Borrar este</button>
     <button type="button" class="bl-boton" id="bl-deshacer">↶ Deshacer</button>
+    <button type="button" class="bl-boton" id="bl-generar" aria-label="Mundo nuevo al azar">🎲 Mundo</button>
     <button type="button" class="bl-boton peq" id="bl-vaciar" aria-label="Vaciar todo">🗑️</button>
   </div>
   <p class="bl-info" id="bl-info"></p>
@@ -16157,6 +16158,46 @@
   };
   const P_CALABAZA_ARRIBA = (c, r) => { ruidoPix(c, r, '#d9740f', 0.14); for (let y = 6; y < 10; y++) for (let x = 6; x < 10; x++) pxl(c, x, y, '#4a7a22'); };
 
+  // Para casas: pared blanca, hormigón, baldosas, tejas, parqué, ventana y librería
+  const P_YESO = (c, r) => { ruidoPix(c, r, '#efe8da', 0.05); motas(c, r, '#e0d8c6', 10); motas(c, r, '#faf6ee', 8); };
+  const P_HORMIGON = (c, r) => { ruidoPix(c, r, '#a9aaa6', 0.1); motas(c, r, '#8f908c', 16); for (let i = 0; i < 16; i++) pxl(c, i, 15, mulCol('#a9aaa6', 0.82)); };
+  const P_BALDOSA = (c, r) => {
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) pxl(c, x, y, mulCol(((x >> 3) + (y >> 3)) % 2 ? '#e9e6dd' : '#7f9ab4', 1 + (r() - 0.5) * 0.06));
+    for (let i = 0; i < 16; i++) { pxl(c, i, 0, '#c4c0b4'); pxl(c, 0, i, '#c4c0b4'); pxl(c, i, 8, '#c4c0b4'); pxl(c, 8, i, '#c4c0b4'); }
+  };
+  const P_TEJAS = (c, r) => {
+    ruidoPix(c, r, '#b8472c', 0.12);
+    for (let f = 0; f < 4; f++) {
+      const y0 = f * 4, off = f % 2 ? 2 : 0;
+      for (let x = 0; x < 16; x++) { pxl(c, x, y0 + 3, mulCol('#7a2a18', 1)); if ((x + off) % 4 === 0) { pxl(c, x, y0 + 1, mulCol('#8a321e', 1)); pxl(c, x, y0 + 2, mulCol('#8a321e', 1)); } }
+      for (let x = 0; x < 16; x++) if ((x + off) % 4 === 2) pxl(c, x, y0, mulCol('#d86a48', 1));
+    }
+  };
+  const P_PARQUE = (c, r) => {
+    for (let x = 0; x < 16; x++) {
+      const tabla = x >> 2, tono = [1, 0.9, 1.06, 0.95][tabla], corte = [5, 11, 2, 8][tabla];
+      for (let y = 0; y < 16; y++) pxl(c, x, y, x % 4 === 3 || y === corte ? mulCol('#7a4e26', 1) : mulCol('#c98f55', tono * (1 + (r() - 0.5) * 0.1)));
+    }
+  };
+  const P_VENTANA = (c, r) => {
+    c.fillStyle = 'rgba(170,222,246,0.32)'; c.fillRect(0, 0, 16, 16);
+    c.fillStyle = '#f4f1e8';
+    c.fillRect(0, 0, 16, 2); c.fillRect(0, 14, 16, 2); c.fillRect(0, 0, 2, 16); c.fillRect(14, 0, 2, 16); c.fillRect(7, 0, 2, 16); c.fillRect(0, 7, 16, 2);
+    [[3, 3], [4, 4], [10, 3], [11, 4]].forEach(([x, y]) => pxl(c, x, y, 'rgba(255,255,255,0.85)'));
+  };
+  const P_LIBRERIA = (c, r) => {
+    ruidoPix(c, r, '#8a5a30', 0.12);
+    const lomos = ['#c83a30', '#2f6edb', '#3a9a44', '#e8b828', '#8a4bd8', '#e8e2d0', '#d86a28'];
+    for (const y0 of [1, 9]) {
+      for (let x = 1; x < 15;) {
+        const w = 1 + ((r() * 2) | 0), h = 5 + ((r() * 2) | 0), col = lomos[(r() * lomos.length) | 0];
+        for (let xx = x; xx < Math.min(15, x + w); xx++) for (let y = y0 + 6 - h; y < y0 + 6; y++) pxl(c, xx, y, mulCol(col, 1 + (r() - 0.5) * 0.12));
+        x += w;
+      }
+      for (let x = 0; x < 16; x++) pxl(c, x, y0 + 6, mulCol('#5a3a1c', 1));
+    }
+  };
+
   // El catálogo de bloques. grupo: para ordenar la paleta. lado/arriba/abajo: dibujos (los que faltan usan el de lado).
   const LANAS = [['rojo', 'Rojo', '#d83a30'], ['naranja', 'Naranja', '#f08a1c'], ['amarillo', 'Amarillo', '#f2d21f'], ['verde', 'Verde', '#4cb43c'],
     ['azul', 'Azul', '#2f6edb'], ['morado', 'Morado', '#8a4bd8'], ['rosa', 'Rosa', '#f27ab8'], ['blanco', 'Blanco', '#f4f2ec'], ['negro', 'Negro', '#2a2a30']];
@@ -16178,13 +16219,23 @@
     { id: 'diamante', nombre: 'Diamante', g: 3, lado: P_DIAMANTE, metal: 0.4, tono: 620 },
     { id: 'luz', nombre: 'Luz', g: 3, lado: P_LUZ, brilla: true, tono: 700 },
     { id: 'calabaza', nombre: 'Calabaza', g: 3, lado: P_CALABAZA_LADO, arriba: P_CALABAZA_ARRIBA, abajo: P_CALABAZA_ARRIBA, tono: 240 },
+    // los de casa van al final para que lo que ya está guardado siga teniendo los mismos números
+    { id: 'yeso', nombre: 'Pared blanca', g: 4, lado: P_YESO, tono: 330 },
+    { id: 'hormigon', nombre: 'Hormigón', g: 4, lado: P_HORMIGON, tono: 250 },
+    { id: 'baldosa', nombre: 'Baldosas', g: 4, lado: P_BALDOSA, tono: 460 },
+    { id: 'parque', nombre: 'Parqué', g: 4, lado: P_PARQUE, tono: 240 },
+    { id: 'tejas', nombre: 'Tejas', g: 4, lado: P_TEJAS, tono: 270 },
+    { id: 'ventana', nombre: 'Ventana', g: 4, lado: P_VENTANA, alfa: 'cristal', tono: 540 },
+    { id: 'libreria', nombre: 'Librería', g: 4, lado: P_LIBRERIA, arriba: P_TABLONES, abajo: P_TABLONES, tono: 220 },
   ];
   const tipoBloque = (id) => TIPOS_BLOQUE.findIndex((t) => t.id === id);
+  const K_AGUA = tipoBloque('agua');
+  const esAgua = (q) => q.tipo === K_AGUA;            // el agua no es sólida: se mete uno dentro
 
   const bl = {
     listo: false, grupo: new THREE.Group(), mats: [], mallas: [], piezas: [], figuras: [], cols: null, H: new Int16Array(NSUB * NSUB),
     tipo: 0, tam: 0, cat: 'bloques', figSel: null, escala: 1, historial: [], anim: [], total: 0, nuevos: 0, tipos: new Set(), P: {}, catalogoFig: [], guardar: null,
-    ghost: null, ghostQuitar: null, ghostFig: null, hud: null, nubes: [], ocultos: null, plan: null, casita: [], vaciarPendiente: 0, elegir: false, sel: null, nivel: null,
+    ghost: null, ghostQuitar: null, ghostFig: null, hud: null, nubes: [], ocultos: null, plan: null, casita: [], vaciarPendiente: 0, generarPendiente: 0, elegir: false, sel: null, nivel: null,
   };
 
   // Materiales por tipo (lado, arriba, abajo) con el mismo truco: la textura se coloca según las coordenadas de la pieza,
@@ -16269,19 +16320,26 @@
     const ix = Math.floor((x - BLOQUES.x + MITAD) * 2), iz = Math.floor((z - BLOQUES.z + MITAD) * 2);
     if (ix < 0 || iz < 0 || ix >= NSUB || iz >= NSUB) return 0.02;
     const lista = bl.cols[celda(ix, iz)];
-    if (!lista.length) return 0.02;
     let top = 0;
     if (yActual === undefined) {
       // sin altura de referencia: lo de arriba del montón que sale del suelo (debajo de un puente, el suelo)
-      const orden = [...lista].sort((a, b) => a.iy - b.iy);
+      const orden = lista.filter((q) => !esAgua(q)).sort((a, b) => a.iy - b.iy);
       for (const q of orden) if (q.iy <= top) top = Math.max(top, q.iy + q.h);
-    } else {
-      // la superficie más alta a la que se llega desde donde se está (un escalón de medio bloque como mucho);
-      // los bloques que flotan más arriba no cuentan: se pasa por debajo
-      const lim = (yActual + 0.6) * 2;
-      for (const q of lista) if (q.iy + q.h <= lim) top = Math.max(top, q.iy + q.h);
+      return top > 0 ? top * 0.5 : 0.02;
     }
-    return top > 0 ? top * 0.5 : 0.02;
+    // la superficie más alta a la que se llega desde donde se está (un escalón de medio bloque como mucho);
+    // los bloques que flotan más arriba no cuentan (se pasa por debajo) y el agua tampoco (se mete uno dentro)
+    const lim = (yActual + 0.6) * 2;
+    for (const q of lista) if (!esAgua(q) && q.iy + q.h <= lim) top = Math.max(top, q.iy + q.h);
+    let y = top > 0 ? top * 0.5 : 0.02;
+    // encima de los muebles sólidos (la cama, la mesa...) también se puede estar
+    const lx = x - BLOQUES.x, lz = z - BLOQUES.z;
+    for (const f of bl.figuras) {
+      if (!f.def.solido) continue;
+      const c = cajaFigura(f);
+      if (Math.abs(lx - f.x) < c.hx && Math.abs(lz - f.z) < c.hz && c.y1 <= yActual + 0.6 && c.y1 > y) y = c.y1;
+    }
+    return y;
   }
   const _mB = new THREE.Matrix4(), _qB = new THREE.Quaternion(), _pB = new V3(), _sB = new V3();
   function matrizPieza(p, escala = 1) {
@@ -16347,8 +16405,8 @@
   function guardarBloques() {
     try {
       localStorage.setItem(CLAVE_BLOQUES, JSON.stringify({
-        v: 1, p: bl.piezas.map((p) => [p.tipo, p.tam, p.ix, p.iy, p.iz, p.casita ? 1 : 0]),
-        f: bl.figuras.map((f) => [f.id, Math.round(f.x * 2), Math.round(f.z * 2), Math.round(f.y * 2), Math.round(f.rot / (Math.PI / 2)) % 4, f.esc]),
+        v: 2, p: bl.piezas.map((p) => [p.tipo, p.tam, p.ix, p.iy, p.iz, p.casita ? 1 : 0]),
+        f: bl.figuras.map((f) => [f.id, Math.round(f.x * 2), Math.round(f.z * 2), Math.round(f.y * 100), Math.round(f.rot / (Math.PI / 2)) % 4, f.esc]),
         n: bl.nuevos,
       }));
     } catch (e) { /* sin guardar */ }
@@ -16356,9 +16414,10 @@
   function cargarBloques() {
     try {
       const g = JSON.parse(localStorage.getItem(CLAVE_BLOQUES) || 'null');
-      if (!g || g.v !== 1) return false;
+      if (!g || (g.v !== 1 && g.v !== 2)) return false;
+      const divY = g.v === 1 ? 2 : 100;                 // la versión 1 guardaba la altura en medios metros
       g.p.forEach(([t, tam, ix, iy, iz, c]) => { if (TIPOS_BLOQUE[t]) crearPieza(t, tam, ix, iy, iz, { sinAnim: true, sinGuardar: true, casita: !!c }); });
-      (g.f || []).forEach(([id, x2, z2, y2, rot, esc]) => ponerFiguraDe(id, x2 / 2, z2 / 2, y2 / 2, rot * Math.PI / 2, esc, true));
+      (g.f || []).forEach(([id, x2, z2, y2, rot, esc]) => ponerFiguraDe(id, x2 / 2, z2 / 2, y2 / divY, rot * Math.PI / 2, esc, true));
       bl.nuevos = g.n || 0;
       return true;
     } catch (e) { return false; }
@@ -16398,7 +16457,7 @@
     ['trofeo', 'atletismo', 'Trofeo', '🏆', 'ciudad', 1.2], ['banco', 'atletismo', 'Banco', '🪑', 'ciudad', 2], ['cono', 'atletismo', 'Cono', '🔶', 'ciudad', 0.6],
     ['nave', 'espacio', 'Nave', '🛸', 'espacio', 4], ['satelite', 'espacio', 'Satelite', '🛰️', 'espacio', 1.6], ['rover', 'espacio', 'Rover', '🚙', 'espacio', 1.8],
   ];
-  const CATEGORIAS_BL = [['bloques', '🧱', 'Bloques'], ['animales', '🐘', 'Animales'], ['monstruos', '🎃', 'Monstruos'], ['magia', '🦄', 'Magia'], ['juguetes', '🧸', 'Juguetes'],
+  const CATEGORIAS_BL = [['bloques', '🧱', 'Bloques'], ['casa', '🏠', 'Casa'], ['animales', '🐘', 'Animales'], ['monstruos', '🎃', 'Monstruos'], ['magia', '🦄', 'Magia'], ['juguetes', '🧸', 'Juguetes'],
     ['numeros', '🔢', 'Números'], ['ciudad', '🏙️', 'Ciudad'], ['espacio', '🚀', 'Espacio']];
   const ESCALAS_FIG = [['Pequeño', 0.5], ['Normal', 1], ['Grande', 2]];
   const MAX_FIGURAS = 300;
@@ -16424,6 +16483,159 @@
       envoltorio.traverse((q) => { if (q.isMesh) { q.castShadow = true; q.receiveShadow = true; q.frustumCulled = false; } });
       bl.catalogoFig.push({ id, nombre: nodo, etiqueta, cat, tam, modelo: envoltorio, ancho: Math.max(t.x, t.z) * tam / m });
     });
+    crearMueblesCasa();
+  }
+
+  // ---------- Las cosas de casa: puerta, muebles y aparatos, hechos con cajas y cilindros (tamaño real, el frente mira a +z) ----------
+  // w, d, h: ancho, fondo y alto en metros. solido: no se atraviesa y se puede subir encima saltando. encima: altura de la
+  // superficie donde se pueden poner otras cosas (una cafetera en la encimera).
+  function crearMueblesCasa() {
+    const mats = {};
+    const mt = (hex, extra) => {
+      const k = hex + (extra ? JSON.stringify(extra) : '');
+      return mats[k] || (mats[k] = new THREE.MeshStandardMaterial({ color: hex, roughness: 0.75, ...(extra || {}) }));
+    };
+    const caja = (g, w, h, d, x, y, z, hex, extra) => {
+      const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mt(hex, extra));
+      m.position.set(x, y + h / 2, z);
+      g.add(m);
+      return m;
+    };
+    const cil = (g, rt, rb, h, x, y, z, hex, extra, seg = 18) => {
+      const m = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, seg), mt(hex, extra));
+      m.position.set(x, y + h / 2, z);
+      g.add(m);
+      return m;
+    };
+    const MADERA = '#b07a46', BLANCO = '#f1efe9', GRIS = '#5d6166', NEGRO = '#26272b', METAL = { metalness: 0.6, roughness: 0.35 };
+    const patas = (g, w, d, alto, hex, grosor = 0.06) => {
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) caja(g, grosor, alto, grosor, sx * (w / 2 - grosor), 0, sz * (d / 2 - grosor), hex);
+    };
+    const mueble = (g, w, d, hex = BLANCO) => {                          // el armario bajo de la cocina, con su encimera
+      caja(g, w, 0.82, d, 0, 0.04, 0, hex);
+      caja(g, w - 0.04, 0.04, d - 0.04, 0, 0, 0, NEGRO);
+      caja(g, w + 0.03, 0.05, d + 0.03, 0, 0.86, 0, '#8d8a84');
+      caja(g, 0.01, 0.78, 0.01, 0, 0.06, d / 2 + 0.002, '#b9b6ae');
+      for (const sx of [-1, 1]) caja(g, 0.03, 0.12, 0.03, sx * 0.08, 0.55, d / 2 + 0.02, GRIS, METAL);
+    };
+    const M = {
+      puerta: (g) => {
+        for (const sx of [-1, 1]) caja(g, 0.08, 2.0, 0.22, sx * 0.46, 0, 0, BLANCO);
+        caja(g, 1.0, 0.08, 0.22, 0, 1.92, 0, BLANCO);
+        const hoja = new THREE.Group();
+        hoja.name = 'hoja';
+        hoja.position.set(-0.42, 0, 0);
+        g.add(hoja);
+        caja(hoja, 0.84, 1.9, 0.06, 0.42, 0.02, 0, '#a0663a');
+        for (const y of [0.25, 1.1]) for (const sz of [-1, 1]) caja(hoja, 0.6, 0.62, 0.02, 0.42, y, sz * 0.035, '#8a5430');
+        for (const sz of [-1, 1]) { const p = new THREE.Mesh(new THREE.SphereGeometry(0.045, 12, 8), mt('#e8c040', METAL)); p.position.set(0.74, 0.98, sz * 0.06); hoja.add(p); }
+      },
+      mesa: (g) => { caja(g, 1.2, 0.06, 0.8, 0, 0.72, 0, MADERA); patas(g, 1.2, 0.8, 0.72, '#8a5a30'); },
+      silla: (g) => {
+        caja(g, 0.46, 0.05, 0.46, 0, 0.44, 0, MADERA); patas(g, 0.46, 0.46, 0.44, '#8a5a30', 0.05);
+        caja(g, 0.46, 0.5, 0.05, 0, 0.49, -0.2, MADERA); caja(g, 0.36, 0.06, 0.06, 0, 0.78, -0.2, '#8a5a30');
+      },
+      sofa: (g) => {
+        caja(g, 1.9, 0.3, 0.85, 0, 0.08, 0, '#2f66b0'); caja(g, 1.9, 0.08, 0.85, 0, 0, 0, NEGRO);
+        for (const sx of [-1, 1]) { caja(g, 0.82, 0.14, 0.62, sx * 0.43, 0.38, 0.08, '#4f86d0'); caja(g, 0.2, 0.62, 0.85, sx * 0.85, 0.08, 0, '#2f66b0'); }
+        caja(g, 1.9, 0.55, 0.22, 0, 0.38, -0.32, '#2f66b0');
+        caja(g, 0.34, 0.3, 0.12, -0.5, 0.52, -0.16, '#f2c84a');
+      },
+      cama: (g) => {
+        caja(g, 1.0, 0.3, 2.0, 0, 0.05, 0, MADERA); patas(g, 1.0, 2.0, 0.1, '#7a4e26');
+        caja(g, 0.94, 0.18, 1.92, 0, 0.35, 0, BLANCO);
+        caja(g, 0.98, 0.06, 1.3, 0, 0.5, 0.33, '#e05a6a'); caja(g, 0.98, 0.2, 0.04, 0, 0.36, 0.98, '#e05a6a');
+        caja(g, 0.6, 0.12, 0.32, 0, 0.53, -0.72, '#fafafa');
+        caja(g, 1.04, 0.9, 0.08, 0, 0, -1.0, '#8a5a30');
+      },
+      encimera: (g) => mueble(g, 1.0, 0.62),
+      cocina: (g) => {
+        mueble(g, 1.0, 0.62);
+        caja(g, 0.94, 0.012, 0.56, 0, 0.91, 0, NEGRO, { roughness: 0.2 });
+        for (const [x, z] of [[-0.22, -0.14], [0.22, -0.14], [-0.22, 0.14], [0.22, 0.14]]) cil(g, 0.1, 0.1, 0.01, x, 0.922, z, '#7a2218', { emissive: '#5a1408', emissiveIntensity: 0.6 });
+        caja(g, 0.7, 0.42, 0.02, 0, 0.16, 0.315, '#1a1c20', { roughness: 0.15 });
+        caja(g, 0.5, 0.03, 0.03, 0, 0.62, 0.33, GRIS, METAL);
+      },
+      fregadero: (g) => {
+        mueble(g, 1.0, 0.62);
+        caja(g, 0.6, 0.02, 0.4, 0, 0.905, 0, '#c9cdd2', METAL);
+        caja(g, 0.56, 0.01, 0.36, 0, 0.912, 0, '#7f9ab4', { roughness: 0.1 });
+        cil(g, 0.02, 0.02, 0.3, 0, 0.91, -0.24, '#c9cdd2', METAL);
+        caja(g, 0.03, 0.03, 0.16, 0, 1.18, -0.17, '#c9cdd2', METAL);
+      },
+      nevera: (g) => {
+        caja(g, 0.7, 1.8, 0.68, 0, 0, 0, BLANCO, { roughness: 0.4 });
+        caja(g, 0.7, 0.012, 0.01, 0, 1.18, 0.345, '#b9b6ae');
+        caja(g, 0.03, 0.4, 0.03, 0.28, 1.28, 0.36, GRIS, METAL); caja(g, 0.03, 0.55, 0.03, 0.28, 0.5, 0.36, GRIS, METAL);
+        caja(g, 0.12, 0.12, 0.01, -0.15, 1.45, 0.346, '#f24a4a'); caja(g, 0.1, 0.1, 0.01, -0.05, 1.32, 0.346, '#4ab0f2');
+      },
+      cafetera: (g) => {
+        caja(g, 0.22, 0.03, 0.22, 0, 0, 0, NEGRO);
+        caja(g, 0.22, 0.34, 0.09, 0, 0, -0.065, NEGRO);
+        caja(g, 0.22, 0.05, 0.2, 0, 0.32, -0.01, '#3a3c42');
+        cil(g, 0.065, 0.06, 0.13, 0, 0.03, 0.04, '#9ad0e8', { transparent: true, opacity: 0.55, roughness: 0.1 });
+        cil(g, 0.058, 0.058, 0.06, 0, 0.035, 0.04, '#4a2a14');
+        caja(g, 0.025, 0.08, 0.025, 0, 0.06, 0.12, NEGRO);
+        caja(g, 0.03, 0.02, 0.01, 0.07, 0.25, -0.018, '#ff4a3a', { emissive: '#ff2a1a', emissiveIntensity: 0.8 });
+      },
+      tostadora: (g) => {
+        caja(g, 0.28, 0.18, 0.16, 0, 0, 0, '#c9cdd2', METAL);
+        for (const sx of [-1, 1]) caja(g, 0.2, 0.012, 0.03, 0, 0.18, sx * 0.035, NEGRO);
+        caja(g, 0.03, 0.02, 0.04, 0.155, 0.1, 0, NEGRO);
+        caja(g, 0.16, 0.04, 0.02, 0, 0.19, 0.035, '#d9a24a');
+      },
+      tele: (g) => {
+        caja(g, 0.3, 0.02, 0.2, 0, 0, 0, NEGRO); caja(g, 0.05, 0.12, 0.04, 0, 0.02, -0.02, NEGRO);
+        caja(g, 1.0, 0.6, 0.05, 0, 0.12, 0, NEGRO);
+        caja(g, 0.94, 0.54, 0.01, 0, 0.15, 0.026, '#3a7ac8', { emissive: '#3a7ac8', emissiveIntensity: 0.55, roughness: 0.2 });
+      },
+      lampara: (g) => {
+        cil(g, 0.18, 0.2, 0.04, 0, 0, 0, NEGRO); cil(g, 0.02, 0.02, 1.4, 0, 0.04, 0, '#c9cdd2', METAL);
+        cil(g, 0.14, 0.26, 0.3, 0, 1.38, 0, '#fff1c0', { emissive: '#ffd97a', emissiveIntensity: 0.9 });
+      },
+      planta: (g) => {
+        cil(g, 0.17, 0.13, 0.32, 0, 0, 0, '#c86a3a'); cil(g, 0.15, 0.15, 0.02, 0, 0.3, 0, '#4a2e18');
+        const verde = mt('#3f9a3a');
+        [[0, 0.62, 0, 0.17], [0.11, 0.5, 0.05, 0.13], [-0.1, 0.52, -0.06, 0.13], [0.03, 0.78, -0.03, 0.12], [-0.04, 0.45, 0.11, 0.11]].forEach(([x, y, z, r]) => {
+          const h = new THREE.Mesh(new THREE.SphereGeometry(r, 10, 8), verde); h.position.set(x, y, z); h.scale.y = 1.35; g.add(h);
+        });
+      },
+      alfombra: (g) => { caja(g, 2.0, 0.015, 1.4, 0, 0, 0, '#c8443a'); caja(g, 1.7, 0.017, 1.1, 0, 0, 0, '#e8b84a'); caja(g, 1.3, 0.019, 0.7, 0, 0, 0, '#c8443a'); },
+      banera: (g) => {
+        caja(g, 1.6, 0.55, 0.78, 0, 0, 0, BLANCO, { roughness: 0.3 });
+        caja(g, 1.44, 0.02, 0.62, 0, 0.42, 0, '#5ab4e8', { transparent: true, opacity: 0.85, roughness: 0.1 });
+        cil(g, 0.025, 0.025, 0.2, -0.7, 0.55, 0, '#c9cdd2', METAL);
+        for (const [x, c] of [[0.3, '#f2d21f'], [0.5, '#f2d21f']]) { const p = new THREE.Mesh(new THREE.SphereGeometry(0.05, 10, 8), mt(c)); p.position.set(x, 0.47, (x - 0.4) * 0.6); g.add(p); }
+      },
+      lavadora: (g) => {
+        caja(g, 0.6, 0.85, 0.6, 0, 0, 0, BLANCO, { roughness: 0.4 });
+        const ojo = cil(g, 0.2, 0.2, 0.03, 0, 0.32, 0.3, '#2a3a4a', { roughness: 0.15 }, 24); ojo.rotation.x = Math.PI / 2; ojo.position.y = 0.38;
+        const aro = cil(g, 0.23, 0.23, 0.02, 0, 0.32, 0.295, '#c9cdd2', METAL, 24); aro.rotation.x = Math.PI / 2; aro.position.y = 0.38;
+        caja(g, 0.5, 0.08, 0.01, 0, 0.72, 0.302, '#d8d6d0');
+        for (const x of [-0.15, 0.15]) cil(g, 0.025, 0.025, 0.02, x, 0.74, 0.31, GRIS).rotation.x = Math.PI / 2;
+      },
+    };
+    // [id, nombre, emoji, w, d, h, solido, encima]
+    const LISTA = [
+      ['puerta', 'Puerta', '🚪', 1.0, 0.22, 2.0, false], ['mesa', 'Mesa', '🍽️', 1.2, 0.8, 0.78, true, 0.78], ['silla', 'Silla', '🪑', 0.46, 0.46, 0.84, true],
+      ['sofa', 'Sofa', '🛋️', 1.9, 0.85, 0.93, true], ['cama', 'Cama', '🛏️', 1.04, 2.08, 0.9, true], ['encimera', 'Encimera', '🗄️', 1.0, 0.62, 0.91, true, 0.91],
+      ['cocina', 'Cocina', '🍳', 1.0, 0.62, 0.92, true, 0.92], ['fregadero', 'Fregadero', '🚰', 1.0, 0.62, 0.91, true, 0.91], ['nevera', 'Nevera', '🧊', 0.7, 0.68, 1.8, true, 1.8],
+      ['cafetera', 'Cafetera', '☕', 0.22, 0.22, 0.37, false], ['tostadora', 'Tostadora', '🍞', 0.28, 0.16, 0.2, false], ['tele', 'Tele', '📺', 1.0, 0.2, 0.72, false],
+      ['lampara', 'Lampara', '🪔', 0.52, 0.52, 1.68, false], ['planta', 'Planta', '🪴', 0.34, 0.34, 0.9, false], ['alfombra', 'Alfombra', '🧶', 2.0, 1.4, 0.02, false],
+      ['banera', 'Banera', '🛁', 1.6, 0.78, 0.55, true], ['lavadora', 'Lavadora', '🫧', 0.6, 0.6, 0.85, true, 0.85],
+    ];
+    LISTA.forEach(([id, nombre, etiqueta, w, d, h, solido, encima]) => {
+      const g = new THREE.Group();
+      M[id](g);
+      g.traverse((q) => { if (q.isMesh) { q.castShadow = !q.material.transparent; q.receiveShadow = true; q.frustumCulled = false; } });
+      bl.catalogoFig.push({ id, nombre, etiqueta, cat: 'casa', tam: h, modelo: g, ancho: Math.max(w, d), w, d, h, solido: !!solido, encima: encima || 0, puerta: id === 'puerta' });
+    });
+  }
+  // Medidas de una figura sólida ya puesta (girada de cuarto en cuarto de vuelta): media anchura en x y en z, abajo y arriba
+  function cajaFigura(f) {
+    const d = f.def, giro = Math.abs(Math.round(f.rot / (Math.PI / 2))) % 2 === 1;
+    const hx = (giro ? d.d : d.w) * f.esc / 2, hz = (giro ? d.w : d.d) * f.esc / 2;
+    return { hx, hz, y0: f.y, y1: f.y + d.h * f.esc };
   }
   const figDe = (id) => bl.catalogoFig.find((f) => f.id === id);
   function ponerFiguraDe(id, x, z, y, rot, esc, silencioso) {
@@ -16436,6 +16648,7 @@
     m.rotation.y = rot;
     bl.grupo.add(m);
     const f = { id, x, z, y, rot, esc, obj: m, def };
+    if (def.puerta) f.hoja = m.getObjectByName('hoja');
     bl.figuras.push(f);
     if (!silencioso) { bl.anim.push({ f, t: 0, s }); m.scale.setScalar(s * 0.5); pedirGuardado(); }
     return f;
@@ -16494,6 +16707,23 @@
     let y = alturaCasilla(ix, iz) * 0.5;
     if (E.enSuelo) y = Math.max(y, Math.floor(p.y * 2 + 0.05) / 2);
     if (bl.nivel !== null) y = bl.nivel * 0.5;
+    const def = figDe(bl.figSel);
+    if (def && def.puerta) {
+      // la puerta va en el centro del hueco de un bloque
+      const xs = Math.floor(p.x + Math.sin(E.rumbo) * 1.2) + 0.5, zs = Math.floor(p.z + Math.cos(E.rumbo) * 1.2) + 0.5;
+      const rotP = Math.round((E.rumbo + Math.PI) / (Math.PI / 2)) * (Math.PI / 2);
+      const ixP = clamp(Math.floor((xs + MITAD) * 2), 0, NSUB - 1), izP = clamp(Math.floor((zs + MITAD) * 2), 0, NSUB - 1);
+      // en el suelo del hueco (si hay suelo de medio bloque, encima)
+      let yP = 0;
+      for (const q of bl.cols[celda(ixP, izP)]) if (!esAgua(q) && q.iy * 0.5 <= y + 0.05 && (q.iy + q.h) * 0.5 <= y + 0.55) yP = Math.max(yP, (q.iy + q.h) * 0.5);
+      return { x: clamp(xs, -MITAD + 0.5, MITAD - 0.5), z: clamp(zs, -MITAD + 0.5, MITAD - 0.5), y: bl.nivel !== null ? y : yP, rot: rotP };
+    }
+    // encima de una mesa, una encimera, la nevera...
+    if (bl.nivel === null) for (const f of bl.figuras) {
+      if (!f.def.encima) continue;
+      const c = cajaFigura(f);
+      if (Math.abs(x - f.x) < c.hx && Math.abs(z - f.z) < c.hz) y = Math.max(y, f.y + f.def.encima * f.esc);
+    }
     const rot = Math.round((E.rumbo + Math.PI) / (Math.PI / 2)) * (Math.PI / 2);
     return { x: clamp(x, -MITAD + 0.5, MITAD - 0.5), z: clamp(z, -MITAD + 0.5, MITAD - 0.5), y, rot };
   }
@@ -16664,7 +16894,7 @@
   // ---------- La paleta (HTML) ----------
   function prepararPaletaBloques() {
     const $ = (id) => document.getElementById(id);
-    const H = { raiz: $('bl-hud'), tabs: $('bl-tabs'), paleta: $('bl-paleta'), tams: $('bl-tams'), quitar: $('bl-quitar'), elegir: $('bl-elegir'), borrar: $('bl-borrar'), nivel: $('bl-nivel'), nivelEt: $('bl-nivel-et'), deshacer: $('bl-deshacer'), vaciar: $('bl-vaciar'), info: $('bl-info') };
+    const H = { raiz: $('bl-hud'), tabs: $('bl-tabs'), paleta: $('bl-paleta'), tams: $('bl-tams'), quitar: $('bl-quitar'), elegir: $('bl-elegir'), borrar: $('bl-borrar'), nivel: $('bl-nivel'), nivelEt: $('bl-nivel-et'), deshacer: $('bl-deshacer'), vaciar: $('bl-vaciar'), generar: $('bl-generar'), info: $('bl-info') };
     bl.hud = H;
     const alPulsarBl = (el, fn) => {
       let ultimo = 0;
@@ -16686,6 +16916,15 @@
     alPulsarBl(H.nivelEt, () => { bl.nivel = null; pintarNivel(); });
     prepararToqueBloques();
     alPulsarBl(H.deshacer, deshacerBloque);
+    alPulsarBl(H.generar, () => {
+      // dos toques, porque se borra lo construido
+      if (reloj.elapsedTime > bl.generarPendiente) {
+        bl.generarPendiente = reloj.elapsedTime + 3;
+        H.generar.classList.add('seguro');
+        H.generar.textContent = '¿Seguro?';
+        setTimeout(() => { H.generar.classList.remove('seguro'); H.generar.textContent = '🎲 Mundo'; }, 3000);
+      } else { bl.generarPendiente = 0; H.generar.classList.remove('seguro'); H.generar.textContent = '🎲 Mundo'; pedirMundoNuevo(); }
+    });
     alPulsarBl(H.vaciar, () => {
       if (reloj.elapsedTime > bl.vaciarPendiente) {
         bl.vaciarPendiente = reloj.elapsedTime + 3;
@@ -16978,6 +17217,157 @@
     } });
   }
 
+  // ---------- Un mundo nuevo al azar, que se tiene en pie ----------
+  // Colinas macizas (piedra, tierra y hierba encima, con escalones de medio bloque para poder subir andando),
+  // un estanque de agua con orilla de arena, árboles con el tronco en el suelo, una casa amueblada con su puerta
+  // y un camino hasta la entrada. Nada flota: cada bloque se apoya en otro o en el suelo.
+  function generarMundo(semilla = Date.now()) {
+    const r = prng((semilla % 2147483646) + 1), al = (a, b) => a + r() * (b - a), ent = (a, b) => Math.floor(al(a, b + 1));
+    const k = tipoBloque, B = NSUB / 2;                       // 40 × 40 casillas de un metro
+    vaciarBloques();
+    bl.plan = {};
+    const pon = (t, tam, bx, iy, bz) => crearPieza(k(t), tam, bx * 2, iy, bz * 2, { sinAnim: true, sinGuardar: true });
+    const fig = (id, x, z, y, rot = 0) => ponerFiguraDe(id, x, z, y, rot, 1, true);
+    const libre = new Uint8Array(B * B);                      // 1: reservado (casa, estanque, camino de entrada, sube y baja)
+    const reservar = (x0, z0, x1, z1) => { for (let z = Math.max(0, z0); z <= Math.min(B - 1, z1); z++) for (let x = Math.max(0, x0); x <= Math.min(B - 1, x1); x++) libre[z * B + x] = 1; };
+    reservar(17, 33, 22, 39);                                 // donde aparece Manuel
+    reservar(5, 16, 11, 19);                                  // el sube y baja
+    // 1) la casa: de 6 a 8 de ancho y de 5 a 6 de fondo, con la puerta mirando a la entrada (+z)
+    const W = ent(6, 8), D = ent(5, 6);
+    const hx = ent(3, B - W - 3), hz = ent(4, 22 - D);
+    reservar(hx - 2, hz - 2, hx + W + 1, hz + D + 3);
+    // 2) el estanque, lejos de la casa
+    let ex = 0, ez = 0, erx = al(2.5, 4.5), erz = al(2, 4);
+    for (let i = 0; i < 40; i++) {
+      ex = al(6, B - 6); ez = al(6, 30);
+      if (Math.abs(ex - (hx + W / 2)) > W / 2 + erx + 3 || Math.abs(ez - (hz + D / 2)) > D / 2 + erz + 3) break;
+    }
+    reservar(Math.floor(ex - erx - 1), Math.floor(ez - erz - 1), Math.ceil(ex + erx + 1), Math.ceil(ez + erz + 1));
+    // 3) las colinas: montones suaves (en medios metros), que se aplanan cerca de lo reservado
+    const colinas = Array.from({ length: ent(2, 4) }, () => ({ x: al(2, B - 2), z: al(2, 30), a: al(3, 9), rad: al(3.5, 7) }));
+    const alto = new Float32Array(B * B);
+    for (let z = 0; z < B; z++) for (let x = 0; x < B; x++) {
+      let h = 0;
+      for (const c of colinas) h += c.a * Math.exp(-((x + 0.5 - c.x) ** 2 + (z + 0.5 - c.z) ** 2) / (c.rad * c.rad));
+      // más bajo cerca de lo reservado, para que no haya paredes de golpe
+      let dMin = 9;
+      for (let dz = -3; dz <= 3; dz++) for (let dx = -3; dx <= 3; dx++) { const xx = x + dx, zz = z + dz; if (xx >= 0 && zz >= 0 && xx < B && zz < B && libre[zz * B + xx]) dMin = Math.min(dMin, Math.hypot(dx, dz)); }
+      alto[z * B + x] = libre[z * B + x] ? 0 : h * clamp((dMin - 1) / 3, 0, 1);
+    }
+    for (let z = 0; z < B; z++) for (let x = 0; x < B; x++) {
+      const m = Math.min(14, Math.round(alto[z * B + x]));    // medios metros
+      if (m < 1) continue;
+      const enteros = m >> 1, medio = m & 1, cima = m >= 8 ? 'nieve' : 'hierba';
+      for (let b = 0; b < enteros; b++) {
+        const arriba = b === enteros - 1 && !medio;
+        pon(arriba ? cima : b < enteros - 2 ? 'piedra' : 'tierra', 0, x, b * 2, z);
+      }
+      if (medio) pon(cima, 1, x, enteros * 2, z);
+    }
+    // 4) el estanque: agua (se puede meter uno) con una orilla de arena
+    for (let z = Math.floor(ez - erz - 1); z <= Math.ceil(ez + erz + 1); z++) for (let x = Math.floor(ex - erx - 1); x <= Math.ceil(ex + erx + 1); x++) {
+      if (x < 0 || z < 0 || x >= B || z >= B) continue;
+      const d = ((x + 0.5 - ex) / erx) ** 2 + ((z + 0.5 - ez) / erz) ** 2;
+      if (d <= 1) pon('agua', 1, x, 0, z);
+      else if (d <= 1.7) pon('arena', 1, x, 0, z);
+    }
+    fig('patito', ex - 20, ez - 20, 0.5, al(0, 4) | 0);
+    if (r() < 0.6) fig('patito', ex - 20 + 1, ez - 20 - 0.5, 0.5, 1);
+    // 5) la casa
+    const pared = ['yeso', 'ladrillo', 'madera', 'hormigon'][ent(0, 3)], suelo = r() < 0.5 ? 'parque' : 'baldosa', tejado = r() < 0.7 ? 'tejas' : 'madera';
+    const px = hx + (W >> 1);                                 // la columna de la puerta
+    for (let z = hz; z < hz + D; z++) for (let x = hx; x < hx + W; x++) {
+      pon(suelo, 1, x, 0, z);
+      const borde = x === hx || x === hx + W - 1 || z === hz || z === hz + D - 1;
+      if (!borde) continue;
+      const esPuerta = x === px && z === hz + D - 1;
+      if (esPuerta) continue;
+      const esquina = (x === hx || x === hx + W - 1) && (z === hz || z === hz + D - 1);
+      pon(pared, 0, x, 1, z);
+      const ventana = !esquina && ((z === hz + D - 1 && Math.abs(x - px) === 2) || ((x === hx || x === hx + W - 1) && z === hz + (D >> 1)) || (z === hz && (x - hx) % 3 === 1));
+      pon(ventana ? 'ventana' : pared, 0, x, 3, z);
+    }
+    // tejado a dos aguas con medios bloques: cada fila sube medio bloque hacia el centro y por debajo va
+    // macizo hasta las paredes, así nada flota (solo el alero sobresale un bloque, pegado a la pared)
+    const nivelTejado = (z) => Math.min(z - (hz - 1), hz + D - z);
+    for (let z = hz - 1; z <= hz + D; z++) for (let x = hx - 1; x <= hx + W; x++) {
+      const n = nivelTejado(z);
+      for (let m = 0; m <= n; m++) pon(m === n ? tejado : pared, 1, x, 5 + m, z);
+    }
+    const nCh = nivelTejado(hz + 1);
+    pon('ladrillo', 2, hx + W - 2, 6 + nCh, hz + 1);              // la chimenea, en cuartos de bloque
+    pon('ladrillo', 2, hx + W - 2, 8 + nCh, hz + 1);
+    // los muebles (la parte de atrás contra la pared del fondo, mirando hacia la puerta)
+    const X = (bx) => bx - 20 + 0.5, Z = (bz) => bz - 20 + 0.5, YS = 0.5;
+    fig('puerta', X(px), Z(hz + D - 1), YS, 0);
+    fig('encimera', X(hx + 1), Z(hz + 1), YS, 0);
+    fig('cafetera', X(hx + 1), Z(hz + 1) - 0.1, YS + 0.91, 0);
+    fig('cocina', X(hx + 2), Z(hz + 1), YS, 0);
+    fig('fregadero', X(hx + 3), Z(hz + 1), YS, 0);
+    if (W >= 7) { fig('encimera', X(hx + 4), Z(hz + 1), YS, 0); fig('tostadora', X(hx + 4), Z(hz + 1) - 0.1, YS + 0.91, 0); }
+    fig('nevera', X(hx + W - 2), Z(hz + 1), YS, 0);
+    const mz = hz + 2;                                          // la mesa con dos sillas, en medio
+    fig('alfombra', X(hx + 2) + 0.5, Z(mz), YS, 0);
+    fig('mesa', X(hx + 2) + 0.5, Z(mz), YS + 0.02, 0);
+    fig('silla', X(hx + 1) + 0.4, Z(mz), YS + 0.02, Math.PI / 2);
+    fig('silla', X(hx + 3) + 0.6, Z(mz), YS + 0.02, -Math.PI / 2);
+    if (D >= 6) fig('sofa', hx + 1 + 0.97 - 20, Z(hz + 3), YS, 0);   // el sofá, a un lado para dejar libre el paso de la puerta
+    fig('planta', X(hx + 1), Z(hz + D - 2), YS, 0);
+    fig('lampara', X(hx + W - 2), Z(hz + D - 2), YS, 0);
+    // 6) el camino de adoquines desde la puerta hasta donde aparece Manuel (solo por terreno llano)
+    const camino = (x, z) => { if (x < 0 || z < 0 || x >= B || z >= B) return; if (bl.H[celda(x * 2, z * 2)] === 0 && bl.H[celda(x * 2 + 1, z * 2 + 1)] === 0) pon('adoquin', 1, x, 0, z); };
+    let cx = px, cz = hz + D;
+    for (; cz < 30; cz++) camino(cx, cz);
+    const meta = 20;
+    while (cx !== meta) { camino(cx, cz); cx += Math.sign(meta - cx); }
+    for (; cz < B; cz++) camino(cx, cz);
+    // 7) árboles en el suelo o en lo alto de las colinas, con sitio alrededor para la copa
+    let arboles = 0;
+    for (let i = 0; i < 160 && arboles < ent(6, 11); i++) {
+      const x = ent(2, B - 3), z = ent(2, B - 3);
+      if (libre[z * B + x]) continue;
+      const h0 = bl.H[celda(x * 2, z * 2)];
+      let ok = h0 % 2 === 0;
+      for (let dz = -1; dz <= 1 && ok; dz++) for (let dx = -1; dx <= 1 && ok; dx++) if (libre[(z + dz) * B + x + dx] || bl.H[celda((x + dx) * 2, (z + dz) * 2)] !== h0 || bl.H[celda((x + dx) * 2 + 1, (z + dz) * 2 + 1)] !== h0) ok = false;
+      if (!ok) continue;
+      const tronco = ent(3, 4);
+      for (let b = 0; b < tronco; b++) pon('tronco', 0, x, h0 + b * 2, z);
+      const top = h0 + tronco * 2;
+      for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) { if (dx || dz) pon('hojas', 0, x + dx, top - 2, z + dz); pon('hojas', 0, x + dx, top, z + dz); }
+      pon('hojas', 0, x, top + 2, z);
+      for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) pon('hojas', 1, x + dx, top + 2, z + dz);
+      for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) libre[(z + dz) * B + x + dx] = 1;
+      arboles++;
+    }
+    // 8) unas rocas y flores (setas) por el campo, y algún animal
+    for (let i = 0; i < ent(3, 6); i++) {
+      const x = ent(1, B - 2), z = ent(1, 30);
+      if (libre[z * B + x] || bl.H[celda(x * 2, z * 2)] !== 0) continue;
+      pon(r() < 0.5 ? 'piedra' : 'adoquin', 0, x, 0, z);
+      if (r() < 0.5 && !libre[z * B + x + 1] && bl.H[celda(x * 2 + 2, z * 2)] === 0) pon('piedra', 1, x + 1, 0, z);
+    }
+    const animales = ['gato', 'osito', 'dinosaurio', 'unicornio', 'seta', 'seta'];
+    for (let i = 0; i < 3; i++) {
+      const x = ent(1, B - 2), z = ent(1, 30);
+      if (libre[z * B + x]) continue;
+      fig(animales[ent(0, animales.length - 1)], x - 20 + 0.5, z - 20 + 0.5, bl.H[celda(x * 2, z * 2)] * 0.5, ent(0, 3) * Math.PI / 2);
+    }
+    bl.historial = [];
+    pedirGuardado();
+  }
+  function pedirMundoNuevo() {
+    fundido(() => {
+      generarMundo();
+      // Manuel y Drako, de vuelta a la entrada (que siempre queda libre)
+      const p = BL(0, 19.5);
+      ninoE.pos.set(p.x, 0.02, p.z); ninoE.rumbo = Math.PI; ninoE.vy = 0;
+      estado.pos.set(p.x + 1.4, 0.02, p.z + 0.8);
+      cam.yaw = 0; cam.pitch = 0.5; cam.dist = 11;
+    });
+    notas([[392, 0, 0.08], [523, 0.1, 0.08], [659, 0.2, 0.08], [784, 0.3, 0.14]], 'triangle', 0.05);
+    ninoDice('¡Un mundo nuevo!', 1.8);
+  }
+
   // ---------- Entrar y salir (de día) ----------
   function irAlBloques() {
     if (!bl.listo) return;
@@ -17050,7 +17440,7 @@
       if (ix < 0 || iz < 0 || ix >= NSUB || iz >= NSUB) continue;
       // ¿hay algo a la altura del cuerpo? Lo que queda por debajo del escalón se sube y lo que flota por encima de la cabeza se pasa por debajo
       const pies = (pos.y + 0.6) * 2, cabeza = (pos.y + alto) * 2;
-      if (!bl.cols[celda(ix, iz)].some((q) => q.iy + q.h > pies && q.iy < cabeza)) continue;
+      if (!bl.cols[celda(ix, iz)].some((q) => !esAgua(q) && q.iy + q.h > pies && q.iy < cabeza)) continue;
       const cx = ix * 0.5, cz = iz * 0.5;
       const px = clamp(lx, cx, cx + 0.5), pz = clamp(lz, cz, cz + 0.5);
       let dx = lx - px, dz = lz - pz, d = Math.hypot(dx, dz);
@@ -17058,6 +17448,24 @@
       if (d < 1e-4) {                                           // el centro está dentro del bloque: salir por el lado más cercano
         const izq = lx - cx, der = cx + 0.5 - lx, arr = lz - cz, aba = cz + 0.5 - lz, m = Math.min(izq, der, arr, aba);
         if (m === izq) { dx = -1; dz = 0; } else if (m === der) { dx = 1; dz = 0; } else if (m === arr) { dx = 0; dz = -1; } else { dx = 0; dz = 1; }
+        d = 0;
+      } else { dx /= d; dz /= d; }
+      pos.x += dx * (r - d);
+      pos.z += dz * (r - d);
+    }
+    // los muebles sólidos
+    for (const f of bl.figuras) {
+      if (!f.def.solido) continue;
+      const fx = f.x + MITAD, fz = f.z + MITAD;
+      if (Math.abs(lx - fx) > 3 || Math.abs(lz - fz) > 3) continue;
+      const c = cajaFigura(f);
+      if (c.y1 <= pos.y + 0.6 || c.y0 >= pos.y + alto) continue;
+      const qx = clamp(lx, fx - c.hx, fx + c.hx), qz = clamp(lz, fz - c.hz, fz + c.hz);
+      let dx = lx - qx, dz = lz - qz, d = Math.hypot(dx, dz);
+      if (d >= r) continue;
+      if (d < 1e-4) {
+        const m = [fx + c.hx - lx, lx - (fx - c.hx), fz + c.hz - lz, lz - (fz - c.hz)], k = m.indexOf(Math.min(...m));
+        [dx, dz] = [[1, 0], [-1, 0], [0, 1], [0, -1]][k];
         d = 0;
       } else { dx /= d; dz /= d; }
       pos.x += dx * (r - d);
@@ -17111,6 +17519,14 @@
     }
     bl.nubes.forEach((n) => { n.position.x += n.userData.v * dt; if (n.position.x > 130) n.position.x = -130; });
     rescatarDrako(dt);
+    // las puertas se abren solas cuando Manuel o Drako se acercan
+    for (const f of bl.figuras) {
+      if (!f.hoja) continue;
+      const cerca = [ninoE.pos, estado.pos].some((q) => Math.hypot(q.x - BLOQUES.x - f.x, q.z - BLOQUES.z - f.z) < 1.7 && Math.abs(q.y - f.y) < 1.6);
+      const antes = f.hoja.rotation.y;
+      f.hoja.rotation.y = damp(antes, cerca ? -1.6 : 0, 6, dt);
+      if (cerca && antes > -0.05) notas([[260, 0, 0.05], [330, 0.05, 0.05]], 'triangle', 0.03);
+    }
     // los fantasmas, solo cuando Manuel puede construir
     const puede = jugador === 'nino' && ninoE.modo === 'libre' && !historia.activa && enBloques(ninoE.pos) && !fundidoEl.classList.contains('activo');
     bl.hud.raiz.hidden = !puede;
@@ -21307,6 +21723,25 @@
       bloquesDeshacer: () => deshacerBloque(),
       bloquesFigura: (id) => { bl.cat = figDe(id).cat; bl.figSel = id; return ponerBloque(); },
       bloquesTanda: (f) => ponerTanda(f),
+      bloquesFlotan: () => {
+        let n = 0; const ej = [];
+        for (const q of bl.piezas) {
+          if (q.iy === 0) continue;
+          let apoyo = false;
+          for (let a = -1; a <= q.w && !apoyo; a++) for (let c = -1; c <= q.d && !apoyo; c++) {
+            const x = q.ix + a, z = q.iz + c;
+            if (x < 0 || z < 0 || x >= NSUB || z >= NSUB) continue;
+            const lado = a < 0 || c < 0 || a >= q.w || c >= q.d;
+            for (const o of bl.cols[celda(x, z)]) if (o !== q && (lado ? o.iy < q.iy + q.h && o.iy + o.h > q.iy : o.iy + o.h === q.iy)) { apoyo = true; break; }
+          }
+          if (!apoyo) { n++; if (ej.length < 5) ej.push([TIPOS_BLOQUE[q.tipo].id, q.ix, q.iy, q.iz]); }
+        }
+        return { n, ej };
+      },
+      bloquesCasa: () => { const pu = bl.figuras.find((f) => f.id === 'puerta'); return pu ? { puerta: [BLOQUES.x + pu.x, BLOQUES.z + pu.z], y: pu.y } : null; },
+      bloquesPuerta: () => bl.figuras.filter((f) => f.hoja).map((f) => +f.hoja.rotation.y.toFixed(2)),
+      bloquesGenerar: (sem) => { generarMundo(sem); return { piezas: bl.total, figuras: bl.figuras.length }; },
+      bloquesSuelo: (x, z, y) => sueloBloques(BLOQUES.x + x, BLOQUES.z + z, y),
       bloquesCrear: (tipo, tam, ix, iy, iz) => !!crearPieza(tipoBloque(tipo), tam, ix, iy, iz, { sinAnim: true }),
       bloquesNivel: (nivel, tipo) => { const n0 = bl.nivel; bl.nivel = nivel; bl.cat = 'bloques'; bl.tam = 0; bl.tipo = tipoBloque(tipo); const ok = ponerBloque(); bl.nivel = n0; return ok; },
       bloquesPantalla: (i) => {
