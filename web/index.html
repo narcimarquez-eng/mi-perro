@@ -21307,6 +21307,7 @@
       bloquesDeshacer: () => deshacerBloque(),
       bloquesFigura: (id) => { bl.cat = figDe(id).cat; bl.figSel = id; return ponerBloque(); },
       bloquesTanda: (f) => ponerTanda(f),
+      bloquesCrear: (tipo, tam, ix, iy, iz) => !!crearPieza(tipoBloque(tipo), tam, ix, iy, iz, { sinAnim: true }),
       bloquesNivel: (nivel, tipo) => { const n0 = bl.nivel; bl.nivel = nivel; bl.cat = 'bloques'; bl.tam = 0; bl.tipo = tipoBloque(tipo); const ok = ponerBloque(); bl.nivel = n0; return ok; },
       bloquesPantalla: (i) => {
         const p = bl.piezas[i < 0 ? bl.piezas.length + i : i], r = canvas.getBoundingClientRect(), v = new V3(-MITAD + (p.ix + p.w / 2) * 0.5, (p.iy + p.h / 2) * 0.5, -MITAD + (p.iz + p.d / 2) * 0.5);
