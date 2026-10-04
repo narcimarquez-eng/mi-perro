@@ -675,6 +675,8 @@
   .bl-tam .forma { display: inline-block; background: #d99a4a; border: 2px solid #7a4a1a; border-radius: 2px; }
   .bl-tam .forma.t0 { width: 18px; height: 18px; } .bl-tam .forma.t1 { width: 18px; height: 9px; } .bl-tam .forma.t2 { width: 9px; height: 18px; }
   .bl-boton.quitar { background: #ff6a5a; color: #fff; }
+  .bl-boton.activa { background: #ffd23f; box-shadow: 0 0 0 3px #fff inset; }
+  .bl-boton[hidden] { display: none; }
   .bl-boton.peq { padding: 4px 10px; } .bl-boton.seguro { background: #e8322a; color: #fff; }
   .bl-info { margin: 0; justify-self: center; padding: 2px 12px; border-radius: 12px; background: rgba(12, 24, 48, 0.7); color: #fff; font: 700 13px "Nunito", system-ui, sans-serif; }
   @media (max-width: 700px) { .bl-hud { width: calc(100% - 250px); } .bl-item { width: 38px; height: 38px; } .bl-tam span { display: none; } }
@@ -859,6 +861,8 @@
   <div class="bl-fila">
     <div class="bl-tams" id="bl-tams"></div>
     <button type="button" class="bl-boton quitar" id="bl-quitar">🧽 Quitar</button>
+    <button type="button" class="bl-boton" id="bl-elegir">👆 Elegir</button>
+    <button type="button" class="bl-boton quitar" id="bl-borrar" hidden>❌ Borrar este</button>
     <button type="button" class="bl-boton" id="bl-deshacer">↶ Deshacer</button>
     <button type="button" class="bl-boton peq" id="bl-vaciar" aria-label="Vaciar todo">🗑️</button>
   </div>
@@ -16026,6 +16030,8 @@
   // Además de bloques se pueden colocar figuras: animales, monstruos, juguetes... de los .glb que ya tiene el juego.
   const BLOQUES = new V3(1900, 0, -700);
   const PUERTA_BLOQUES = new V3(-40, 0, -92);                  // la verja de bloques, en las dunas
+  const SUBE = { x: -12, z: -2 };              // el sube y baja, en metros desde el centro de la placa
+  const ocupaSube = (ix, iz, w, d) => ix < 21 && ix + w > 11 && iz < 39 && iz + d > 33;   // casillas que ocupa (con un poco de margen)
   const enBloques = (p) => !enElEspacio && p.x > 1500 && p.z < -500;
   const NSUB = 80, MITAD = 20, ALTO_MAX = 40;                  // 80 × 80 casillas de 0,5 m (40 m); hasta 20 m de alto
   const BL = (x, z, y = 0) => new V3(BLOQUES.x + x, y, BLOQUES.z + z);
@@ -16167,7 +16173,7 @@
   const bl = {
     listo: false, grupo: new THREE.Group(), mats: [], mallas: [], piezas: [], figuras: [], cols: null, H: new Int16Array(NSUB * NSUB),
     tipo: 0, tam: 0, cat: 'bloques', figSel: null, escala: 1, historial: [], anim: [], total: 0, nuevos: 0, tipos: new Set(), P: {}, catalogoFig: [], guardar: null,
-    ghost: null, ghostQuitar: null, ghostFig: null, hud: null, nubes: [], ocultos: null, plan: null, casita: [], vaciarPendiente: 0,
+    ghost: null, ghostQuitar: null, ghostFig: null, hud: null, nubes: [], ocultos: null, plan: null, casita: [], vaciarPendiente: 0, elegir: false, sel: null,
   };
 
   // Materiales por tipo (lado, arriba, abajo) con el mismo truco: la textura se coloca según las coordenadas de la pieza,
@@ -16265,7 +16271,7 @@
     const [w, d, h] = TAM_PIEZA[tam];
     if (ix < 0 || iz < 0 || ix + w > NSUB || iz + d > NSUB) return null;
     if (opciones.apoyar) for (let a = 0; a < w; a++) for (let b = 0; b < d; b++) iy = Math.max(iy, bl.H[celda(ix + a, iz + b)]);
-    if (iy + h > ALTO_MAX) return null;
+    if (iy + h > ALTO_MAX || ocupaSube(ix, iz, w, d)) return null;
     const malla = bl.mallas[tipo];
     if (malla.count >= CAP_TIPO || bl.total >= MAX_PIEZAS) return null;
     const p = { tipo, tam, ix, iy, iz, w, d, h, slot: malla.count, malla, casita: !!opciones.casita };
@@ -16501,6 +16507,7 @@
     if (!def) { avisar('Elige una figura', 1200); return false; }
     if (bl.figuras.length >= MAX_FIGURAS) { avisar('¡Ya no caben más figuras!', 1600); return false; }
     const o = objetivoFigura();
+    if (Math.abs(o.x - SUBE.x) < 3 && Math.abs(o.z - SUBE.z) < 1.8) { avisar('¡Ahí está el sube y baja!', 1400); return false; }
     const f = ponerFiguraDe(def.id, o.x, o.z, o.y, o.rot, bl.escala, false);
     if (!f) return false;
     bl.historial.push({ k: 'fig', f });
@@ -16513,6 +16520,7 @@
   }
   function quitarBloque() {
     if (!enBloques(ninoE.pos) || ninoE.modo !== 'libre') return false;
+    if (seleccionVigente()) return borrarElegido();
     const o = objetivoQuitar();
     if (!o) { avisar('No hay nada delante', 1000); return false; }
     if (o.figura) {
@@ -16527,6 +16535,66 @@
       sonidoBloque(p.tipo, false);
     }
     if (bl.historial.length > 80) bl.historial.shift();
+    return true;
+  }
+  // ---------- Elegir con el dedo lo que se quiere borrar ----------
+  const rayoBl = new THREE.Raycaster(), _ndcBl = new THREE.Vector2();
+  function elegirEnPantalla(cx, cy) {
+    const r = canvas.getBoundingClientRect();
+    _ndcBl.set(((cx - r.left) / r.width) * 2 - 1, -((cy - r.top) / r.height) * 2 + 1);
+    camera.updateMatrixWorld();
+    rayoBl.setFromCamera(_ndcBl, camera);
+    rayoBl.far = 60;
+    let mejor = null;
+    for (const m of bl.mallas) {
+      if (!m.count) continue;
+      m.updateMatrixWorld();
+      const h = rayoBl.intersectObject(m, false)[0];
+      if (h && h.instanceId !== undefined && (!mejor || h.distance < mejor.d)) mejor = { d: h.distance, pieza: m.userData.piezas[h.instanceId] };
+    }
+    for (const f of bl.figuras) {
+      f.obj.updateMatrixWorld(true);
+      const h = rayoBl.intersectObject(f.obj, true)[0];
+      if (h && (!mejor || h.distance < mejor.d)) mejor = { d: h.distance, figura: f };
+    }
+    return mejor && (mejor.pieza || mejor.figura) ? (mejor.pieza ? { pieza: mejor.pieza } : { figura: mejor.figura }) : null;
+  }
+  function prepararToqueBloques() {
+    let ini = null;
+    canvas.addEventListener('pointerdown', (e) => { ini = { x: e.clientX, y: e.clientY, t: performance.now(), id: e.pointerId }; });
+    canvas.addEventListener('pointerup', (e) => {
+      if (!ini || ini.id !== e.pointerId) return;
+      const toque = Math.hypot(e.clientX - ini.x, e.clientY - ini.y) < 8 && performance.now() - ini.t < 500;
+      ini = null;
+      if (!toque || !bl.elegir || !bl.hud || bl.hud.raiz.hidden) return;
+      const o = elegirEnPantalla(e.clientX, e.clientY);
+      bl.sel = o;
+      if (o) notas([[520, 0, 0.05]], 'triangle', 0.04);
+      pintarPaletaBloques();
+    });
+  }
+  function seleccionVigente() {
+    const o = bl.sel;
+    if (o && (o.pieza ? !bl.piezas.includes(o.pieza) : !bl.figuras.includes(o.figura))) { bl.sel = null; pintarPaletaBloques(); }
+    return bl.sel;
+  }
+  function borrarElegido() {
+    const o = seleccionVigente();
+    if (!o || !enBloques(ninoE.pos)) return false;
+    if (o.figura) {
+      const f = o.figura;
+      bl.historial.push({ k: 'qfig', d: [f.id, f.x, f.z, f.y, f.rot, f.esc] });
+      quitarFigura(f);
+      notas([[300, 0, 0.08]], 'sine', 0.05);
+    } else {
+      const p = o.pieza;
+      bl.historial.push({ k: 'qpieza', d: [p.tipo, p.tam, p.ix, p.iy, p.iz] });
+      quitarPieza(p);
+      sonidoBloque(p.tipo, false);
+    }
+    if (bl.historial.length > 80) bl.historial.shift();
+    bl.sel = null;
+    pintarPaletaBloques();
     return true;
   }
   function deshacerBloque() {
@@ -16550,7 +16618,7 @@
   // ---------- La paleta (HTML) ----------
   function prepararPaletaBloques() {
     const $ = (id) => document.getElementById(id);
-    const H = { raiz: $('bl-hud'), tabs: $('bl-tabs'), paleta: $('bl-paleta'), tams: $('bl-tams'), quitar: $('bl-quitar'), deshacer: $('bl-deshacer'), vaciar: $('bl-vaciar'), info: $('bl-info') };
+    const H = { raiz: $('bl-hud'), tabs: $('bl-tabs'), paleta: $('bl-paleta'), tams: $('bl-tams'), quitar: $('bl-quitar'), elegir: $('bl-elegir'), borrar: $('bl-borrar'), deshacer: $('bl-deshacer'), vaciar: $('bl-vaciar'), info: $('bl-info') };
     bl.hud = H;
     const alPulsarBl = (el, fn) => {
       let ultimo = 0;
@@ -16565,6 +16633,9 @@
       H.tabs.appendChild(b);
     });
     alPulsarBl(H.quitar, quitarBloque);
+    alPulsarBl(H.elegir, () => { bl.elegir = !bl.elegir; bl.sel = null; if (bl.elegir) avisar('Toca el bloque o la figura que quieras borrar', 2600); pintarPaletaBloques(); });
+    alPulsarBl(H.borrar, borrarElegido);
+    prepararToqueBloques();
     alPulsarBl(H.deshacer, deshacerBloque);
     alPulsarBl(H.vaciar, () => {
       if (reloj.elapsedTime > bl.vaciarPendiente) {
@@ -16594,6 +16665,8 @@
   function pintarPaletaBloques() {
     const H = bl.hud;
     if (!H) return;
+    H.elegir.classList.toggle('activa', !!bl.elegir);
+    H.borrar.hidden = !bl.sel;
     H.tabs.querySelectorAll('.bl-tab').forEach((b) => b.classList.toggle('activa', b.dataset.cat === bl.cat));
     const bloques = bl.cat === 'bloques';
     H.tams.querySelectorAll('.bl-tam').forEach((b) => { b.hidden = !bloques; b.classList.toggle('activa', +b.dataset.tam === bl.tam); });
@@ -16750,6 +16823,7 @@
     bl.cuboGira = cajasDeBloque('luz', [[0, 0, 0, 1, 1, 1]], false);
     bl.cuboGira.position.set(0, 7.2, 0);
     bl.grupo = guarda;
+    construirSubeYBaja();
     colisiones.push({ x: PUERTA_BLOQUES.x - 2.5, z: PUERTA_BLOQUES.z, r: 0.7 }, { x: PUERTA_BLOQUES.x + 2.5, z: PUERTA_BLOQUES.z, r: 0.7 });
     const letrero = cartel('MUNDO DE BLOQUES', 4.6, 0.8);
     letrero.position.set(PUERTA_BLOQUES.x, yP + 3.1, PUERTA_BLOQUES.z + 0.55);
@@ -16817,6 +16891,44 @@
     pedirGuardado();
   }
 
+  // ---------- El sube y baja: Manuel en un extremo y Drako en el otro ----------
+  function construirSubeYBaja() {
+    const P = BL(SUBE.x, SUBE.z), Y0 = 0.02, L = 1.9;
+    const mat = (c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.9 });
+    const caja = (w, h, d, c, x, y, z, padre) => {
+      const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(c));
+      m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; padre.add(m); return m;
+    };
+    const base = new THREE.Group();
+    base.position.set(SUBE.x, 0, SUBE.z);
+    bl.grupo.add(base);
+    caja(1, 0.5, 1, '#8b8f94', 0, 0.25, 0, base);               // el apoyo: dos bloques de piedra
+    caja(0.5, 0.5, 0.5, '#6f7378', 0, 0.75 - 0.25, 0, base).scale.set(1, 0.4, 1);
+    const bal = new THREE.Group();
+    bal.position.set(SUBE.x, Y0 + 0.5, SUBE.z);
+    bl.grupo.add(bal);
+    caja(2 * L + 0.4, 0.12, 0.5, '#c8873a', 0, 0, 0, bal);      // la tabla de madera
+    for (const lado of [-1, 1]) {
+      caja(0.7, 0.14, 0.7, lado < 0 ? '#e0453a' : '#3a78e0', lado * L, 0.05, 0, bal);     // asientos de lana
+      caja(0.08, 0.5, 0.08, '#e8e8e8', lado * (L - 0.45), 0.3, 0, bal);                   // el asa
+      caja(0.5, 0.06, 0.08, '#e8e8e8', lado * (L - 0.45), 0.56, 0, bal).rotation.y = 0;
+    }
+    bl.balancin = bal;
+    colisiones.push({ x: P.x, z: P.z, r: 0.55 });
+    puntosAccion.push({ pos: new V3(P.x - L, Y0, P.z), radio: 1.3, texto: 'Sube y baja', visible: () => bl.grupo.visible, hacer: () => {
+      drakoIA.enBalancin = true;
+      empezarAtraccion({ tipo: 'subebaja', pos: new V3(P.x - L, Y0, P.z), ry: Math.PI / 2, sentado: true, salida: new V3(P.x - L, Y0, P.z + 1.4),
+        actualizar: (dt, a) => {
+          const ang = Math.sin(a.t * 2) * 0.28;
+          bal.rotation.z = ang;
+          a.asientoY = Y0 + 0.56 - Math.sin(ang) * L;
+          estado.pos.set(P.x + L + 0.4, Y0 + 0.5 + Math.sin(ang) * L - 0.35, P.z);
+          estado.rumbo = -Math.PI / 2;
+        },
+        alSalir: () => { bal.rotation.z = 0; drakoIA.enBalancin = false; estado.pos.set(P.x + L + 0.4, Y0, P.z + 1.2); } });
+    } });
+  }
+
   // ---------- Entrar y salir (de día) ----------
   function irAlBloques() {
     if (!bl.listo) return;
@@ -16842,6 +16954,7 @@
     });
   }
   function volverDelBloques() {
+    bl.sel = null; bl.elegir = false; pintarPaletaBloques();
     fundido(() => {
       ocultarParaBloques(false);
       ninoE.modo = 'libre';
@@ -16939,7 +17052,7 @@
       bl.ghostFig.position.set(o.x, o.y + 0.03, o.z);
       bl.ghostFig.scale.setScalar(Math.max(0.6, (figDe(bl.figSel) ? figDe(bl.figSel).ancho * bl.escala : 1) * 0.9));
     }
-    const q = objetivoQuitar();
+    const q = seleccionVigente() || (bl.elegir ? null : objetivoQuitar());
     if (q) {
       bl.ghostQuitar.visible = true;
       if (q.pieza) {
@@ -21112,6 +21225,13 @@
       bloquesDeshacer: () => deshacerBloque(),
       bloquesFigura: (id) => { bl.cat = figDe(id).cat; bl.figSel = id; return ponerBloque(); },
       bloquesTanda: (f) => ponerTanda(f),
+      bloquesPantalla: (i) => {
+        const p = bl.piezas[i < 0 ? bl.piezas.length + i : i], r = canvas.getBoundingClientRect(), v = new V3(-MITAD + (p.ix + p.w / 2) * 0.5, (p.iy + p.h / 2) * 0.5, -MITAD + (p.iz + p.d / 2) * 0.5);
+        v.add(BLOQUES).project(camera);
+        return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height, tipo: p.tipo, tam: p.tam };
+      },
+      bloquesSel: () => bl.sel ? (bl.sel.pieza ? { pieza: [bl.sel.pieza.tipo, bl.sel.pieza.ix, bl.sel.pieza.iy, bl.sel.pieza.iz] } : { figura: bl.sel.figura.id }) : null,
+      subeYBaja: () => ({ modo: ninoE.modo, tipo: ninoE.atr && ninoE.atr.tipo, rot: bl.balancin.rotation.z, perro: [estado.pos.x, estado.pos.y, estado.pos.z], boton: textoAccion }),
       estadio: () => ({ activa: atl.activa, ev: atl.ev && { id: atl.ev.id, fase: atl.ev.fase, boton: atl.ev.boton, ronda: atl.ev.ronda, nivel: atl.ev.nivel, intento: atl.ev.intento, t: +atl.ev.t.toFixed(2), puesto: atl.ev.puesto,
         st: atl.ev.st ? atl.ev.st.fase : null, v: atl.ev.corr ? +atl.ev.corr[0].v.toFixed(2) : null, s: atl.ev.corr ? +atl.ev.corr[0].s.toFixed(1) : null }, hechas: [...atl.hechas], medallas: atl.medallas,
         pos: ninoE.pos.toArray().map((v) => +v.toFixed(1)), zona: zonaDe(ninoE.pos), sesion: atl.sesion ? [...atl.sesion] : [], carlos: atl.carlos ? atl.carlos.grupo.position.toArray().map((v) => +v.toFixed(1)) : null }),
