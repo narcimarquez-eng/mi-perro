@@ -1771,7 +1771,7 @@
       pos.x = clamp(pos.x, CASTILLO.x - 60, CASTILLO.x + 60);
       pos.z = clamp(pos.z, CASTILLO.z - 78, CASTILLO.z + 68);
     } else if (enBloques(pos)) {
-      limitarBloques(pos, radio);
+      limitarBloques(pos, radio, esNino ? 1.2 : 0.8);
     } else if (enEstadio(pos)) {
       limitarEstadio(pos);
     } else if (pos.x > 500) {
@@ -16267,9 +16267,21 @@
   function sueloBloques(x, z, yActual) {
     if (!bl.cols) return 0.02;
     const ix = Math.floor((x - BLOQUES.x + MITAD) * 2), iz = Math.floor((z - BLOQUES.z + MITAD) * 2);
-    const top = alturaCasilla(ix, iz) * 0.5;
-    if (top <= 0) return 0.02;
-    return yActual === undefined || yActual > top - 0.6 ? top : 0.02;
+    if (ix < 0 || iz < 0 || ix >= NSUB || iz >= NSUB) return 0.02;
+    const lista = bl.cols[celda(ix, iz)];
+    if (!lista.length) return 0.02;
+    let top = 0;
+    if (yActual === undefined) {
+      // sin altura de referencia: lo de arriba del montón que sale del suelo (debajo de un puente, el suelo)
+      const orden = [...lista].sort((a, b) => a.iy - b.iy);
+      for (const q of orden) if (q.iy <= top) top = Math.max(top, q.iy + q.h);
+    } else {
+      // la superficie más alta a la que se llega desde donde se está (un escalón de medio bloque como mucho);
+      // los bloques que flotan más arriba no cuentan: se pasa por debajo
+      const lim = (yActual + 0.6) * 2;
+      for (const q of lista) if (q.iy + q.h <= lim) top = Math.max(top, q.iy + q.h);
+    }
+    return top > 0 ? top * 0.5 : 0.02;
   }
   const _mB = new THREE.Matrix4(), _qB = new THREE.Quaternion(), _pB = new V3(), _sB = new V3();
   function matrizPieza(p, escala = 1) {
@@ -17027,7 +17039,7 @@
     });
   }
   // Los límites: la placa y un paseo alrededor; y los bloques altos no se atraviesan (los medios bloques se suben andando)
-  function limitarBloques(pos, radio) {
+  function limitarBloques(pos, radio, alto = 1.2) {
     pos.x = clamp(pos.x, BLOQUES.x - 36, BLOQUES.x + 36);
     pos.z = clamp(pos.z, BLOQUES.z - 36, BLOQUES.z + 34);
     const lx = pos.x - BLOQUES.x + MITAD, lz = pos.z - BLOQUES.z + MITAD;
@@ -17036,8 +17048,9 @@
     const ix0 = Math.floor((lx - r) * 2), ix1 = Math.floor((lx + r) * 2), iz0 = Math.floor((lz - r) * 2), iz1 = Math.floor((lz + r) * 2);
     for (let iz = iz0; iz <= iz1; iz++) for (let ix = ix0; ix <= ix1; ix++) {
       if (ix < 0 || iz < 0 || ix >= NSUB || iz >= NSUB) continue;
-      const top = bl.H[celda(ix, iz)] * 0.5;
-      if (top <= pos.y + 0.6) continue;                         // se puede subir
+      // ¿hay algo a la altura del cuerpo? Lo que queda por debajo del escalón se sube y lo que flota por encima de la cabeza se pasa por debajo
+      const pies = (pos.y + 0.6) * 2, cabeza = (pos.y + alto) * 2;
+      if (!bl.cols[celda(ix, iz)].some((q) => q.iy + q.h > pies && q.iy < cabeza)) continue;
       const cx = ix * 0.5, cz = iz * 0.5;
       const px = clamp(lx, cx, cx + 0.5), pz = clamp(lz, cz, cz + 0.5);
       let dx = lx - px, dz = lz - pz, d = Math.hypot(dx, dz);
@@ -17049,6 +17062,34 @@
       } else { dx /= d; dz /= d; }
       pos.x += dx * (r - d);
       pos.z += dz * (r - d);
+    }
+  }
+
+  // Si Drako se queda atascado detrás de una construcción (no puede saltar bloques enteros), aparece junto a Manuel
+  const rescate = { t: 0, x: 0, z: 0, quieto: 0 };
+  function rescatarDrako(dt) {
+    if (jugador !== 'nino' || !enBloques(estado.pos) || !enBloques(ninoE.pos) || drakoIA.enBalancin || estado.descansando || ninoE.modo !== 'libre') { rescate.quieto = 0; return; }
+    rescate.t += dt;
+    if (rescate.t < 0.5) return;
+    const movido = Math.hypot(estado.pos.x - rescate.x, estado.pos.z - rescate.z);
+    rescate.x = estado.pos.x; rescate.z = estado.pos.z;
+    const lejos = distXZ(estado.pos, ninoE.pos) > 4 || Math.abs(estado.pos.y - ninoE.pos.y) > 1.6;
+    rescate.quieto = lejos && movido < 0.6 * rescate.t ? rescate.quieto + rescate.t : 0;
+    rescate.t = 0;
+    if (rescate.quieto < 2.5) return;
+    rescate.quieto = 0;
+    // detrás de Manuel, o a un lado si ahí hay bloques
+    for (const ang of [Math.PI, Math.PI * 0.6, -Math.PI * 0.6, Math.PI * 0.3, -Math.PI * 0.3, 0]) {
+      const r = ninoE.rumbo + ang, x = ninoE.pos.x + Math.sin(r) * 1.2, z = ninoE.pos.z + Math.cos(r) * 1.2;
+      const y = sueloBloques(x, z, ninoE.pos.y);
+      if (Math.abs(y - ninoE.pos.y) > 0.6) continue;
+      const p = new V3(x, y, z);
+      limitarBloques(p, 0.3, 0.8);
+      if (Math.hypot(p.x - x, p.z - z) > 0.05) continue;
+      estado.pos.copy(p);
+      estado.vy = 0;
+      notas([[700, 0, 0.05], [900, 0.06, 0.06]], 'triangle', 0.04);
+      return;
     }
   }
 
@@ -17069,6 +17110,7 @@
       if (k >= 1) bl.anim.splice(i, 1);
     }
     bl.nubes.forEach((n) => { n.position.x += n.userData.v * dt; if (n.position.x > 130) n.position.x = -130; });
+    rescatarDrako(dt);
     // los fantasmas, solo cuando Manuel puede construir
     const puede = jugador === 'nino' && ninoE.modo === 'libre' && !historia.activa && enBloques(ninoE.pos) && !fundidoEl.classList.contains('activo');
     bl.hud.raiz.hidden = !puede;
@@ -21265,6 +21307,7 @@
       bloquesDeshacer: () => deshacerBloque(),
       bloquesFigura: (id) => { bl.cat = figDe(id).cat; bl.figSel = id; return ponerBloque(); },
       bloquesTanda: (f) => ponerTanda(f),
+      bloquesNivel: (nivel, tipo) => { const n0 = bl.nivel; bl.nivel = nivel; bl.cat = 'bloques'; bl.tam = 0; bl.tipo = tipoBloque(tipo); const ok = ponerBloque(); bl.nivel = n0; return ok; },
       bloquesPantalla: (i) => {
         const p = bl.piezas[i < 0 ? bl.piezas.length + i : i], r = canvas.getBoundingClientRect(), v = new V3(-MITAD + (p.ix + p.w / 2) * 0.5, (p.iy + p.h / 2) * 0.5, -MITAD + (p.iz + p.d / 2) * 0.5);
         v.add(BLOQUES).project(camera);
