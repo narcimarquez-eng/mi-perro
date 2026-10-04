@@ -655,7 +655,13 @@
   body.en-espacio .tarea { display: none; }
   /* El mundo de bloques: la paleta, abajo en el centro */
   body.en-bloques .ayuda { display: none; }
-  body.en-historia .bl-hud { display: none; }
+  body.en-historia .bl-hud, body.en-historia .bl-nivel { display: none; }
+  .bl-nivel { position: fixed; left: calc(14px + env(safe-area-inset-left, 0px)); bottom: calc(215px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 6px; justify-items: center; z-index: 5; }
+  .bl-nivel[hidden] { display: none; }
+  .bl-nivel button { border: 0; border-radius: 16px; background: rgba(255, 255, 255, 0.94); color: #123b4a; font: 800 15px "Baloo 2", "Nunito", system-ui, sans-serif; cursor: pointer; touch-action: manipulation; }
+  .bl-nivel .flecha { width: 58px; height: 52px; font-size: 26px; line-height: 1; background: #3fb6ff; color: #fff; box-shadow: 0 4px 0 #1f7fc4; }
+  .bl-nivel .etiqueta { min-width: 74px; min-height: 40px; padding: 2px 8px; line-height: 1.05; }
+  .bl-nivel .etiqueta.fija { background: #ffd23f; }
   .bl-hud { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(94px + env(safe-area-inset-bottom, 0px)); width: min(600px, calc(100% - 290px)); display: grid; gap: 5px; z-index: 5; }
   .bl-hud[hidden] { display: none; }
   .bl-tabs, .bl-fila, .bl-tams { display: flex; gap: 5px; justify-content: center; flex-wrap: wrap; align-items: center; }
@@ -855,6 +861,11 @@
   </div>
 </div>
 
+<div class="bl-nivel" id="bl-nivel" hidden>
+  <button type="button" class="flecha" id="bl-sube" aria-label="Subir el bloque">⬆</button>
+  <button type="button" class="etiqueta" id="bl-nivel-et" aria-label="Altura">Altura<br>auto</button>
+  <button type="button" class="flecha" id="bl-baja" aria-label="Bajar el bloque">⬇</button>
+</div>
 <div class="bl-hud" id="bl-hud" hidden>
   <div class="bl-tabs" id="bl-tabs"></div>
   <div class="bl-paleta" id="bl-paleta"></div>
@@ -1531,7 +1542,7 @@
 
   // ---------- Controles ----------
   const teclas = new Set();
-  const TECLAS_JUEGO = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'ShiftLeft', 'ShiftRight', 'KeyB', 'KeyE', 'KeyC', 'Tab', 'KeyM', 'KeyQ', 'KeyZ'];
+  const TECLAS_JUEGO = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'ShiftLeft', 'ShiftRight', 'KeyB', 'KeyE', 'KeyC', 'Tab', 'KeyM', 'KeyQ', 'KeyZ', 'KeyR', 'KeyF'];
   window.addEventListener('keydown', (e) => {
     if (TECLAS_JUEGO.includes(e.code)) e.preventDefault();
     if (e.repeat) return;
@@ -16173,7 +16184,7 @@
   const bl = {
     listo: false, grupo: new THREE.Group(), mats: [], mallas: [], piezas: [], figuras: [], cols: null, H: new Int16Array(NSUB * NSUB),
     tipo: 0, tam: 0, cat: 'bloques', figSel: null, escala: 1, historial: [], anim: [], total: 0, nuevos: 0, tipos: new Set(), P: {}, catalogoFig: [], guardar: null,
-    ghost: null, ghostQuitar: null, ghostFig: null, hud: null, nubes: [], ocultos: null, plan: null, casita: [], vaciarPendiente: 0, elegir: false, sel: null,
+    ghost: null, ghostQuitar: null, ghostFig: null, hud: null, nubes: [], ocultos: null, plan: null, casita: [], vaciarPendiente: 0, elegir: false, sel: null, nivel: null,
   };
 
   // Materiales por tipo (lado, arriba, abajo) con el mismo truco: la textura se coloca según las coordenadas de la pieza,
@@ -16271,7 +16282,7 @@
     const [w, d, h] = TAM_PIEZA[tam];
     if (ix < 0 || iz < 0 || ix + w > NSUB || iz + d > NSUB) return null;
     if (opciones.apoyar) for (let a = 0; a < w; a++) for (let b = 0; b < d; b++) iy = Math.max(iy, bl.H[celda(ix + a, iz + b)]);
-    if (iy + h > ALTO_MAX || ocupaSube(ix, iz, w, d)) return null;
+    if (iy + h > ALTO_MAX || ocupaSube(ix, iz, w, d) || solapaPieza(ix, iz, w, d, iy, h)) return null;
     const malla = bl.mallas[tipo];
     if (malla.count >= CAP_TIPO || bl.total >= MAX_PIEZAS) return null;
     const p = { tipo, tam, ix, iy, iz, w, d, h, slot: malla.count, malla, casita: !!opciones.casita };
@@ -16440,7 +16451,29 @@
     let iy = 0;
     for (let a = 0; a < w; a++) for (let b = 0; b < d; b++) iy = Math.max(iy, bl.H[celda(ix + a, iz + b)]);
     if (E.enSuelo) iy = Math.max(iy, Math.floor(p.y * 2 + 0.05));          // si Manuel está subido a algo, se pone a su altura
+    if (bl.nivel !== null) {                                                   // altura elegida con ⬆ y ⬇
+      iy = clamp(bl.nivel, 0, ALTO_MAX - h);
+      return { ix, iy, iz, w, d, h, ok: !solapaPieza(ix, iz, w, d, iy, h) };
+    }
     return { ix, iy, iz, w, d, h, ok: iy + h <= ALTO_MAX };
+  }
+  function solapaPieza(ix, iz, w, d, iy, h) {
+    for (let a = 0; a < w; a++) for (let b = 0; b < d; b++) for (const q of bl.cols[celda(ix + a, iz + b)]) if (q.iy < iy + h && q.iy + q.h > iy) return true;
+    return false;
+  }
+  // Sube o baja a donde se pondrá el próximo bloque (en pasos de medio metro)
+  function cambiarNivel(delta) {
+    const o = objetivoPieza(bl.tam);
+    const base = bl.nivel === null ? o.iy : bl.nivel;
+    bl.nivel = clamp(base + delta, 0, ALTO_MAX - 1);
+    pintarNivel();
+  }
+  function pintarNivel() {
+    const et = bl.hud && bl.hud.nivelEt;
+    if (!et) return;
+    const txt = bl.nivel === null ? 'Altura<br>auto' : `Altura<br>${(bl.nivel * 0.5).toString().replace('.', ',')} m`;
+    if (et.dataset.t !== txt) { et.dataset.t = txt; et.innerHTML = txt; }
+    et.classList.toggle('fija', bl.nivel !== null);
   }
   function objetivoFigura() {
     const E = ninoE, p = posLocal();
@@ -16448,6 +16481,7 @@
     const ix = clamp(Math.floor((x + MITAD) * 2), 0, NSUB - 1), iz = clamp(Math.floor((z + MITAD) * 2), 0, NSUB - 1);
     let y = alturaCasilla(ix, iz) * 0.5;
     if (E.enSuelo) y = Math.max(y, Math.floor(p.y * 2 + 0.05) / 2);
+    if (bl.nivel !== null) y = bl.nivel * 0.5;
     const rot = Math.round((E.rumbo + Math.PI) / (Math.PI / 2)) * (Math.PI / 2);
     return { x: clamp(x, -MITAD + 0.5, MITAD - 0.5), z: clamp(z, -MITAD + 0.5, MITAD - 0.5), y, rot };
   }
@@ -16618,7 +16652,7 @@
   // ---------- La paleta (HTML) ----------
   function prepararPaletaBloques() {
     const $ = (id) => document.getElementById(id);
-    const H = { raiz: $('bl-hud'), tabs: $('bl-tabs'), paleta: $('bl-paleta'), tams: $('bl-tams'), quitar: $('bl-quitar'), elegir: $('bl-elegir'), borrar: $('bl-borrar'), deshacer: $('bl-deshacer'), vaciar: $('bl-vaciar'), info: $('bl-info') };
+    const H = { raiz: $('bl-hud'), tabs: $('bl-tabs'), paleta: $('bl-paleta'), tams: $('bl-tams'), quitar: $('bl-quitar'), elegir: $('bl-elegir'), borrar: $('bl-borrar'), nivel: $('bl-nivel'), nivelEt: $('bl-nivel-et'), deshacer: $('bl-deshacer'), vaciar: $('bl-vaciar'), info: $('bl-info') };
     bl.hud = H;
     const alPulsarBl = (el, fn) => {
       let ultimo = 0;
@@ -16635,6 +16669,9 @@
     alPulsarBl(H.quitar, quitarBloque);
     alPulsarBl(H.elegir, () => { bl.elegir = !bl.elegir; bl.sel = null; if (bl.elegir) avisar('Toca el bloque o la figura que quieras borrar', 2600); pintarPaletaBloques(); });
     alPulsarBl(H.borrar, borrarElegido);
+    alPulsarBl($('bl-sube'), () => cambiarNivel(1));
+    alPulsarBl($('bl-baja'), () => cambiarNivel(-1));
+    alPulsarBl(H.nivelEt, () => { bl.nivel = null; pintarNivel(); });
     prepararToqueBloques();
     alPulsarBl(H.deshacer, deshacerBloque);
     alPulsarBl(H.vaciar, () => {
@@ -16954,7 +16991,7 @@
     });
   }
   function volverDelBloques() {
-    bl.sel = null; bl.elegir = false; pintarPaletaBloques();
+    bl.sel = null; bl.elegir = false; bl.nivel = null; pintarNivel(); pintarPaletaBloques();
     fundido(() => {
       ocultarParaBloques(false);
       ninoE.modo = 'libre';
@@ -17035,6 +17072,7 @@
     // los fantasmas, solo cuando Manuel puede construir
     const puede = jugador === 'nino' && ninoE.modo === 'libre' && !historia.activa && enBloques(ninoE.pos) && !fundidoEl.classList.contains('activo');
     bl.hud.raiz.hidden = !puede;
+    bl.hud.nivel.hidden = !puede;
     bl.ghost.visible = bl.ghostQuitar.visible = bl.ghostFig.visible = false;
     if (!puede) return;
     bl.hud.info.textContent = `${bl.total} bloques · ${bl.figuras.length} figuras`;
@@ -17115,6 +17153,8 @@
     if (!bl.listo || jugador !== 'nino' || !enBloques(ninoE.pos) || historia.activa) return;
     if (code === 'KeyQ') quitarBloque();
     else if (code === 'KeyZ') deshacerBloque();
+    else if (code === 'KeyR') cambiarNivel(1);
+    else if (code === 'KeyF') cambiarNivel(-1);
     else if (code === 'Digit1' || code === 'Digit2' || code === 'Digit3') { bl.cat = 'bloques'; bl.tam = +code.slice(5) - 1; pintarPaletaBloques(); }
   }
 
