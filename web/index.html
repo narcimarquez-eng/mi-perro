@@ -16919,10 +16919,10 @@
       drakoIA.enBalancin = true;
       empezarAtraccion({ tipo: 'subebaja', pos: new V3(P.x - L, Y0, P.z), ry: Math.PI / 2, sentado: true, salida: new V3(P.x - L, Y0, P.z + 1.4),
         actualizar: (dt, a) => {
-          const ang = Math.sin(a.t * 2) * 0.28;
+          const ang = Math.sin(a.t * 2) * 0.2;
           bal.rotation.z = ang;
           a.asientoY = Y0 + 0.56 - Math.sin(ang) * L;
-          estado.pos.set(P.x + L + 0.4, Y0 + 0.5 + Math.sin(ang) * L - 0.35, P.z);
+          estado.pos.set(P.x + L + 0.4, Y0 + 0.5 + Math.sin(ang) * L - 0.2, P.z);
           estado.rumbo = -Math.PI / 2;
         },
         alSalir: () => { bal.rotation.z = 0; drakoIA.enBalancin = false; estado.pos.set(P.x + L + 0.4, Y0, P.z + 1.2); } });
