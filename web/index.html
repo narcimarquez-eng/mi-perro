@@ -16236,7 +16236,7 @@
   const bl = {
     listo: false, grupo: new THREE.Group(), mats: [], mallas: [], piezas: [], figuras: [], cols: null, H: new Int16Array(NSUB * NSUB),
     tipo: 0, tam: 0, cat: 'bloques', figSel: null, escala: 1, historial: [], anim: [], total: 0, nuevos: 0, tipos: new Set(), P: {}, catalogoFig: [], guardar: null,
-    ghost: null, ghostQuitar: null, ghostFig: null, hud: null, nubes: [], ocultos: null, plan: null, casita: [], vaciarPendiente: 0, generarPendiente: 0, elegir: false, sel: null, nivel: null, corte: new THREE.Plane(new THREE.Vector3(0, -1, 0), 1e6), dentro: false,
+    ghost: null, ghostQuitar: null, ghostFig: null, hud: null, nubes: [], ocultos: null, plan: null, casita: [], vaciarPendiente: 0, generarPendiente: 0, elegir: false, sel: null, nivel: null, rompiendo: null, trozos: [], corte: new THREE.Plane(new THREE.Vector3(0, -1, 0), 1e6), dentro: false,
   };
 
   // Materiales por tipo (lado, arriba, abajo) con el mismo truco: la textura se coloca según las coordenadas de la pieza,
@@ -16837,10 +16837,32 @@
     }
     return mejor && (mejor.pieza || mejor.figura) ? (mejor.pieza ? { pieza: mejor.pieza } : { figura: mejor.figura }) : null;
   }
+  // Tocar (en modo Elegir) marca lo que se quiere borrar; dejar el dedo quieto encima de un bloque o una figura lo rompe
+  const ROMPER_S = 0.65;
   function prepararToqueBloques() {
-    let ini = null;
-    canvas.addEventListener('pointerdown', (e) => { ini = { x: e.clientX, y: e.clientY, t: performance.now(), id: e.pointerId }; });
+    let ini = null, dedos = 0;
+    const cancelar = () => {
+      // si se suelta antes de tiempo, vuelve a quedar como estaba
+      const R = bl.rompiendo;
+      bl.rompiendo = null;
+      if (R && R.pieza && bl.piezas.includes(R.pieza)) { R.pieza.malla.setMatrixAt(R.pieza.slot, matrizPieza(R.pieza)); R.pieza.malla.instanceMatrix.needsUpdate = true; }
+      if (R && R.figura) R.figura.obj.position.set(R.figura.x, R.figura.y, R.figura.z);
+    };
+    canvas.addEventListener('pointerdown', (e) => {
+      dedos++;
+      ini = { x: e.clientX, y: e.clientY, t: performance.now(), id: e.pointerId };
+      cancelar();
+      if (dedos > 1 || !bl.hud || bl.hud.raiz.hidden || (e.pointerType === 'mouse' && e.button !== 0)) return;
+      const o = elegirEnPantalla(e.clientX, e.clientY);
+      if (o) bl.rompiendo = { ...o, t: 0, id: e.pointerId, ultimoGolpe: 0 };
+    });
+    canvas.addEventListener('pointermove', (e) => {
+      if (ini && ini.id === e.pointerId && Math.hypot(e.clientX - ini.x, e.clientY - ini.y) > 10) cancelar();   // al girar la cámara no se rompe nada
+    });
+    canvas.addEventListener('pointercancel', () => { dedos = Math.max(0, dedos - 1); cancelar(); });
     canvas.addEventListener('pointerup', (e) => {
+      dedos = Math.max(0, dedos - 1);
+      if (bl.rompiendo && bl.rompiendo.id === e.pointerId) cancelar();
       if (!ini || ini.id !== e.pointerId) return;
       const toque = Math.hypot(e.clientX - ini.x, e.clientY - ini.y) < 8 && performance.now() - ini.t < 500;
       ini = null;
@@ -16859,6 +16881,12 @@
   function borrarElegido() {
     const o = seleccionVigente();
     if (!o || !enBloques(ninoE.pos)) return false;
+    borrarObjeto(o);
+    bl.sel = null;
+    pintarPaletaBloques();
+    return true;
+  }
+  function borrarObjeto(o) {
     if (o.figura) {
       const f = o.figura;
       bl.historial.push({ k: 'qfig', d: [f.id, f.x, f.z, f.y, f.rot, f.esc] });
@@ -16871,9 +16899,78 @@
       sonidoBloque(p.tipo, false);
     }
     if (bl.historial.length > 80) bl.historial.shift();
-    bl.sel = null;
-    pintarPaletaBloques();
-    return true;
+  }
+  // Mientras se mantiene pulsado: tiembla y se encoge; al acabar, se rompe en trocitos
+  const _pR = new V3(), _sR = new V3();
+  function actualizarRomper(dt) {
+    const R = bl.rompiendo;
+    if (!R) return null;
+    const o = R.pieza ? (bl.piezas.includes(R.pieza) ? R : null) : (bl.figuras.includes(R.figura) ? R : null);
+    if (!o || !enBloques(ninoE.pos)) { bl.rompiendo = null; return null; }
+    R.t += dt;
+    const k = Math.min(1, R.t / ROMPER_S), tiembla = 0.03 + 0.05 * k;
+    if (R.t - R.ultimoGolpe > 0.16) { R.ultimoGolpe = R.t; notas([[120 + 60 * k, 0, 0.03]], 'square', 0.03 + 0.03 * k); }
+    if (R.pieza) {
+      const p = R.pieza, m = matrizPieza(p, 1 - 0.18 * k);
+      m.decompose(_pR, _qB, _sR);
+      _pR.x += (Math.random() - 0.5) * tiembla; _pR.z += (Math.random() - 0.5) * tiembla;
+      m.compose(_pR, _qB, _sR);
+      p.malla.setMatrixAt(p.slot, m);
+      p.malla.instanceMatrix.needsUpdate = true;
+    } else {
+      const f = R.figura;
+      f.obj.position.set(f.x + (Math.random() - 0.5) * tiembla, f.y, f.z + (Math.random() - 0.5) * tiembla);
+    }
+    if (k < 1) return R;
+    // ¡crac!
+    bl.rompiendo = null;
+    if (R.pieza) {
+      const p = R.pieza;
+      trocitos(-MITAD + (p.ix + p.w / 2) * 0.5, (p.iy + p.h / 2) * 0.5, -MITAD + (p.iz + p.d / 2) * 0.5, colorBloque(p.tipo), Math.max(p.w, p.h, p.d) * 0.5);
+    } else {
+      const f = R.figura;
+      f.obj.position.set(f.x, f.y, f.z);
+      trocitos(f.x, f.y + 0.4, f.z, '#e8e2d0', 0.8);
+    }
+    borrarObjeto(R);
+    if (bl.sel && (bl.sel.pieza === R.pieza && R.pieza || bl.sel.figura === R.figura && R.figura)) { bl.sel = null; pintarPaletaBloques(); }
+    notas([[180, 0, 0.06], [110, 0.04, 0.09]], 'sawtooth', 0.05);
+    return null;
+  }
+  // El color medio del dibujo de un bloque, para sus trocitos
+  function colorBloque(k) {
+    const t = TIPOS_BLOQUE[k];
+    if (!t.colorMedio) {
+      const d = t.iconoTex.userData.cv.getContext('2d').getImageData(0, 0, 16, 16).data;
+      let r = 0, g = 0, b = 0, n = 0;
+      for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 60) { r += d[i]; g += d[i + 1]; b += d[i + 2]; n++; }
+      t.colorMedio = n ? new THREE.Color(r / n / 255, g / n / 255, b / n / 255).convertSRGBToLinear() : new THREE.Color('#888');
+    }
+    return t.colorMedio;
+  }
+  const geoTrocito = new THREE.BoxGeometry(0.14, 0.14, 0.14);
+  function trocitos(x, y, z, color, tam) {
+    for (let i = 0; i < 12; i++) {
+      const m = new THREE.Mesh(geoTrocito, new THREE.MeshStandardMaterial({ color, roughness: 0.9, transparent: true }));
+      m.position.set(x + (Math.random() - 0.5) * tam, y + (Math.random() - 0.5) * tam, z + (Math.random() - 0.5) * tam);
+      m.userData = { v: new V3((Math.random() - 0.5) * 4, 2 + Math.random() * 3, (Math.random() - 0.5) * 4), g: new V3(Math.random() * 8, Math.random() * 8, 0), vida: 0.9 + Math.random() * 0.4 };
+      m.castShadow = true;
+      bl.grupo.add(m);
+      bl.trozos.push(m);
+    }
+  }
+  function moverTrocitos(dt) {
+    for (let i = bl.trozos.length - 1; i >= 0; i--) {
+      const m = bl.trozos[i], u = m.userData;
+      u.vida -= dt;
+      u.v.y -= 14 * dt;
+      m.position.addScaledVector(u.v, dt);
+      const suelo0 = sueloBloques(m.position.x + BLOQUES.x, m.position.z + BLOQUES.z, m.position.y) + 0.07;
+      if (m.position.y < suelo0) { m.position.y = suelo0; u.v.y *= -0.3; u.v.x *= 0.6; u.v.z *= 0.6; }
+      m.rotation.x += u.g.x * dt; m.rotation.y += u.g.y * dt;
+      m.material.opacity = Math.min(1, u.vida * 3);
+      if (u.vida <= 0) { bl.grupo.remove(m); m.material.dispose(); bl.trozos.splice(i, 1); }
+    }
   }
   function deshacerBloque() {
     const a = bl.historial.pop();
@@ -17529,6 +17626,7 @@
     }
     bl.nubes.forEach((n) => { n.position.x += n.userData.v * dt; if (n.position.x > 130) n.position.x = -130; });
     rescatarDrako(dt);
+    moverTrocitos(dt);
     // Bajo techo: se corta todo lo que queda por encima de la cabeza de Manuel y la cámara mira desde arriba
     bl.dentro = bajoTecho();
     bl.corte.constant = bl.dentro ? ninoE.pos.y + 1.9 : 1e6;
@@ -17565,7 +17663,7 @@
       bl.ghostFig.position.set(o.x, o.y + 0.03, o.z);
       bl.ghostFig.scale.setScalar(Math.max(0.6, (figDe(bl.figSel) ? figDe(bl.figSel).ancho * bl.escala : 1) * 0.9));
     }
-    const q = seleccionVigente() || (bl.elegir ? null : objetivoQuitar());
+    const q = actualizarRomper(dt) || seleccionVigente() || (bl.elegir ? null : objetivoQuitar());
     if (q) {
       bl.ghostQuitar.visible = true;
       if (q.pieza) {
@@ -21740,6 +21838,8 @@
       bloquesDeshacer: () => deshacerBloque(),
       bloquesFigura: (id) => { bl.cat = figDe(id).cat; bl.figSel = id; return ponerBloque(); },
       bloquesTanda: (f) => ponerTanda(f),
+      bloquesRompiendo: () => bl.rompiendo ? { t: +bl.rompiendo.t.toFixed(2), pieza: !!bl.rompiendo.pieza } : null,
+      bloquesTrozos: () => bl.trozos.length,
       bloquesFlotan: () => {
         let n = 0; const ej = [];
         for (const q of bl.piezas) {
