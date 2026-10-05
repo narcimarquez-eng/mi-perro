@@ -21840,6 +21840,7 @@
       bloquesTanda: (f) => ponerTanda(f),
       bloquesRompiendo: () => bl.rompiendo ? { t: +bl.rompiendo.t.toFixed(2), pieza: !!bl.rompiendo.pieza } : null,
       bloquesTrozos: () => bl.trozos.length,
+      bloquesEnPantalla: (x, y) => { const o = elegirEnPantalla(x, y); return { o: o ? (o.pieza ? 'pieza' : 'figura') : null, hud: bl.hud.raiz.hidden, modo: ninoE.modo, jug: jugador, hist: historia.activa }; },
       bloquesFlotan: () => {
         let n = 0; const ej = [];
         for (const q of bl.piezas) {
