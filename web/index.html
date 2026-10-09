@@ -1506,7 +1506,10 @@
   function ninoGenerico(base, primo) {
     if (!base) return null;
     const escena = clonarPersona(base.scene, ['#f08a1c', '#2a3550']);
-    escena.traverse((o) => { if (/^Casco/.test(o.name)) o.visible = false; });
+    // sin el casco de carreras (además, el tamaño del niño se mide con la primera malla con huesos y no debe ser el casco)
+    const cascos = [];
+    escena.traverse((o) => { if (/^Casco/.test(o.name)) cascos.push(o); });
+    cascos.forEach((o) => o.parent && o.parent.remove(o));
     const nombres = new Set(base.animations.map((c) => c.name));
     const animaciones = [...base.animations, ...(primo ? primo.animations.filter((c) => !nombres.has(c.name)) : [])];
     // el balón: un icosaedro blanco con algunas caras negras

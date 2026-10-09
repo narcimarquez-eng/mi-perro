@@ -93,3 +93,7 @@ Si Manuel está cerca, Drako le sigue y va a por el balón; si está lejos, se q
 Con `#prueba` al final de la dirección se activa un modo de pruebas (`window.prueba`) con piloto automático.
 
 Si cambias `Perro.py` o `Playa.py`, copia los `.glb` nuevos a `web/`. La forma del terreno (`altura()`, con el parque, la casa y sus piscinas) y el rectángulo del muelle están duplicados en `Playa.py` y `web/index.html`: si los cambias, cámbialos en los dos.
+
+## Versión pública (GitHub Pages)
+
+El modelo de Manuel (`nino.glb`) no está en este repositorio público, porque se basa en un niño de verdad. Si falta, el juego no se para: el protagonista es un niño de dibujos inventado (una copia de uno de los amigos del circuito con otra ropa y un balón hecho en el propio juego). Con GitHub Pages activado sobre la rama `main`, el juego se abre en `https://narcimarquez-eng.github.io/mi-perro/web/`.
