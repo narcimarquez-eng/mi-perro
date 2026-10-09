@@ -1466,6 +1466,8 @@
       }
       if (o.isBone) nino.huesos[o.name] = o;
     });
+    // El niño de repuesto (ver ninoGenerico) tiene los huesos con otros nombres: se buscan por su equivalente
+    for (const [ing, esp] of Object.entries(HUESOS_EQUIV)) if (!nino.huesos[ing] && nino.huesos[esp]) nino.huesos[ing] = nino.huesos[esp];
     // Tamaño de un niño de unos 6 años (1,20 m) con los pies en el suelo (medido sin el balón)
     const cuerpoNino = modelo.getObjectByProperty('isSkinnedMesh', true);
     const caja = new THREE.Box3().setFromObject(cuerpoNino);
@@ -1480,17 +1482,52 @@
     nino.reposo = Object.values(nino.huesos).map((h) => [h, h.quaternion.clone()]);
     nino.mixer = new THREE.AnimationMixer(modelo);
     gltf.animations.forEach((clip) => { nino.acciones[clip.name] = nino.mixer.clipAction(clip); });
+    for (const [nombre, otras] of Object.entries(ANIM_EQUIV)) {
+      const o = otras.find((n) => nino.acciones[n]);
+      if (!nino.acciones[nombre] && o) nino.acciones[nombre] = nino.acciones[o];
+    }
 
     // El balón viene como objeto aparte: lo sacamos a la escena y lo colocamos cada fotograma
     balon.obj = modelo.getObjectByName('Balon');
     modelo.updateMatrixWorld(true);
     scene.attach(balon.obj);
+    if (balon.obj.userData.radio) balon.obj.scale.setScalar(balon.obj.userData.radio);     // el balón del niño de repuesto
     balon.r = new THREE.Box3().setFromObject(balon.obj).getSize(new V3()).y / 2;
+  }
+
+  // Si falta nino.glb (no está en el repositorio público, porque Manuel se basa en un niño de verdad), el
+  // protagonista es un niño de dibujos inventado: una copia de uno de los amigos del circuito con otra ropa,
+  // con las animaciones de los primos para nadar y sentarse, y un balón hecho aquí.
+  const HUESOS_EQUIV = { Hips: 'raiz', Spine: 'columna', Spine1: 'columna', Neck: 'cabeza', Head: 'cabeza', LeftArm: 'brazo_L', RightArm: 'brazo_R',
+    LeftForeArm: 'antebrazo_L', RightForeArm: 'antebrazo_R', LeftHand: 'mano_L', RightHand: 'mano_R', LeftUpLeg: 'pierna_L', RightUpLeg: 'pierna_R',
+    LeftLeg: 'espinilla_L', RightLeg: 'espinilla_R', LeftFoot: 'pie_L', RightFoot: 'pie_R' };
+  const ANIM_EQUIV = { idle: ['reposo'], walk: ['andar'], run: ['correr'], swim: ['nadar'], pickup: ['agachado'], kick: ['lanzar'], attack: ['lanzar'],
+    shoot: ['lanzar'], skill: ['celebrar', 'saludar'] };
+  function ninoGenerico(base, primo) {
+    if (!base) return null;
+    const escena = clonarPersona(base.scene, ['#f08a1c', '#2a3550']);
+    // sin el casco de carreras (además, el tamaño del niño se mide con la primera malla con huesos y no debe ser el casco)
+    const cascos = [];
+    escena.traverse((o) => { if (/^Casco/.test(o.name)) cascos.push(o); });
+    cascos.forEach((o) => o.parent && o.parent.remove(o));
+    const nombres = new Set(base.animations.map((c) => c.name));
+    const animaciones = [...base.animations, ...(primo ? primo.animations.filter((c) => !nombres.has(c.name)) : [])];
+    // el balón: un icosaedro blanco con algunas caras negras
+    const geo = new THREE.IcosahedronGeometry(1, 1).toNonIndexed();
+    const col = [], az = prng(77);
+    for (let i = 0; i < geo.attributes.position.count / 3; i++) { const c = az() < 0.28 ? 0.08 : 0.95; for (let k = 0; k < 3; k++) col.push(c, c, c); }
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+    const pelota = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, flatShading: true }));
+    pelota.name = 'Balon';
+    pelota.castShadow = true;
+    pelota.userData.radio = 0.11;
+    escena.add(pelota);
+    return { scene: escena, animations: animaciones, generico: true };
   }
 
   // Papá y mamá (hechos en Blender con Padres.py); si faltan, se usan los muñecos sencillos
   const cargarOpcional = (n) => cargar(n).catch(() => null);
-  Promise.all([cargar('playa.glb'), cargar('perro.glb'), cargar('nino.glb'), cargarOpcional('papa.glb'), cargarOpcional('mama.glb'),
+  Promise.all([cargar('playa.glb'), cargar('perro.glb'), cargarOpcional('nino.glb'), cargarOpcional('papa.glb'), cargarOpcional('mama.glb'),
     cargarOpcional('arrecife.glb'), cargarOpcional('coches.glb'), cargarOpcional('pistas.glb'), cargarOpcional('numeros.glb'), cargarOpcional('cochesjuguete.glb'), cargarOpcional('feria.glb'), cargarOpcional('safari.glb'),
     cargarOpcional('papa_verano.glb'), cargarOpcional('mama.glb'), cargarOpcional('carlos.glb'), cargarOpcional('miguel.glb'), cargarOpcional('halloween.glb'), cargarOpcional('espacio.glb'), cargarOpcional('fantasticos.glb'), cargarOpcional('atletismo.glb'),
     cargarOpcional('amigo1.glb'), cargarOpcional('amigo2.glb'), cargarOpcional('amigo3.glb'), cargarOpcional('amigo4.glb')])
@@ -1498,6 +1535,8 @@
     prepararPlaya(playa);
     try { copiarFuentesBloques({ safari: gSafari, arrecife: gArrecife, halloween: gHalloween, fantasticos: gFantasticos, numeros: gNumeros, pistas: gPistas, feria: gFeria, atletismo: gAtletismo, espacio: gEspacio }); } catch (e) { console.error('Figuras de bloques:', e); }
     prepararPerro(gPerro);
+    if (!gNino) gNino = ninoGenerico(gAmigos[1] || gAmigos.find(Boolean), gCarlos || gMiguel);
+    if (!gNino) throw new Error('Falta nino.glb');
     prepararNino(gNino);
     construirParque(playa.scene);
     construirCasa(playa.scene);
